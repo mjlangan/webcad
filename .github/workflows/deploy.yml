@@ -1,7 +1,9 @@
-name: Deploy to GitHub Pages
+name: CI / Deploy to GitHub Pages
 
 on:
   push:
+    branches: [main]
+  pull_request:
     branches: [main]
 
 permissions:
@@ -9,8 +11,9 @@ permissions:
   pages: write
   id-token: write
 
+# One concurrent run per branch/PR; cancel in-progress runs for the same ref.
 concurrency:
-  group: pages
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -24,15 +27,20 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run lint
+      - run: npm test
       - run: npm run build
         env:
           VITE_BASE: /${{ github.event.repository.name }}/
+      # Only upload the Pages artifact on pushes to main — PRs skip this step.
       - uses: actions/upload-pages-artifact@v3
+        if: github.event_name == 'push'
         with:
           path: dist
 
   deploy:
     needs: build
+    # Only deploy on pushes to main, never on pull requests.
+    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     environment:
       name: github-pages
