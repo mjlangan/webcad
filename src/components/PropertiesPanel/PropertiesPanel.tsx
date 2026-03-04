@@ -1,6 +1,8 @@
 import { useSceneStore } from '../../store/useSceneStore';
+import { undoStack } from '../../store/undoStack';
+import { TransformCommand, UpdateGeometryCommand } from '../../store/commands';
 import type { ReactNode } from 'react';
-import type { PrimitiveParams } from '../../types/scene';
+import type { PrimitiveParams, Transform } from '../../types/scene';
 import './PropertiesPanel.css';
 
 const RAD_TO_DEG = 180 / Math.PI;
@@ -112,11 +114,9 @@ function GeometryFields({
 
 export default function PropertiesPanel() {
   const nodes = useSceneStore((s) => s.nodes);
-  const selectedId = useSceneStore((s) => s.selectedId);
-  const updateTransform = useSceneStore((s) => s.updateTransform);
-  const updatePrimitiveParams = useSceneStore((s) => s.updatePrimitiveParams);
+  const selectedIds = useSceneStore((s) => s.selectedIds);
 
-  const node = nodes.find((n) => n.id === selectedId);
+  const node = nodes.find((n) => n.id === selectedIds[0]);
 
   if (!node) {
     return (
@@ -129,28 +129,36 @@ export default function PropertiesPanel() {
 
   const { transform, geometry } = node;
 
+  const applyTransform = (newTransform: Transform) => {
+    undoStack.push(new TransformCommand([node.id], [transform], [newTransform]));
+  };
+
   const setPos = (axis: 0 | 1 | 2, v: number) => {
     const pos = [...transform.position] as [number, number, number];
     pos[axis] = v;
-    updateTransform(node.id, { ...transform, position: pos });
+    applyTransform({ ...transform, position: pos });
   };
 
   const setRot = (axis: 0 | 1 | 2, deg: number) => {
     const rot = [...transform.rotation] as [number, number, number];
     rot[axis] = deg * DEG_TO_RAD;
-    updateTransform(node.id, { ...transform, rotation: rot });
+    applyTransform({ ...transform, rotation: rot });
   };
 
   const setScale = (axis: 0 | 1 | 2, v: number) => {
     const sc = [...transform.scale] as [number, number, number];
     sc[axis] = v;
-    updateTransform(node.id, { ...transform, scale: sc });
+    applyTransform({ ...transform, scale: sc });
   };
 
   return (
     <div className="props-panel">
       <div className="panel-header">Properties</div>
-      <div className="props-node-name">{node.name}</div>
+      {selectedIds.length > 1 ? (
+        <div className="props-node-name">{selectedIds.length} objects selected</div>
+      ) : (
+        <div className="props-node-name">{node.name}</div>
+      )}
 
       <Section title="Position">
         <NumField label="X" unit="mm" value={transform.position[0]} onChange={(v) => setPos(0, v)} />
@@ -170,11 +178,12 @@ export default function PropertiesPanel() {
         <NumField label="Z" value={transform.scale[2]} step={0.01} min={0.001} onChange={(v) => setScale(2, v)} />
       </Section>
 
-      <GeometryFields
-        geometry={geometry}
-        onUpdate={(g) => updatePrimitiveParams(node.id, g)}
-      />
-
+      {selectedIds.length === 1 && (
+        <GeometryFields
+          geometry={geometry}
+          onUpdate={(g) => undoStack.push(new UpdateGeometryCommand(node.id, geometry, g))}
+        />
+      )}
     </div>
   );
 }

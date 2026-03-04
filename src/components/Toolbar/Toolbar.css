@@ -48,3 +48,13 @@
 .toolbar-btn:active {
   background: #555;
 }
+
+.toolbar-btn--active {
+  background: #1a4a8a;
+  border-color: #4488ff;
+  color: #fff;
+}
+
+.toolbar-btn--active:hover {
+  background: #1e5099;
+}

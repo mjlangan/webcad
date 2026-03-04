@@ -41,9 +41,13 @@ export function useRaycasting(
 
       if (hits.length > 0) {
         const nodeId = hits[0].object.userData.nodeId as string;
-        useSceneStore.getState().selectNode(nodeId);
-      } else {
-        useSceneStore.getState().selectNode(null);
+        if (e.shiftKey) {
+          useSceneStore.getState().toggleNodeSelection(nodeId);
+        } else {
+          useSceneStore.getState().selectNode(nodeId);
+        }
+      } else if (!e.shiftKey) {
+        useSceneStore.getState().clearSelection();
       }
     }
 

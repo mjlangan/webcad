@@ -1,5 +1,18 @@
+.viewport-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
 .viewport-canvas {
   display: block;
   width: 100%;
   height: 100%;
+}
+
+.box-select-rect {
+  position: absolute;
+  border: 1px dashed #4488ff;
+  background: rgba(68, 136, 255, 0.08);
+  pointer-events: none;
 }

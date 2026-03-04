@@ -1,14 +1,15 @@
 import { useState, useRef, useEffect } from 'react';
 import { useSceneStore } from '../../store/useSceneStore';
+import { undoStack } from '../../store/undoStack';
+import { RenameNodeCommand, RemoveNodeCommand } from '../../store/commands';
 import './ScenePanel.css';
 
 export default function ScenePanel() {
   const nodes = useSceneStore((s) => s.nodes);
-  const selectedId = useSceneStore((s) => s.selectedId);
+  const selectedIds = useSceneStore((s) => s.selectedIds);
   const selectNode = useSceneStore((s) => s.selectNode);
-  const renameNode = useSceneStore((s) => s.renameNode);
+  const toggleNodeSelection = useSceneStore((s) => s.toggleNodeSelection);
   const toggleVisible = useSceneStore((s) => s.toggleVisible);
-  const removeNode = useSceneStore((s) => s.removeNode);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
@@ -21,7 +22,10 @@ export default function ScenePanel() {
 
   const commitRename = () => {
     if (editingId && editValue.trim()) {
-      renameNode(editingId, editValue.trim());
+      const node = nodes.find((n) => n.id === editingId);
+      if (node && node.name !== editValue.trim()) {
+        undoStack.push(new RenameNodeCommand(editingId, node.name, editValue.trim()));
+      }
     }
     setEditingId(null);
   };
@@ -31,6 +35,14 @@ export default function ScenePanel() {
     if (e.key === 'Escape') setEditingId(null);
   };
 
+  const handleRowClick = (e: React.MouseEvent, nodeId: string) => {
+    if (e.ctrlKey || e.metaKey || e.shiftKey) {
+      toggleNodeSelection(nodeId);
+    } else {
+      selectNode(nodeId);
+    }
+  };
+
   return (
     <div className="scene-panel">
       <div className="panel-header">Scene</div>
@@ -38,8 +50,8 @@ export default function ScenePanel() {
         {nodes.map((node) => (
           <li
             key={node.id}
-            className={`scene-row${selectedId === node.id ? ' scene-row--selected' : ''}${!node.visible ? ' scene-row--hidden' : ''}`}
-            onClick={() => selectNode(node.id)}
+            className={`scene-row${selectedIds.includes(node.id) ? ' scene-row--selected' : ''}${!node.visible ? ' scene-row--hidden' : ''}`}
+            onClick={(e) => handleRowClick(e, node.id)}
           >
             <button
               className="scene-row-btn"
@@ -75,7 +87,10 @@ export default function ScenePanel() {
             <button
               className="scene-row-btn scene-row-btn--delete"
               title="Delete"
-              onClick={(e) => { e.stopPropagation(); removeNode(node.id); }}
+              onClick={(e) => {
+                e.stopPropagation();
+                undoStack.push(new RemoveNodeCommand(node.id));
+              }}
             >
               ✕
             </button>

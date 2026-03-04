@@ -6,6 +6,7 @@ import { useOrbitControls } from './useOrbitControls';
 import { useTransformControls } from './useTransformControls';
 import { useRaycasting } from './useRaycasting';
 import { useCameraPresets } from './useCameraPresets';
+import { useBoxSelect } from './useBoxSelect';
 import type { ViewportActions } from '../../types/viewport';
 
 interface ViewportProps {
@@ -26,6 +27,17 @@ export default function Viewport({ actionsRef }: ViewportProps) {
   useRaycasting(threeRef, meshMapRef, isDraggingRef);
   // Called last so orbitControlsRef is already populated
   useCameraPresets(threeRef, orbitControlsRef, actionsRef);
+  const boxRect = useBoxSelect(threeRef, meshMapRef, isDraggingRef);
 
-  return <canvas ref={canvasRef} className="viewport-canvas" />;
+  return (
+    <div className="viewport-wrapper">
+      <canvas ref={canvasRef} className="viewport-canvas" />
+      {boxRect && (
+        <div
+          className="box-select-rect"
+          style={{ left: boxRect.x, top: boxRect.y, width: boxRect.w, height: boxRect.h }}
+        />
+      )}
+    </div>
+  );
 }

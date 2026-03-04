@@ -1,5 +1,6 @@
 import { useRef, type ChangeEvent, type MutableRefObject } from 'react';
 import { useSceneStore } from '../../store/useSceneStore';
+import type { TransformMode } from '../../store/useSceneStore';
 import type { PrimitiveParams } from '../../types/scene';
 import type { CameraPreset, ViewportActions } from '../../types/viewport';
 import { importStlFile } from '../../lib/stlImport';
@@ -13,8 +14,16 @@ interface ToolbarProps {
   actionsRef: MutableRefObject<ViewportActions | null>;
 }
 
+const TRANSFORM_MODES: { mode: TransformMode; label: string }[] = [
+  { mode: 'translate', label: 'Move' },
+  { mode: 'rotate',    label: 'Rotate' },
+  { mode: 'scale',     label: 'Scale' },
+];
+
 export default function Toolbar({ actionsRef }: ToolbarProps) {
   const addNode = useSceneStore((s) => s.addNode);
+  const transformMode = useSceneStore((s) => s.transformMode);
+  const setTransformMode = useSceneStore((s) => s.setTransformMode);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleAddPrimitive = (type: string) => {
@@ -76,6 +85,20 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
           style={{ display: 'none' }}
           onChange={handleFileChange}
         />
+      </div>
+
+      <div className="toolbar-group">
+        <span className="toolbar-label">Transform</span>
+        {TRANSFORM_MODES.map(({ mode, label }) => (
+          <button
+            key={mode}
+            className={`toolbar-btn${transformMode === mode ? ' toolbar-btn--active' : ''}`}
+            onClick={() => setTransformMode(mode)}
+            title={`${label} (${mode === 'translate' ? 'G' : mode === 'rotate' ? 'R' : 'S'})`}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
       <div className="toolbar-group toolbar-group--right">

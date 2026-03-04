@@ -61,7 +61,8 @@ export function useSceneSync(
     const meshMap = meshMapRef.current;
 
     const syncToScene = () => {
-      const { nodes, selectedId } = useSceneStore.getState();
+      const { nodes, selectedIds } = useSceneStore.getState();
+      const selectedSet = new Set(selectedIds);
       const seen = new Set<string>();
 
       nodes.forEach((node) => {
@@ -95,7 +96,7 @@ export function useSceneSync(
         }
 
         const mat = mesh.material as THREE.MeshStandardMaterial;
-        const isSelected = selectedId === node.id;
+        const isSelected = selectedSet.has(node.id);
 
         mat.color.set(isSelected ? SELECTED_COLOR : node.material.color);
         mat.emissive.set(isSelected ? SELECTED_EMISSIVE : DEFAULT_EMISSIVE);
