@@ -14,14 +14,14 @@ interface ViewportProps {
 
 export default function Viewport({ actionsRef }: ViewportProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const onBeforeRender = useRef<(() => void) | null>(null);
+  const onBeforeRenderRef = useRef<(() => void) | null>(null);
 
   // Each hook runs its useEffect in call order within the same commit.
   // useThreeSetup populates threeRef.current first, so subsequent hooks
   // can safely read it inside their own effects.
-  const threeRef = useThreeSetup(canvasRef, onBeforeRender);
+  const threeRef = useThreeSetup(canvasRef, onBeforeRenderRef);
   const meshMapRef = useSceneSync(threeRef);
-  const orbitControlsRef = useOrbitControls(threeRef, onBeforeRender);
+  const orbitControlsRef = useOrbitControls(threeRef, onBeforeRenderRef);
   const isDraggingRef = useTransformControls(threeRef, meshMapRef, orbitControlsRef);
   useRaycasting(threeRef, meshMapRef, isDraggingRef);
   // Called last so orbitControlsRef is already populated

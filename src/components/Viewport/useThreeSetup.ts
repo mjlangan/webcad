@@ -9,7 +9,7 @@ export interface ThreeSetup {
 
 export function useThreeSetup(
   canvasRef: MutableRefObject<HTMLCanvasElement | null>,
-  onBeforeRender: MutableRefObject<(() => void) | null>,
+  onBeforeRenderRef: MutableRefObject<(() => void) | null>,
 ): MutableRefObject<ThreeSetup | null> {
   const setupRef = useRef<ThreeSetup | null>(null);
 
@@ -70,7 +70,7 @@ export function useThreeSetup(
     let frameId = 0;
     const animate = () => {
       frameId = requestAnimationFrame(animate);
-      onBeforeRender.current?.();
+      onBeforeRenderRef.current?.();
       renderer.render(scene, camera);
     };
     animate();

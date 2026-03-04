@@ -4,7 +4,7 @@ import type { ThreeSetup } from './useThreeSetup';
 
 export function useOrbitControls(
   threeRef: MutableRefObject<ThreeSetup | null>,
-  onBeforeRender: MutableRefObject<(() => void) | null>,
+  onBeforeRenderRef: MutableRefObject<(() => void) | null>,
 ): MutableRefObject<OrbitControls | null> {
   const controlsRef = useRef<OrbitControls | null>(null);
 
@@ -19,12 +19,12 @@ export function useOrbitControls(
     controls.maxDistance = 2000;
 
     controlsRef.current = controls;
-    onBeforeRender.current = () => controls.update();
+    onBeforeRenderRef.current = () => controls.update();
 
     return () => {
       controls.dispose();
       controlsRef.current = null;
-      onBeforeRender.current = null;
+      onBeforeRenderRef.current = null;
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
