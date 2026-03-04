@@ -10,13 +10,13 @@ const PRESETS: Record<
   CameraPreset,
   { position: [number, number, number]; up: [number, number, number] }
 > = {
-  home:   { position: [4,  4,  6], up: [0, 1,  0] },
-  front:  { position: [0,  0,  7], up: [0, 1,  0] },
-  back:   { position: [0,  0, -7], up: [0, 1,  0] },
-  left:   { position: [-7, 0,  0], up: [0, 1,  0] },
-  right:  { position: [7,  0,  0], up: [0, 1,  0] },
-  top:    { position: [0,  7,  0], up: [0, 0, -1] },
-  bottom: { position: [0, -7,  0], up: [0, 0,  1] },
+  home:   { position: [80,   80,  120], up: [0, 1,  0] },
+  front:  { position: [0,     0,  140], up: [0, 1,  0] },
+  back:   { position: [0,     0, -140], up: [0, 1,  0] },
+  left:   { position: [-140,  0,    0], up: [0, 1,  0] },
+  right:  { position: [140,   0,    0], up: [0, 1,  0] },
+  top:    { position: [0,   140,    0], up: [0, 0, -1] },
+  bottom: { position: [0,  -140,    0], up: [0, 0,  1] },
 };
 
 export function useCameraPresets(

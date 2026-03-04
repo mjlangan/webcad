@@ -21,19 +21,19 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
     let geometry: PrimitiveParams;
     switch (type) {
       case 'box':
-        geometry = { type: 'box', width: 1, height: 1, depth: 1 };
+        geometry = { type: 'box', width: 20, height: 20, depth: 20 };
         break;
       case 'sphere':
-        geometry = { type: 'sphere', radius: 0.5, widthSegments: 32, heightSegments: 16 };
+        geometry = { type: 'sphere', radius: 10, widthSegments: 32, heightSegments: 16 };
         break;
       case 'cylinder':
-        geometry = { type: 'cylinder', radiusTop: 0.5, radiusBottom: 0.5, height: 1, radialSegments: 32 };
+        geometry = { type: 'cylinder', radiusTop: 10, radiusBottom: 10, height: 20, radialSegments: 32 };
         break;
       case 'cone':
-        geometry = { type: 'cone', radius: 0.5, height: 1, radialSegments: 32 };
+        geometry = { type: 'cone', radius: 10, height: 20, radialSegments: 32 };
         break;
       case 'torus':
-        geometry = { type: 'torus', radius: 0.5, tube: 0.2, radialSegments: 16, tubularSegments: 64 };
+        geometry = { type: 'torus', radius: 10, tube: 4, radialSegments: 16, tubularSegments: 64 };
         break;
       default:
         return;

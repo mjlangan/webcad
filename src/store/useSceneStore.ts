@@ -43,11 +43,11 @@ export const useSceneStore = create<SceneState>((set, get) => ({
       visible: true,
       locked: false,
       transform: {
-        position: [0, 0.5, 0],
+        position: [0, 10, 0],
         rotation: [0, 0, 0],
         scale: [1, 1, 1],
       },
-      geometry: { type: 'box', width: 1, height: 1, depth: 1 },
+      geometry: { type: 'box', width: 20, height: 20, depth: 20 },
       material: { color: '#4488ff', opacity: 1 },
     },
   ],

@@ -16,7 +16,7 @@ export function useOrbitControls(
     controls.enableDamping = true;
     controls.dampingFactor = 0.08;
     controls.minDistance = 1;
-    controls.maxDistance = 100;
+    controls.maxDistance = 2000;
 
     controlsRef.current = controls;
     onBeforeRender.current = () => controls.update();

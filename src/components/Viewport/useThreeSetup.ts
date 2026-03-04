@@ -28,25 +28,25 @@ export function useThreeSetup(
     scene.background = new THREE.Color('#1a1a1a');
 
     // Camera
-    const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 1000);
-    camera.position.set(4, 4, 6);
+    const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 10000);
+    camera.position.set(80, 80, 120);
     camera.lookAt(0, 0, 0);
 
     // Lights
     const ambient = new THREE.AmbientLight(0xffffff, 0.6);
     scene.add(ambient);
     const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
-    dirLight.position.set(8, 12, 6);
+    dirLight.position.set(160, 240, 120);
     dirLight.castShadow = true;
     dirLight.shadow.mapSize.set(1024, 1024);
     scene.add(dirLight);
 
-    // Grid
-    const grid = new THREE.GridHelper(20, 20, '#444444', '#333333');
+    // Grid — 200mm × 200mm with 10mm divisions
+    const grid = new THREE.GridHelper(200, 20, '#444444', '#333333');
     scene.add(grid);
 
-    // Axes helper (Phase 1 orientation reference)
-    const axes = new THREE.AxesHelper(1.5);
+    // Axes helper — 30mm arms
+    const axes = new THREE.AxesHelper(30);
     scene.add(axes);
 
     // Write setup to ref — downstream hooks' effects run after this one
