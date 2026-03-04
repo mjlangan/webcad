@@ -85,8 +85,13 @@ export function useThreeSetup(
           mats.forEach((m: THREE.Material) => m.dispose());
         }
       });
+      // dispose() releases GPU resources (buffers, programs, textures).
+      // forceContextLoss() is intentionally omitted: it calls WEBGL_lose_context.loseContext(),
+      // which marks the canvas's WebGL context as lost. On React Strict Mode remount,
+      // canvas.getContext('webgl2') returns the same lost context object (per the WebGL spec),
+      // causing Three.js to crash when it calls getShaderPrecisionFormat on the lost context.
+      // The raw GL context handle will be garbage collected after dispose().
       renderer.dispose();
-      renderer.forceContextLoss(); // essential for React Strict Mode double-mount
       setupRef.current = null;
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
