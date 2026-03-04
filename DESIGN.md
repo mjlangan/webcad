@@ -336,6 +336,7 @@ App
 - [ ] Measurement overlay (distance between two points)
 - [ ] Better empty state / onboarding experience
 - [ ] Performance: LOD or instancing for large scenes
+- [ ] Preferences menu (control schemes, metric/inch units)
 
 ---
 
