@@ -1,12 +1,18 @@
-import { useRef } from 'react';
+import { useRef, type MutableRefObject } from 'react';
 import './Viewport.css';
 import { useThreeSetup } from './useThreeSetup';
 import { useSceneSync } from './useSceneSync';
 import { useOrbitControls } from './useOrbitControls';
 import { useTransformControls } from './useTransformControls';
 import { useRaycasting } from './useRaycasting';
+import { useCameraPresets } from './useCameraPresets';
+import type { ViewportActions } from '../../types/viewport';
 
-export default function Viewport() {
+interface ViewportProps {
+  actionsRef: MutableRefObject<ViewportActions | null>;
+}
+
+export default function Viewport({ actionsRef }: ViewportProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const onBeforeRender = useRef<(() => void) | null>(null);
 
@@ -18,6 +24,8 @@ export default function Viewport() {
   const orbitControlsRef = useOrbitControls(threeRef, onBeforeRender);
   const isDraggingRef = useTransformControls(threeRef, meshMapRef, orbitControlsRef);
   useRaycasting(threeRef, meshMapRef, isDraggingRef);
+  // Called last so orbitControlsRef is already populated
+  useCameraPresets(threeRef, orbitControlsRef, actionsRef);
 
   return <canvas ref={canvasRef} className="viewport-canvas" />;
 }

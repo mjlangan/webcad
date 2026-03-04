@@ -1,0 +1,102 @@
+.scene-panel {
+  grid-area: scene;
+  display: flex;
+  flex-direction: column;
+  background: #222;
+  border-right: 1px solid #3a3a3a;
+  overflow: hidden;
+}
+
+.panel-header {
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #888;
+  background: #2a2a2a;
+  border-bottom: 1px solid #3a3a3a;
+  flex-shrink: 0;
+}
+
+.scene-list {
+  list-style: none;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.scene-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  cursor: pointer;
+  user-select: none;
+  border-bottom: 1px solid #2e2e2e;
+}
+
+.scene-row:hover {
+  background: #2e2e2e;
+}
+
+.scene-row--selected {
+  background: #1a3a5c;
+}
+
+.scene-row--selected:hover {
+  background: #1e4570;
+}
+
+.scene-row--hidden .scene-row-name {
+  opacity: 0.4;
+}
+
+.scene-row-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #888;
+  font-size: 12px;
+  padding: 1px 3px;
+  border-radius: 2px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.scene-row-btn:hover {
+  background: #444;
+  color: #fff;
+}
+
+.scene-row-btn--delete {
+  margin-left: auto;
+  font-size: 10px;
+}
+
+.scene-row-name {
+  font-size: 13px;
+  color: #ddd;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.scene-rename-input {
+  flex: 1;
+  background: #333;
+  border: 1px solid #4488ff;
+  border-radius: 2px;
+  color: #fff;
+  font-size: 13px;
+  padding: 1px 4px;
+  outline: none;
+  min-width: 0;
+}
+
+.scene-empty {
+  padding: 12px 10px;
+  font-size: 12px;
+  color: #555;
+  font-style: italic;
+}

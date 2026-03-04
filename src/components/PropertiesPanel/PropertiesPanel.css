@@ -1,0 +1,91 @@
+.props-panel {
+  grid-area: props;
+  display: flex;
+  flex-direction: column;
+  background: #222;
+  border-left: 1px solid #3a3a3a;
+  overflow-y: auto;
+}
+
+.props-panel--empty {
+  overflow: hidden;
+}
+
+.panel-header {
+  padding: 6px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #888;
+  background: #2a2a2a;
+  border-bottom: 1px solid #3a3a3a;
+  flex-shrink: 0;
+}
+
+.props-node-name {
+  padding: 8px 10px 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #eee;
+  border-bottom: 1px solid #333;
+}
+
+.props-empty-msg {
+  padding: 16px 10px;
+  font-size: 12px;
+  color: #555;
+  font-style: italic;
+}
+
+.prop-section {
+  padding: 8px 10px 4px;
+  border-bottom: 1px solid #2e2e2e;
+}
+
+.prop-section-title {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #666;
+  margin-bottom: 5px;
+}
+
+.prop-field {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.prop-field-label {
+  font-size: 11px;
+  color: #888;
+  width: 64px;
+  flex-shrink: 0;
+}
+
+.prop-field-input {
+  flex: 1;
+  background: #2e2e2e;
+  border: 1px solid #3e3e3e;
+  border-radius: 3px;
+  color: #ddd;
+  font-size: 12px;
+  padding: 2px 5px;
+  outline: none;
+  min-width: 0;
+  text-align: right;
+}
+
+.prop-field-input:focus {
+  border-color: #4488ff;
+}
+
+.prop-imported-name {
+  font-size: 12px;
+  color: #aaa;
+  padding: 2px 0;
+  word-break: break-all;
+}

@@ -5,7 +5,49 @@ export interface BoxParams {
   depth: number;
 }
 
-export type PrimitiveParams = BoxParams;
+export interface SphereParams {
+  type: 'sphere';
+  radius: number;
+  widthSegments: number;
+  heightSegments: number;
+}
+
+export interface CylinderParams {
+  type: 'cylinder';
+  radiusTop: number;
+  radiusBottom: number;
+  height: number;
+  radialSegments: number;
+}
+
+export interface ConeParams {
+  type: 'cone';
+  radius: number;
+  height: number;
+  radialSegments: number;
+}
+
+export interface TorusParams {
+  type: 'torus';
+  radius: number;
+  tube: number;
+  radialSegments: number;
+  tubularSegments: number;
+}
+
+export interface ImportedMeshParams {
+  type: 'imported';
+  meshId: string;
+  originalName: string;
+}
+
+export type PrimitiveParams =
+  | BoxParams
+  | SphereParams
+  | CylinderParams
+  | ConeParams
+  | TorusParams
+  | ImportedMeshParams;
 
 export interface Transform {
   position: [number, number, number];

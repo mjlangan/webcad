@@ -3,16 +3,51 @@ import * as THREE from 'three';
 import type { ThreeSetup } from './useThreeSetup';
 import { useSceneStore } from '../../store/useSceneStore';
 import type { PrimitiveParams } from '../../types/scene';
+import { meshGeometryMap } from '../../lib/meshGeometryMap';
 
 const SELECTED_COLOR = new THREE.Color('#ff8822');
 const SELECTED_EMISSIVE = new THREE.Color('#331100');
 const DEFAULT_EMISSIVE = new THREE.Color('#000000');
 
 function buildGeometry(params: PrimitiveParams): THREE.BufferGeometry {
-  if (params.type === 'box') {
-    return new THREE.BoxGeometry(params.width, params.height, params.depth);
+  switch (params.type) {
+    case 'box':
+      return new THREE.BoxGeometry(params.width, params.height, params.depth);
+    case 'sphere':
+      return new THREE.SphereGeometry(
+        params.radius,
+        params.widthSegments,
+        params.heightSegments,
+      );
+    case 'cylinder':
+      return new THREE.CylinderGeometry(
+        params.radiusTop,
+        params.radiusBottom,
+        params.height,
+        params.radialSegments,
+      );
+    case 'cone':
+      return new THREE.ConeGeometry(
+        params.radius,
+        params.height,
+        params.radialSegments,
+      );
+    case 'torus':
+      return new THREE.TorusGeometry(
+        params.radius,
+        params.tube,
+        params.radialSegments,
+        params.tubularSegments,
+      );
+    case 'imported': {
+      const geo = meshGeometryMap.get(params.meshId);
+      if (!geo) {
+        // Fallback for a missing imported mesh (e.g. after re-mount before import completes)
+        return new THREE.BufferGeometry();
+      }
+      return geo;
+    }
   }
-  throw new Error(`Unknown geometry type: ${(params as { type: string }).type}`);
 }
 
 export function useSceneSync(
@@ -42,10 +77,21 @@ export function useSceneSync(
           });
           mesh = new THREE.Mesh(geo, mat);
           mesh.userData.nodeId = node.id;
+          mesh.userData.geometryKey = JSON.stringify(node.geometry);
+          mesh.userData.ownedGeometry = node.geometry.type !== 'imported';
           mesh.castShadow = true;
           mesh.receiveShadow = true;
           scene.add(mesh);
           meshMap.set(node.id, mesh);
+        } else {
+          // Recreate geometry if params changed
+          const newKey = JSON.stringify(node.geometry);
+          if (mesh.userData.geometryKey !== newKey) {
+            if (mesh.userData.ownedGeometry as boolean) mesh.geometry.dispose();
+            mesh.geometry = buildGeometry(node.geometry);
+            mesh.userData.geometryKey = newKey;
+            mesh.userData.ownedGeometry = node.geometry.type !== 'imported';
+          }
         }
 
         const mat = mesh.material as THREE.MeshStandardMaterial;
@@ -64,7 +110,7 @@ export function useSceneSync(
       meshMap.forEach((mesh, id) => {
         if (!seen.has(id)) {
           scene.remove(mesh);
-          mesh.geometry.dispose();
+          if (mesh.userData.ownedGeometry as boolean) mesh.geometry.dispose();
           (mesh.material as THREE.Material).dispose();
           meshMap.delete(id);
         }
@@ -81,7 +127,7 @@ export function useSceneSync(
       unsubscribe();
       meshMap.forEach((mesh) => {
         scene.remove(mesh);
-        mesh.geometry.dispose();
+        if (mesh.userData.ownedGeometry as boolean) mesh.geometry.dispose();
         (mesh.material as THREE.Material).dispose();
       });
       meshMap.clear();
