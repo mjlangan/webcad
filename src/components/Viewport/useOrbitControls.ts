@@ -18,6 +18,10 @@ export function useOrbitControls(
     controls.minDistance = 1;
     controls.maxDistance = 2000;
 
+    // Configure mouse buttons: middle button for panning instead of zooming
+    // ROTATE: left button (0), PAN: middle button (2), ZOOM: scroll wheel (no button needed)
+    controls.mouseButtons.MIDDLE = 2; // PAN
+
     controlsRef.current = controls;
     onBeforeRenderRef.current = () => controls.update();
 
