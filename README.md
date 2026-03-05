@@ -1,6 +1,6 @@
 # WebCAD
 
-This is very work-in-progress! Do not expect any kind of stability at the moment 😄
+This is very work-in-progress! Do not expect any kind of stability at the moment 😄 Progress/direction is tracked in [DESIGN.md](DESIGN.md).
 
 ## What is this?
 
