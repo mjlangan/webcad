@@ -28,7 +28,7 @@ export function importStlFile(file: File): void {
 
     useSceneStore
       .getState()
-      .addNode({ type: 'imported', meshId, originalName }, [0, yOffset, 0]);
+      .addNode({ type: 'imported', meshId, originalName }, yOffset);
   };
 
   reader.readAsArrayBuffer(file);

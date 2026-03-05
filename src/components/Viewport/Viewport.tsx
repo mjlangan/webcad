@@ -7,6 +7,8 @@ import { useTransformControls } from './useTransformControls';
 import { useRaycasting } from './useRaycasting';
 import { useCameraPresets } from './useCameraPresets';
 import { useBoxSelect } from './useBoxSelect';
+import { useWorkplanePlacement } from './useWorkplanePlacement';
+import { useWorkplaneVisualization } from './useWorkplaneVisualization';
 import type { ViewportActions } from '../../types/viewport';
 
 interface ViewportProps {
@@ -28,6 +30,8 @@ export default function Viewport({ actionsRef }: ViewportProps) {
   // Called last so orbitControlsRef is already populated
   useCameraPresets(threeRef, orbitControlsRef, actionsRef);
   const boxRect = useBoxSelect(threeRef, meshMapRef, isDraggingRef);
+  useWorkplanePlacement(threeRef, meshMapRef, isDraggingRef);
+  useWorkplaneVisualization(threeRef);
 
   return (
     <div className="viewport-wrapper">

@@ -1,18 +1,18 @@
-import type { PrimitiveParams, SceneNode, Transform } from '../types/scene';
+import type { PrimitiveParams, SceneNode, Transform, Workplane } from '../types/scene';
 import { useSceneStore } from './useSceneStore';
 
 export class AddNodeCommand {
   private nodeId: string | null = null;
   private readonly geometry: PrimitiveParams;
-  private readonly position: [number, number, number] | undefined;
+  private readonly spawnHalfHeight: number | undefined;
 
-  constructor(geometry: PrimitiveParams, position?: [number, number, number]) {
+  constructor(geometry: PrimitiveParams, spawnHalfHeight?: number) {
     this.geometry = geometry;
-    this.position = position;
+    this.spawnHalfHeight = spawnHalfHeight;
   }
 
   execute(): void {
-    this.nodeId = useSceneStore.getState().addNode(this.geometry, this.position);
+    this.nodeId = useSceneStore.getState().addNode(this.geometry, this.spawnHalfHeight);
   }
 
   undo(): void {
@@ -104,5 +104,23 @@ export class UpdateGeometryCommand {
 
   undo(): void {
     useSceneStore.getState().updatePrimitiveParams(this.id, this.before);
+  }
+}
+
+export class SetWorkplaneCommand {
+  private readonly before: Workplane;
+  private readonly after: Workplane;
+
+  constructor(before: Workplane, after: Workplane) {
+    this.before = before;
+    this.after = after;
+  }
+
+  execute(): void {
+    useSceneStore.getState().setWorkplane(this.after);
+  }
+
+  undo(): void {
+    useSceneStore.getState().setWorkplane(this.before);
   }
 }

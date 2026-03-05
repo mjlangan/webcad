@@ -69,3 +69,15 @@ export interface SceneNode {
   geometry: PrimitiveParams;
   material: MaterialProps;
 }
+
+export interface Workplane {
+  origin: [number, number, number];
+  normal: [number, number, number];
+  tangentX: [number, number, number];
+}
+
+export const DEFAULT_WORKPLANE: Workplane = {
+  origin: [0, 0, 0],
+  normal: [0, 1, 0],   // World +Y
+  tangentX: [1, 0, 0], // World +X
+};

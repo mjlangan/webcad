@@ -6,12 +6,13 @@ import {
   RenameNodeCommand,
   TransformCommand,
   UpdateGeometryCommand,
+  SetWorkplaneCommand,
 } from './commands';
 import type { Transform } from '../types/scene';
 
 // Reset store to empty state before each test.
 beforeEach(() => {
-  useSceneStore.setState({ nodes: [], selectedIds: [], transformMode: 'translate' });
+  useSceneStore.setState({ nodes: [], selectedIds: [], transformMode: 'translate', workplane: { origin: [0, 0, 0], normal: [0, 1, 0], tangentX: [1, 0, 0] } });
 });
 
 function getNodes() {
@@ -32,10 +33,11 @@ describe('AddNodeCommand', () => {
     expect(getNodes()[0].geometry).toEqual({ type: 'box', width: 20, height: 20, depth: 20 });
   });
 
-  it('execute() respects an explicit initial position', () => {
-    const cmd = new AddNodeCommand({ type: 'box', width: 10, height: 10, depth: 10 }, [5, 7, 9]);
+  it('execute() uses provided spawnHalfHeight for placement on the default workplane', () => {
+    const cmd = new AddNodeCommand({ type: 'box', width: 10, height: 10, depth: 10 }, 7);
     cmd.execute();
-    expect(getNodes()[0].transform.position).toEqual([5, 7, 9]);
+    // Default workplane: normal = +Y, origin = world zero → position.y equals halfHeight
+    expect(getNodes()[0].transform.position).toEqual([0, 7, 0]);
   });
 
   it('undo() removes the node created by execute()', () => {
@@ -120,6 +122,15 @@ describe('RemoveNodeCommand', () => {
 
     cmd.execute();
     expect(getNodes()).toHaveLength(0);
+  });
+
+  it('execute() on a nonexistent id is a no-op (savedNode stays null)', () => {
+    // Exercises the `?? null` fallback when `find` returns undefined
+    const cmd = new RemoveNodeCommand('does-not-exist');
+    expect(() => cmd.execute()).not.toThrow();
+    expect(getNodes()).toHaveLength(0);
+    // undo after a no-op execute should also be safe
+    expect(() => cmd.undo()).not.toThrow();
   });
 });
 
@@ -246,5 +257,35 @@ describe('UpdateGeometryCommand', () => {
     expect(getNodes().find((n) => n.id === id)!.geometry).toEqual(original);
     cmd.execute();
     expect(getNodes().find((n) => n.id === id)!.geometry).toEqual(modified);
+  });
+});
+
+// ── SetWorkplaneCommand ────────────────────────────────────────────────────────
+
+describe('SetWorkplaneCommand', () => {
+  const defaultWp = { origin: [0, 0, 0] as [number,number,number], normal: [0, 1, 0] as [number,number,number], tangentX: [1, 0, 0] as [number,number,number] };
+  const faceWp   = { origin: [10, 0, 0] as [number,number,number], normal: [1, 0, 0] as [number,number,number], tangentX: [0, 0, -1] as [number,number,number] };
+
+  it('execute() sets the workplane to the new value', () => {
+    const cmd = new SetWorkplaneCommand(defaultWp, faceWp);
+    cmd.execute();
+    expect(useSceneStore.getState().workplane).toEqual(faceWp);
+  });
+
+  it('undo() restores the previous workplane', () => {
+    const cmd = new SetWorkplaneCommand(defaultWp, faceWp);
+    cmd.execute();
+    cmd.undo();
+    expect(useSceneStore.getState().workplane).toEqual(defaultWp);
+  });
+
+  it('full round-trip: execute → undo → execute', () => {
+    const cmd = new SetWorkplaneCommand(defaultWp, faceWp);
+    cmd.execute();
+    expect(useSceneStore.getState().workplane).toEqual(faceWp);
+    cmd.undo();
+    expect(useSceneStore.getState().workplane).toEqual(defaultWp);
+    cmd.execute();
+    expect(useSceneStore.getState().workplane).toEqual(faceWp);
   });
 });

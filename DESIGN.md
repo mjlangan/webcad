@@ -282,18 +282,18 @@ App
 ### Phase 4 — Reference Planes (Workplane)
 **Goal:** Users can set a reference plane on any face, and new objects spawn oriented to that plane.
 
-- [ ] `workplane` field added to Zustand store with world-default identity value
-- [ ] `computeTangentFrame(normal)` utility with pole-fallback (when `|dot(normal, worldUp)| > 0.999`, use world X as reference)
-- [ ] Workplane placement mode: toolbar button toggles mode, suspending normal selection
-- [ ] Ghost plane mesh (semi-transparent `PlaneGeometry`) that follows the cursor during placement mode, oriented to the raycasted face normal
-- [ ] Face highlight on hover during placement mode
-- [ ] Click to commit: `SetWorkplaneCommand` pushed to undo stack (stores previous + next workplane)
-- [ ] Escape / right-click cancels placement mode without changing workplane
-- [ ] "Reset Workplane" button restores world default
-- [ ] Active workplane rendered as a distinctly-colored `GridHelper` child of a transformed `Object3D`; world grid stays visible simultaneously
-- [ ] Red/green local X/Z axis lines drawn through workplane origin
-- [ ] New primitives and imported STLs placed at workplane, rotated so local Y aligns with workplane normal, offset by half bounding-box height
-- [ ] Move tool drag plane switches from world XZ to `THREE.Plane` constructed from workplane normal + origin when workplane is non-default
+- [x] `workplane` field added to Zustand store with world-default identity value
+- [x] `computeTangentFrame(normal)` utility with pole-fallback (when `|dot(normal, worldUp)| > 0.999`, use world X as reference)
+- [x] Workplane placement mode: toolbar button toggles mode, suspending normal selection
+- [x] Ghost plane mesh (semi-transparent `PlaneGeometry`) that follows the cursor during placement mode, oriented to the raycasted face normal
+- [x] Face highlight on hover during placement mode
+- [x] Click to commit: `SetWorkplaneCommand` pushed to undo stack (stores previous + next workplane)
+- [x] Escape / right-click cancels placement mode without changing workplane
+- [x] "Reset Workplane" button restores world default
+- [x] Active workplane rendered as a distinctly-colored `GridHelper` child of a transformed `Object3D`; world grid stays visible simultaneously
+- [x] Red/green local X/Z axis lines drawn through workplane origin
+- [x] New primitives and imported STLs placed at workplane, rotated so local Y aligns with workplane normal, offset by half bounding-box height
+- [x] Move tool drag plane switches from world XZ to `THREE.Plane` constructed from workplane normal + origin when workplane is non-default
 
 ### Phase 5 — Boolean Operations
 **Goal:** Users can subtract and combine shapes without blocking the UI.

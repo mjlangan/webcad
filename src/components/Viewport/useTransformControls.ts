@@ -7,6 +7,7 @@ import { useSceneStore } from '../../store/useSceneStore';
 import { undoStack } from '../../store/undoStack';
 import { TransformCommand } from '../../store/commands';
 import type { Transform } from '../../types/scene';
+import { workplaneToThreePlane } from '../../lib/workplaneUtils';
 
 export function useTransformControls(
   threeRef: RefObject<ThreeSetup | null>,
@@ -82,9 +83,27 @@ export function useTransformControls(
       }
     };
 
-    // Move secondary meshes in real-time to match the primary's translation delta
+    // Move secondary meshes in real-time to match the primary's translation delta.
+    // Also projects the primary onto the active workplane when translating.
     const onChange = () => {
-      if (!isDraggingRef.current || !tc.object || dragIds.length <= 1) return;
+      if (!isDraggingRef.current || !tc.object) return;
+
+      // Workplane constraint: project the primary object onto the workplane plane during
+      // translate. This replaces the implicit world-XZ drag plane with the active workplane.
+      const { workplane, transformMode } = useSceneStore.getState();
+      if (transformMode === 'translate') {
+        const isDefaultWorkplane =
+          workplane.normal[0] === 0 && workplane.normal[1] === 1 && workplane.normal[2] === 0 &&
+          workplane.origin[0] === 0 && workplane.origin[1] === 0 && workplane.origin[2] === 0;
+        if (!isDefaultWorkplane) {
+          const plane = workplaneToThreePlane(workplane);
+          const normal = new THREE.Vector3(...workplane.normal);
+          const dist = plane.distanceToPoint(tc.object.position);
+          tc.object.position.addScaledVector(normal, -dist);
+        }
+      }
+
+      if (dragIds.length <= 1) return;
       const delta = tc.object.position.clone().sub(startPrimary);
       dragIds.slice(1).forEach((id) => {
         const mesh = meshMapRef.current.get(id);

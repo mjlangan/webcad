@@ -4,7 +4,7 @@ import { useSceneStore } from './useSceneStore';
 // Reset store data before each test to an empty, deterministic state.
 // We only reset data fields; action functions stay in state automatically.
 beforeEach(() => {
-  useSceneStore.setState({ nodes: [], selectedIds: [], transformMode: 'translate' });
+  useSceneStore.setState({ nodes: [], selectedIds: [], transformMode: 'translate', workplane: { origin: [0, 0, 0], normal: [0, 1, 0], tangentX: [1, 0, 0] }, workplanePlacementMode: false });
 });
 
 // Convenience: add a box and return its id.
@@ -174,10 +174,61 @@ describe('addNode', () => {
     expect(position[1]).toBe(0);
   });
 
-  it('initialPosition overrides computed y offset', () => {
-    const id = useSceneStore.getState().addNode({ type: 'box', width: 20, height: 20, depth: 20 }, [5, 99, 3]);
+  it('spawnHalfHeight overrides the computed y offset on the default workplane', () => {
+    const id = useSceneStore.getState().addNode({ type: 'box', width: 20, height: 20, depth: 20 }, 99);
     const { position } = useSceneStore.getState().nodes.find((n) => n.id === id)!.transform;
-    expect(position).toEqual([5, 99, 3]);
+    // Default workplane: normal = +Y, origin = world zero → y equals spawnHalfHeight
+    expect(position).toEqual([0, 99, 0]);
+  });
+
+  // Workplane placement tests
+  it('vertical workplane (normal=[1,0,0]): new box position is along X axis', () => {
+    useSceneStore.setState({
+      workplane: { origin: [10, 0, 0], normal: [1, 0, 0], tangentX: [0, 0, -1] },
+    });
+    // 20×20×20 box → halfHeight = 10, spawn at origin + normal*10 = [20, 0, 0]
+    const id = addBox();
+    const { position } = useSceneStore.getState().nodes.find((n) => n.id === id)!.transform;
+    expect(position[0]).toBeCloseTo(20, 5);
+    expect(position[1]).toBeCloseTo(0, 5);
+    expect(position[2]).toBeCloseTo(0, 5);
+  });
+
+  it('vertical workplane (normal=[1,0,0]): new box rotation aligns local-Y with X', () => {
+    useSceneStore.setState({
+      workplane: { origin: [0, 0, 0], normal: [1, 0, 0], tangentX: [0, 0, -1] },
+    });
+    const id = addBox();
+    const { rotation } = useSceneStore.getState().nodes.find((n) => n.id === id)!.transform;
+    // Rotating local-Y to world-X: -90° around world Z
+    expect(rotation[0]).toBeCloseTo(0, 5);
+    expect(rotation[1]).toBeCloseTo(0, 5);
+    expect(rotation[2]).toBeCloseTo(-Math.PI / 2, 5);
+  });
+
+  it('workplane with non-zero origin: spawn position is offset from the workplane origin', () => {
+    useSceneStore.setState({
+      workplane: { origin: [5, 8, 3], normal: [0, 1, 0], tangentX: [1, 0, 0] },
+    });
+    // halfHeight for 20×20×20 box = 10, normal=[0,1,0] → position = [5, 18, 3]
+    const id = addBox();
+    const { position } = useSceneStore.getState().nodes.find((n) => n.id === id)!.transform;
+    expect(position[0]).toBeCloseTo(5, 5);
+    expect(position[1]).toBeCloseTo(18, 5);
+    expect(position[2]).toBeCloseTo(3, 5);
+  });
+
+  it('after resetting workplane to default, new nodes use world-Y placement', () => {
+    // Set a vertical workplane, then reset
+    useSceneStore.setState({
+      workplane: { origin: [100, 0, 0], normal: [1, 0, 0], tangentX: [0, 0, -1] },
+    });
+    useSceneStore.setState({
+      workplane: { origin: [0, 0, 0], normal: [0, 1, 0], tangentX: [1, 0, 0] },
+    });
+    const id = addBox(); // 20×20×20 → halfHeight = 10
+    const { position } = useSceneStore.getState().nodes.find((n) => n.id === id)!.transform;
+    expect(position).toEqual([0, 10, 0]);
   });
 
   // Auto-naming tests
@@ -403,5 +454,42 @@ describe('setTransformMode', () => {
     useSceneStore.getState().setTransformMode('scale');
     useSceneStore.getState().setTransformMode('translate');
     expect(useSceneStore.getState().transformMode).toBe('translate');
+  });
+});
+
+// ── setWorkplane ───────────────────────────────────────────────────────────────
+
+describe('setWorkplane', () => {
+  it('stores the new workplane', () => {
+    const newWp = { origin: [5, 0, 0] as [number,number,number], normal: [1, 0, 0] as [number,number,number], tangentX: [0, 0, -1] as [number,number,number] };
+    useSceneStore.getState().setWorkplane(newWp);
+    expect(useSceneStore.getState().workplane).toEqual(newWp);
+  });
+
+  it('replaces a previously set workplane', () => {
+    const first  = { origin: [0, 0, 0] as [number,number,number], normal: [0, 0, 1] as [number,number,number], tangentX: [1, 0, 0] as [number,number,number] };
+    const second = { origin: [3, 2, 1] as [number,number,number], normal: [0, 1, 0] as [number,number,number], tangentX: [1, 0, 0] as [number,number,number] };
+    useSceneStore.getState().setWorkplane(first);
+    useSceneStore.getState().setWorkplane(second);
+    expect(useSceneStore.getState().workplane).toEqual(second);
+  });
+});
+
+// ── setWorkplanePlacementMode ──────────────────────────────────────────────────
+
+describe('setWorkplanePlacementMode', () => {
+  it('defaults to false', () => {
+    expect(useSceneStore.getState().workplanePlacementMode).toBe(false);
+  });
+
+  it('setWorkplanePlacementMode(true) enables placement mode', () => {
+    useSceneStore.getState().setWorkplanePlacementMode(true);
+    expect(useSceneStore.getState().workplanePlacementMode).toBe(true);
+  });
+
+  it('setWorkplanePlacementMode(false) disables placement mode', () => {
+    useSceneStore.getState().setWorkplanePlacementMode(true);
+    useSceneStore.getState().setWorkplanePlacementMode(false);
+    expect(useSceneStore.getState().workplanePlacementMode).toBe(false);
   });
 });

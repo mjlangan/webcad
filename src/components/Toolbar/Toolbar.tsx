@@ -2,8 +2,11 @@ import { useRef, type ChangeEvent, type RefObject } from 'react';
 import { useSceneStore } from '../../store/useSceneStore';
 import type { TransformMode } from '../../store/useSceneStore';
 import type { PrimitiveParams } from '../../types/scene';
+import { DEFAULT_WORKPLANE } from '../../types/scene';
 import type { CameraPreset, ViewportActions } from '../../types/viewport';
 import { importStlFile } from '../../lib/stlImport';
+import { undoStack } from '../../store/undoStack';
+import { SetWorkplaneCommand } from '../../store/commands';
 import './Toolbar.css';
 
 const CAMERA_PRESETS: CameraPreset[] = [
@@ -24,6 +27,9 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
   const addNode = useSceneStore((s) => s.addNode);
   const transformMode = useSceneStore((s) => s.transformMode);
   const setTransformMode = useSceneStore((s) => s.setTransformMode);
+  const workplanePlacementMode = useSceneStore((s) => s.workplanePlacementMode);
+  const setWorkplanePlacementMode = useSceneStore((s) => s.setWorkplanePlacementMode);
+  const workplane = useSceneStore((s) => s.workplane);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleAddPrimitive = (type: string) => {
@@ -55,6 +61,10 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
     if (file) importStlFile(file);
     // Reset so the same file can be re-imported
     e.target.value = '';
+  };
+
+  const handleResetWorkplane = () => {
+    undoStack.push(new SetWorkplaneCommand(workplane, DEFAULT_WORKPLANE));
   };
 
   return (
@@ -99,6 +109,24 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
             {label}
           </button>
         ))}
+      </div>
+
+      <div className="toolbar-group">
+        <span className="toolbar-label">Workplane</span>
+        <button
+          className={`toolbar-btn${workplanePlacementMode ? ' toolbar-btn--active' : ''}`}
+          onClick={() => setWorkplanePlacementMode(!workplanePlacementMode)}
+          title="Set workplane on face (click to activate, Esc to cancel)"
+        >
+          Set Plane
+        </button>
+        <button
+          className="toolbar-btn"
+          onClick={handleResetWorkplane}
+          title="Reset workplane to world XZ plane"
+        >
+          Reset Plane
+        </button>
       </div>
 
       <div className="toolbar-group toolbar-group--right">
