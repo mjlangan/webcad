@@ -247,38 +247,37 @@ App
 
 ## Iterative Implementation Plan
 
-### Phase 1 — Foundation
+### Phase 1 — Foundation ✅
 **Goal:** A working 3D viewport with a single selectable box you can move around.
 
-- [ ] Vite + React + TypeScript project scaffold
-- [ ] Three.js canvas integrated into a React component
-- [ ] Orbit controls (pan, orbit, zoom)
-- [ ] Grid and axis gizmo
-- [ ] Place a single Box primitive
-- [ ] Click to select (raycasting), highlight on selection
-- [ ] Zustand store with one SceneNode
-- [ ] Basic transform gizmo (translate only)
+- [x] Vite + React + TypeScript project scaffold
+- [x] Three.js canvas integrated into a React component
+- [x] Orbit controls (pan, orbit, zoom)
+- [x] Grid and axis gizmo
+- [x] Place a single Box primitive
+- [x] Click to select (raycasting), highlight on selection
+- [x] Zustand store with one SceneNode
+- [x] Basic transform gizmo (translate only)
 
-### Phase 2 — Primitives, Scene Tree, and STL Import
+### Phase 2 — Primitives, Scene Tree, and STL Import ✅
 **Goal:** Add all primitive types, a usable scene panel, and STL import — enabling the core workflow of loading and modifying an existing STL.
 
-- [ ] All primitive types: Sphere, Cylinder, Cone, Torus
-- [ ] "Add primitive" menu in toolbar
-- [ ] Scene tree panel: list objects, rename, hide/show, delete
-- [ ] Properties panel: edit primitive parameters and transform numerically
-- [ ] Camera preset buttons
-- [ ] STL import (binary and ASCII) via `three/examples/jsm/loaders/STLLoader`
-- [ ] Imported mesh appears as a SceneNode; can be selected, transformed, and combined with primitives
+- [x] All primitive types: Sphere, Cylinder, Cone, Torus
+- [x] "Add primitive" menu in toolbar
+- [x] Scene tree panel: list objects, rename, hide/show, delete
+- [x] Properties panel: edit primitive parameters and transform numerically
+- [x] Camera preset buttons
+- [x] STL import (binary and ASCII) via `three/examples/jsm/loaders/STLLoader`
+- [x] Imported mesh appears as a SceneNode; can be selected, transformed, and combined with primitives
 
-### Phase 3 — Transforms and Undo/Redo
+### Phase 3 — Transforms and Undo/Redo ✅
 **Goal:** Full transform toolset with reliable undo.
 
-- [ ] Rotate and Scale gizmo handles
-- [ ] Axis-constrained dragging (X, Y, Z and XY, XZ, YZ planes)
-- [ ] Command pattern implementation
-- [ ] Undo/redo stack (Ctrl+Z / Ctrl+Shift+Z)
-- [ ] Multi-select (Shift+click, box select)
-- [ ] Group / ungroup
+- [x] Rotate and Scale gizmo handles
+- [x] Axis-constrained dragging (X, Y, Z and XY, XZ, YZ planes)
+- [x] Command pattern implementation
+- [x] Undo/redo stack (Ctrl+Z / Ctrl+Shift+Z)
+- [x] Multi-select (Shift+click, box select)
 
 ### Phase 4 — Reference Planes (Workplane)
 **Goal:** Users can set a reference plane on any face, and new objects spawn oriented to that plane.
@@ -330,7 +329,9 @@ App
 ### Phase 8 — Polish and UX
 **Goal:** Feels good to use, not just functional.
 
-- [ ] Keyboard shortcuts (G=grab/move, R=rotate, S=scale, X/Y/Z=constrain axis, Del=delete, F=focus selection)
+- [x] Keyboard shortcuts (G=grab/move, R=rotate, S=scale, Del=delete)
+- [ ] Keyboard shortcuts (X/Y/Z=constrain axis, F=focus selection)
+- [ ] Group / ungroup
 - [ ] Snap to grid (configurable increment)
 - [ ] Snap to object vertices/edges
 - [ ] Measurement overlay (distance between two points)
