@@ -16,3 +16,12 @@
   background: rgba(68, 136, 255, 0.08);
   pointer-events: none;
 }
+
+.axes-gizmo {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 80px;
+  height: 80px;
+  pointer-events: none;
+}

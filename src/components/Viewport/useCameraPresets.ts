@@ -5,6 +5,7 @@ import type { ThreeSetup } from './useThreeSetup';
 import type { CameraPreset, ViewportActions } from '../../types/viewport';
 
 const ORIGIN = new THREE.Vector3(0, 0, 0);
+const TRANSITION_MS = 350;
 
 const PRESETS: Record<
   CameraPreset,
@@ -19,10 +20,16 @@ const PRESETS: Record<
   bottom: { position: [0,  -140,    0], up: [0, 0,  1] },
 };
 
+// Ease-out cubic: fast start, gentle arrival
+function easeOut(t: number): number {
+  return 1 - (1 - t) ** 3;
+}
+
 export function useCameraPresets(
   threeRef: RefObject<ThreeSetup | null>,
   orbitControlsRef: RefObject<OrbitControls | null>,
   actionsRef: RefObject<ViewportActions | null>,
+  onBeforeRenderRef: RefObject<(() => void) | null>,
 ): void {
   useEffect(() => {
     actionsRef.current = {
@@ -31,11 +38,28 @@ export function useCameraPresets(
         const controls = orbitControlsRef.current;
         if (!three || !controls) return;
 
-        const { position, up } = PRESETS[preset];
-        three.camera.position.set(...position);
-        three.camera.up.set(...up);
-        controls.target.copy(ORIGIN);
-        controls.update();
+        const { position: targetPos, up: targetUp } = PRESETS[preset];
+
+        const startPos  = three.camera.position.clone();
+        const startUp   = three.camera.up.clone();
+        const endPos    = new THREE.Vector3(...targetPos);
+        const endUp     = new THREE.Vector3(...targetUp);
+        const startTime = performance.now();
+
+        onBeforeRenderRef.current = () => {
+          const t = Math.min((performance.now() - startTime) / TRANSITION_MS, 1);
+          const e = easeOut(t);
+
+          three.camera.position.lerpVectors(startPos, endPos, e);
+          three.camera.up.lerpVectors(startUp, endUp, e).normalize();
+          three.camera.lookAt(ORIGIN);
+          controls.target.copy(ORIGIN);
+
+          if (t >= 1) {
+            onBeforeRenderRef.current = () => controls.update();
+            controls.update();
+          }
+        };
       },
     };
 

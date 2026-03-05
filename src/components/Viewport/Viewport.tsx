@@ -9,6 +9,7 @@ import { useCameraPresets } from './useCameraPresets';
 import { useBoxSelect } from './useBoxSelect';
 import { useWorkplanePlacement } from './useWorkplanePlacement';
 import { useWorkplaneVisualization } from './useWorkplaneVisualization';
+import { useAxesGizmo } from './useAxesGizmo';
 import type { ViewportActions } from '../../types/viewport';
 
 interface ViewportProps {
@@ -17,6 +18,7 @@ interface ViewportProps {
 
 export default function Viewport({ actionsRef }: ViewportProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const gizmoCanvasRef = useRef<HTMLCanvasElement>(null);
   const onBeforeRenderRef = useRef<(() => void) | null>(null);
 
   // Each hook runs its useEffect in call order within the same commit.
@@ -28,14 +30,16 @@ export default function Viewport({ actionsRef }: ViewportProps) {
   const isDraggingRef = useTransformControls(threeRef, meshMapRef, orbitControlsRef);
   useRaycasting(threeRef, meshMapRef, isDraggingRef);
   // Called last so orbitControlsRef is already populated
-  useCameraPresets(threeRef, orbitControlsRef, actionsRef);
+  useCameraPresets(threeRef, orbitControlsRef, actionsRef, onBeforeRenderRef);
   const boxRect = useBoxSelect(threeRef, meshMapRef, isDraggingRef);
   useWorkplanePlacement(threeRef, meshMapRef, isDraggingRef);
   useWorkplaneVisualization(threeRef);
+  useAxesGizmo(gizmoCanvasRef, threeRef);
 
   return (
     <div className="viewport-wrapper">
       <canvas ref={canvasRef} className="viewport-canvas" />
+      <canvas ref={gizmoCanvasRef} className="axes-gizmo" />
       {boxRect && (
         <div
           className="box-select-rect"
