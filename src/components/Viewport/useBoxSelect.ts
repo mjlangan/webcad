@@ -26,6 +26,7 @@ export function useBoxSelect(
 
     function onPointerDown(e: PointerEvent) {
       if (e.button !== 0) return;
+      if (!e.shiftKey) return; // Only start box select when Shift is held
       startClientRef.current = { x: e.clientX, y: e.clientY };
       isBoxSelectingRef.current = false;
     }

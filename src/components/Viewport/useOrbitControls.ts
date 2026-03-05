@@ -7,6 +7,7 @@ export function useOrbitControls(
   onBeforeRenderRef: MutableRefObject<(() => void) | null>,
 ): MutableRefObject<OrbitControls | null> {
   const controlsRef = useRef<OrbitControls | null>(null);
+  const isShiftHeldRef = useRef(false);
 
   useEffect(() => {
     if (!threeRef.current) return;
@@ -22,10 +23,30 @@ export function useOrbitControls(
     // ROTATE: left button (0), PAN: middle button (2), ZOOM: scroll wheel (no button needed)
     controls.mouseButtons.MIDDLE = 2; // PAN
 
+    // Disable left-button rotation when Shift is held (for box select)
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Shift') {
+        isShiftHeldRef.current = true;
+        controls.mouseButtons.LEFT = -1; // Disable left-button rotation
+      }
+    }
+
+    function onKeyUp(e: KeyboardEvent) {
+      if (e.key === 'Shift') {
+        isShiftHeldRef.current = false;
+        controls.mouseButtons.LEFT = 0; // Re-enable left-button rotation
+      }
+    }
+
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+
     controlsRef.current = controls;
     onBeforeRenderRef.current = () => controls.update();
 
     return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
       controls.dispose();
       controlsRef.current = null;
       onBeforeRenderRef.current = null;
