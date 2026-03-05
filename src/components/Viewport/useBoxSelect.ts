@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type MutableRefObject } from 'react';
+import { useEffect, useRef, useState, type RefObject } from 'react';
 import * as THREE from 'three';
 import type { ThreeSetup } from './useThreeSetup';
 import { useSceneStore } from '../../store/useSceneStore';
@@ -11,9 +11,9 @@ export interface BoxRect {
 }
 
 export function useBoxSelect(
-  threeRef: MutableRefObject<ThreeSetup | null>,
-  meshMapRef: MutableRefObject<Map<string, THREE.Mesh>>,
-  isDraggingRef: MutableRefObject<boolean>,
+  threeRef: RefObject<ThreeSetup | null>,
+  meshMapRef: RefObject<Map<string, THREE.Mesh>>,
+  isDraggingRef: RefObject<boolean>,
 ): BoxRect | null {
   const [boxRect, setBoxRect] = useState<BoxRect | null>(null);
   const startClientRef = useRef<{ x: number; y: number } | null>(null);

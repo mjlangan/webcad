@@ -1,12 +1,12 @@
-import { useEffect, useRef, type MutableRefObject } from 'react';
+import { useEffect, useRef, type RefObject } from 'react';
 import * as THREE from 'three';
 import type { ThreeSetup } from './useThreeSetup';
 import { useSceneStore } from '../../store/useSceneStore';
 
 export function useRaycasting(
-  threeRef: MutableRefObject<ThreeSetup | null>,
-  meshMapRef: MutableRefObject<Map<string, THREE.Mesh>>,
-  isDraggingRef: MutableRefObject<boolean>,
+  threeRef: RefObject<ThreeSetup | null>,
+  meshMapRef: RefObject<Map<string, THREE.Mesh>>,
+  isDraggingRef: RefObject<boolean>,
 ): void {
   const pointerDownPos = useRef<{ x: number; y: number } | null>(null);
 

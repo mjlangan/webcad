@@ -1,4 +1,4 @@
-import { useRef, type MutableRefObject } from 'react';
+import { useRef, type RefObject } from 'react';
 import './Viewport.css';
 import { useThreeSetup } from './useThreeSetup';
 import { useSceneSync } from './useSceneSync';
@@ -10,7 +10,7 @@ import { useBoxSelect } from './useBoxSelect';
 import type { ViewportActions } from '../../types/viewport';
 
 interface ViewportProps {
-  actionsRef: MutableRefObject<ViewportActions | null>;
+  actionsRef: RefObject<ViewportActions | null>;
 }
 
 export default function Viewport({ actionsRef }: ViewportProps) {

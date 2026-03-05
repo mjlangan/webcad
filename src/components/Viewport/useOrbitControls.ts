@@ -1,11 +1,12 @@
-import { useEffect, useRef, type MutableRefObject } from 'react';
+import { useEffect, useRef, type RefObject } from 'react';
+import { MOUSE } from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import type { ThreeSetup } from './useThreeSetup';
 
 export function useOrbitControls(
-  threeRef: MutableRefObject<ThreeSetup | null>,
-  onBeforeRenderRef: MutableRefObject<(() => void) | null>,
-): MutableRefObject<OrbitControls | null> {
+  threeRef: RefObject<ThreeSetup | null>,
+  onBeforeRenderRef: RefObject<(() => void) | null>,
+): RefObject<OrbitControls | null> {
   const controlsRef = useRef<OrbitControls | null>(null);
   const isShiftHeldRef = useRef(false);
 
@@ -27,14 +28,14 @@ export function useOrbitControls(
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === 'Shift') {
         isShiftHeldRef.current = true;
-        controls.mouseButtons.LEFT = -1; // Disable left-button rotation
+        controls.mouseButtons.LEFT = null; // Disable left-button rotation
       }
     }
 
     function onKeyUp(e: KeyboardEvent) {
       if (e.key === 'Shift') {
         isShiftHeldRef.current = false;
-        controls.mouseButtons.LEFT = 0; // Re-enable left-button rotation
+        controls.mouseButtons.LEFT = MOUSE.ROTATE; // Re-enable left-button rotation
       }
     }
 

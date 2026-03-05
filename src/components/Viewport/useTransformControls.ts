@@ -1,4 +1,4 @@
-import { useEffect, useRef, type MutableRefObject } from 'react';
+import { useEffect, useRef, type RefObject } from 'react';
 import * as THREE from 'three';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
 import type { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -9,10 +9,10 @@ import { TransformCommand } from '../../store/commands';
 import type { Transform } from '../../types/scene';
 
 export function useTransformControls(
-  threeRef: MutableRefObject<ThreeSetup | null>,
-  meshMapRef: MutableRefObject<Map<string, THREE.Mesh>>,
-  orbitControlsRef: MutableRefObject<OrbitControls | null>,
-): MutableRefObject<boolean> {
+  threeRef: RefObject<ThreeSetup | null>,
+  meshMapRef: RefObject<Map<string, THREE.Mesh>>,
+  orbitControlsRef: RefObject<OrbitControls | null>,
+): RefObject<boolean> {
   const isDraggingRef = useRef(false);
 
   useEffect(() => {

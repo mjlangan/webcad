@@ -1,4 +1,4 @@
-import { useEffect, type MutableRefObject } from 'react';
+import { useEffect, type RefObject } from 'react';
 import * as THREE from 'three';
 import type { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import type { ThreeSetup } from './useThreeSetup';
@@ -20,9 +20,9 @@ const PRESETS: Record<
 };
 
 export function useCameraPresets(
-  threeRef: MutableRefObject<ThreeSetup | null>,
-  orbitControlsRef: MutableRefObject<OrbitControls | null>,
-  actionsRef: MutableRefObject<ViewportActions | null>,
+  threeRef: RefObject<ThreeSetup | null>,
+  orbitControlsRef: RefObject<OrbitControls | null>,
+  actionsRef: RefObject<ViewportActions | null>,
 ): void {
   useEffect(() => {
     actionsRef.current = {

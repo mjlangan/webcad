@@ -1,4 +1,4 @@
-import { useEffect, useRef, type MutableRefObject } from 'react';
+import { useEffect, useRef, type RefObject } from 'react';
 import * as THREE from 'three';
 
 export interface ThreeSetup {
@@ -8,9 +8,9 @@ export interface ThreeSetup {
 }
 
 export function useThreeSetup(
-  canvasRef: MutableRefObject<HTMLCanvasElement | null>,
-  onBeforeRenderRef: MutableRefObject<(() => void) | null>,
-): MutableRefObject<ThreeSetup | null> {
+  canvasRef: RefObject<HTMLCanvasElement | null>,
+  onBeforeRenderRef: RefObject<(() => void) | null>,
+): RefObject<ThreeSetup | null> {
   const setupRef = useRef<ThreeSetup | null>(null);
 
   useEffect(() => {

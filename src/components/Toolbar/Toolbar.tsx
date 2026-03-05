@@ -1,4 +1,4 @@
-import { useRef, type ChangeEvent, type MutableRefObject } from 'react';
+import { useRef, type ChangeEvent, type RefObject } from 'react';
 import { useSceneStore } from '../../store/useSceneStore';
 import type { TransformMode } from '../../store/useSceneStore';
 import type { PrimitiveParams } from '../../types/scene';
@@ -11,7 +11,7 @@ const CAMERA_PRESETS: CameraPreset[] = [
 ];
 
 interface ToolbarProps {
-  actionsRef: MutableRefObject<ViewportActions | null>;
+  actionsRef: RefObject<ViewportActions | null>;
 }
 
 const TRANSFORM_MODES: { mode: TransformMode; label: string }[] = [

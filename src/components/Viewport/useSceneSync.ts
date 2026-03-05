@@ -1,4 +1,4 @@
-import { useEffect, useRef, type MutableRefObject } from 'react';
+import { useEffect, useRef, type RefObject } from 'react';
 import * as THREE from 'three';
 import type { ThreeSetup } from './useThreeSetup';
 import { useSceneStore } from '../../store/useSceneStore';
@@ -51,8 +51,8 @@ function buildGeometry(params: PrimitiveParams): THREE.BufferGeometry {
 }
 
 export function useSceneSync(
-  threeRef: MutableRefObject<ThreeSetup | null>,
-): MutableRefObject<Map<string, THREE.Mesh>> {
+  threeRef: RefObject<ThreeSetup | null>,
+): RefObject<Map<string, THREE.Mesh>> {
   const meshMapRef = useRef<Map<string, THREE.Mesh>>(new Map());
 
   useEffect(() => {
