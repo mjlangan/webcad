@@ -2,15 +2,17 @@ import * as THREE from 'three';
 import { STLLoader } from 'three/addons/loaders/STLLoader.js';
 import { useSceneStore } from '../store/useSceneStore';
 import { undoStack } from '../store/undoStack';
-import { CsgCommitCommand } from '../store/commands';
+import { CsgAdoptCommand } from '../store/commands';
 import { buildGeometry } from './buildGeometry';
 import { geometryToStl } from './geometryToStl';
 import { meshGeometryMap } from './meshGeometryMap';
 import { runCSG, cancelCSG } from './csgWorker';
-import type { CsgOperation } from './csgWorker';
-import type { SceneNode } from '../types/scene';
+import type { CsgOperation, SceneNode } from '../types/scene';
 
 const stlLoader = new STLLoader();
+
+// Tracks which CSG parents currently have a silent recompute in flight
+const recomputeInFlight = new Set<string>();
 
 function buildWorldGeometry(node: SceneNode): THREE.BufferGeometry {
   const geo = buildGeometry(node.geometry).clone();
@@ -53,8 +55,8 @@ export async function triggerCsg(operation: CsgOperation): Promise<void> {
   geoA.dispose();
   geoB.dispose();
 
-  // Enter in-flight state (hides source nodes)
-  beginCsg([idA, idB]);
+  // Enter in-flight state (hides source nodes, records operation type)
+  beginCsg([idA, idB], operation);
 
   let resultBuffer: ArrayBuffer;
   try {
@@ -81,10 +83,10 @@ export async function triggerCsg(operation: CsgOperation): Promise<void> {
 }
 
 export function commitCsg(): void {
-  const { nodes, csgStatus, csgSourceIds, csgResultId, clearCsg } =
+  const { nodes, csgStatus, csgSourceIds, csgResultId, csgPendingOperation, clearCsg } =
     useSceneStore.getState();
 
-  if (csgStatus !== 'preview' || !csgResultId) return;
+  if (csgStatus !== 'preview' || !csgResultId || !csgPendingOperation) return;
 
   const savedSourceNodes: SceneNode[] = [];
   const savedSourceIndices: number[] = [];
@@ -97,11 +99,12 @@ export function commitCsg(): void {
     }
   }
 
-  // Clear CSG state first (sources remain hidden, result remains)
-  // then the command will remove the sources
+  // Clear CSG overlay state, then record the adopt command
   clearCsg(false);
 
-  undoStack.push(new CsgCommitCommand(savedSourceNodes, savedSourceIndices, csgResultId));
+  undoStack.push(
+    new CsgAdoptCommand(savedSourceNodes, savedSourceIndices, csgResultId, csgPendingOperation),
+  );
 }
 
 export function discardCsg(): void {
@@ -116,4 +119,60 @@ export function discardCsg(): void {
 export function cancelCsg(): void {
   cancelCSG();
   // The runCSG promise rejection will trigger clearCsg(true) in triggerCsg's catch block
+}
+
+/**
+ * Silently re-runs the boolean operation for a CSG parent node using its
+ * current children's geometry and transforms. Updates the result mesh in-place.
+ * On failure, blanks the result and records a csgError on the node.
+ */
+export async function rerunCsgForParent(parentId: string): Promise<void> {
+  if (recomputeInFlight.has(parentId)) return;
+
+  const { nodes, csgStatus, updateCsgResult } = useSceneStore.getState();
+
+  // Don't compete with an interactive CSG operation
+  if (csgStatus !== 'idle') return;
+
+  const parent = nodes.find((n) => n.id === parentId);
+  if (!parent || !parent.csgOperation || parent.childIds.length !== 2) return;
+
+  const [idA, idB] = parent.childIds;
+  const nodeA = nodes.find((n) => n.id === idA);
+  const nodeB = nodes.find((n) => n.id === idB);
+  if (!nodeA || !nodeB) return;
+
+  recomputeInFlight.add(parentId);
+
+  const geoA = buildWorldGeometry(nodeA);
+  const geoB = buildWorldGeometry(nodeB);
+  const bufA = geometryToStl(geoA);
+  const bufB = geometryToStl(geoB);
+  geoA.dispose();
+  geoB.dispose();
+
+  let resultBuffer: ArrayBuffer;
+  try {
+    resultBuffer = await runCSG(parent.csgOperation, bufA, bufB);
+  } catch (err) {
+    recomputeInFlight.delete(parentId);
+    if (err instanceof Error && err.message === 'A CSG operation is already in flight') {
+      // Another op grabbed the worker — the auto-recompute hook will retry on next relevant change
+      return;
+    }
+    // Real failure: blank the result and mark error
+    const emptyMeshId = crypto.randomUUID();
+    meshGeometryMap.set(emptyMeshId, new THREE.BufferGeometry());
+    const message = err instanceof Error ? err.message : 'Unknown CSG error';
+    updateCsgResult(parentId, emptyMeshId, message);
+    return;
+  }
+
+  recomputeInFlight.delete(parentId);
+
+  const resultGeo = stlLoader.parse(resultBuffer);
+  resultGeo.computeVertexNormals();
+  const newMeshId = crypto.randomUUID();
+  meshGeometryMap.set(newMeshId, resultGeo);
+  updateCsgResult(parentId, newMeshId, null);
 }

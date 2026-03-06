@@ -1,4 +1,4 @@
-import type { PrimitiveParams, SceneNode, Transform, Workplane } from '../types/scene';
+import type { PrimitiveParams, SceneNode, Transform, Workplane, CsgOperation } from '../types/scene';
 import { useSceneStore } from './useSceneStore';
 
 export class AddNodeCommand {
@@ -33,12 +33,20 @@ export class RemoveNodeCommand {
     const { nodes } = useSceneStore.getState();
     this.savedNode = nodes.find((n) => n.id === this.id) ?? null;
     this.savedIndex = nodes.findIndex((n) => n.id === this.id);
+    // Store's removeNode cascades: if this is a CSG parent, children are released automatically
     useSceneStore.getState().removeNode(this.id);
   }
 
   undo(): void {
-    if (this.savedNode) {
-      useSceneStore.getState().restoreNode(this.savedNode, this.savedIndex);
+    if (!this.savedNode) return;
+    useSceneStore.getState().restoreNode(this.savedNode, this.savedIndex);
+    // If this was a CSG parent, re-adopt the children (re-parent and hide them)
+    if (this.savedNode.childIds.length > 0 && this.savedNode.csgOperation) {
+      useSceneStore.getState().adoptChildren(
+        this.savedNode.id,
+        this.savedNode.childIds,
+        this.savedNode.csgOperation,
+      );
     }
   }
 }
@@ -107,52 +115,57 @@ export class UpdateGeometryCommand {
   }
 }
 
-export class CsgCommitCommand {
+/**
+ * Records a committed CSG operation. Instead of deleting source nodes,
+ * adopts them as hidden children of the result node. Undo releases the
+ * children and removes the result.
+ */
+export class CsgAdoptCommand {
   private readonly savedSourceNodes: SceneNode[];
-  private readonly savedSourceIndices: number[];
   private readonly resultId: string;
+  private readonly operation: CsgOperation;
   private savedResultNode: SceneNode | null = null;
+  private savedResultIndex = 0;
 
   constructor(
     savedSourceNodes: SceneNode[],
-    savedSourceIndices: number[],
+    _savedSourceIndices: number[],
     resultId: string,
+    operation: CsgOperation,
   ) {
     this.savedSourceNodes = savedSourceNodes;
-    this.savedSourceIndices = savedSourceIndices;
     this.resultId = resultId;
+    this.operation = operation;
   }
 
   execute(): void {
     const state = useSceneStore.getState();
 
-    // On redo: result node was removed by undo(), re-add it
+    // On redo: result was removed by undo(), restore it before re-adopting
     if (!state.nodes.find((n) => n.id === this.resultId) && this.savedResultNode) {
-      state.restoreNode(this.savedResultNode, state.nodes.length);
+      state.restoreNode(this.savedResultNode, this.savedResultIndex);
     }
 
-    // Remove source nodes
-    this.savedSourceNodes.forEach((n) => useSceneStore.getState().removeNode(n.id));
+    useSceneStore.getState().adoptChildren(
+      this.resultId,
+      this.savedSourceNodes.map((n) => n.id),
+      this.operation,
+    );
   }
 
   undo(): void {
     const state = useSceneStore.getState();
 
-    // Save result node before removing so redo can restore it
+    // Save result node and position so redo can restore it
     const resultIdx = state.nodes.findIndex((n) => n.id === this.resultId);
     if (resultIdx >= 0) {
       this.savedResultNode = state.nodes[resultIdx];
+      this.savedResultIndex = resultIdx;
     }
 
+    // Release children (sets parentId=null, visible=true) then remove result
+    state.releaseChildren(this.resultId);
     useSceneStore.getState().removeNode(this.resultId);
-
-    // Restore source nodes as visible at their original positions
-    this.savedSourceNodes.forEach((node, i) => {
-      useSceneStore.getState().restoreNode(
-        { ...node, visible: true },
-        this.savedSourceIndices[i],
-      );
-    });
   }
 }
 

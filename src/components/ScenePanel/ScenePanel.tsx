@@ -1,7 +1,8 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, Fragment } from 'react';
 import { useSceneStore } from '../../store/useSceneStore';
 import { undoStack } from '../../store/undoStack';
 import { RenameNodeCommand, RemoveNodeCommand } from '../../store/commands';
+import type { SceneNode } from '../../types/scene';
 import './ScenePanel.css';
 
 export default function ScenePanel() {
@@ -13,6 +14,8 @@ export default function ScenePanel() {
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
+  // Set of parent IDs that are collapsed (children hidden); default is expanded
+  const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Focus input when entering edit mode
@@ -43,60 +46,130 @@ export default function ScenePanel() {
     }
   };
 
+  const toggleCollapsed = (parentId: string) => {
+    setCollapsedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(parentId)) next.delete(parentId);
+      else next.add(parentId);
+      return next;
+    });
+  };
+
+  const renderRow = (node: SceneNode, isChild: boolean) => {
+    const isSelected = selectedIds.includes(node.id);
+    const hasChildren = node.childIds.length > 0;
+    const isExpanded = !collapsedIds.has(node.id);
+    const hasError = node.csgError !== null;
+
+    let rowClass = 'scene-row';
+    if (isSelected) rowClass += ' scene-row--selected';
+    if (!node.visible && !isChild) rowClass += ' scene-row--hidden';
+    if (isChild) rowClass += ' scene-row--child';
+
+    return (
+      <li key={node.id} className={rowClass} onClick={(e) => handleRowClick(e, node.id)}>
+
+        {/* Tree indent / connector for children */}
+        {isChild && <span className="scene-tree-connector" aria-hidden="true">└</span>}
+
+        {/* Expand/collapse for CSG parent nodes */}
+        {!isChild && hasChildren && (
+          <button
+            className="scene-row-btn scene-row-expand-btn"
+            title={isExpanded ? 'Collapse' : 'Expand'}
+            onClick={(e) => { e.stopPropagation(); toggleCollapsed(node.id); }}
+          >
+            {isExpanded ? '▾' : '▸'}
+          </button>
+        )}
+
+        {/* Visibility eye — root nodes only (system manages child visibility) */}
+        {!isChild && (
+          <button
+            className="scene-row-btn"
+            title={node.visible ? 'Hide' : 'Show'}
+            onClick={(e) => { e.stopPropagation(); toggleVisible(node.id); }}
+          >
+            {node.visible ? '👁' : '🙈'}
+          </button>
+        )}
+
+        {/* Error badge for failed CSG recomputes */}
+        {hasError && (
+          <span className="scene-row-error-badge" title={node.csgError ?? undefined}>⚠</span>
+        )}
+
+        {/* Name — double-click to rename */}
+        {editingId === node.id ? (
+          <input
+            ref={inputRef}
+            className="scene-rename-input"
+            value={editValue}
+            onChange={(e) => setEditValue(e.target.value)}
+            onBlur={commitRename}
+            onKeyDown={handleKeyDown}
+            onClick={(e) => e.stopPropagation()}
+          />
+        ) : (
+          <span
+            className="scene-row-name"
+            onDoubleClick={(e) => {
+              e.stopPropagation();
+              setEditingId(node.id);
+              setEditValue(node.name);
+            }}
+          >
+            {node.name}
+          </span>
+        )}
+
+        {/* Delete for root nodes; lock indicator for children */}
+        {!isChild ? (
+          <button
+            className="scene-row-btn scene-row-btn--delete"
+            title="Delete"
+            onClick={(e) => {
+              e.stopPropagation();
+              undoStack.push(new RemoveNodeCommand(node.id));
+            }}
+          >
+            ✕
+          </button>
+        ) : (
+          <span
+            className="scene-row-child-locked"
+            title="Cannot delete: used by a boolean operation — delete the parent first"
+          >
+            🔒
+          </span>
+        )}
+      </li>
+    );
+  };
+
+  // Only render root nodes at the top level; their children are inlined below
+  const rootNodes = nodes.filter((n) => n.parentId === null);
+
   return (
     <div className="scene-panel">
       <div className="panel-header">Scene</div>
       <ul className="scene-list">
-        {nodes.map((node) => (
-          <li
-            key={node.id}
-            className={`scene-row${selectedIds.includes(node.id) ? ' scene-row--selected' : ''}${!node.visible ? ' scene-row--hidden' : ''}`}
-            onClick={(e) => handleRowClick(e, node.id)}
-          >
-            <button
-              className="scene-row-btn"
-              title={node.visible ? 'Hide' : 'Show'}
-              onClick={(e) => { e.stopPropagation(); toggleVisible(node.id); }}
-            >
-              {node.visible ? '👁' : '🙈'}
-            </button>
+        {rootNodes.map((node) => {
+          const isExpanded = !collapsedIds.has(node.id);
+          const children = node.childIds
+            .map((id) => nodes.find((n) => n.id === id))
+            .filter((n): n is SceneNode => n !== undefined);
 
-            {editingId === node.id ? (
-              <input
-                ref={inputRef}
-                className="scene-rename-input"
-                value={editValue}
-                onChange={(e) => setEditValue(e.target.value)}
-                onBlur={commitRename}
-                onKeyDown={handleKeyDown}
-                onClick={(e) => e.stopPropagation()}
-              />
-            ) : (
-              <span
-                className="scene-row-name"
-                onDoubleClick={(e) => {
-                  e.stopPropagation();
-                  setEditingId(node.id);
-                  setEditValue(node.name);
-                }}
-              >
-                {node.name}
-              </span>
-            )}
-
-            <button
-              className="scene-row-btn scene-row-btn--delete"
-              title="Delete"
-              onClick={(e) => {
-                e.stopPropagation();
-                undoStack.push(new RemoveNodeCommand(node.id));
-              }}
-            >
-              ✕
-            </button>
-          </li>
-        ))}
-        {nodes.length === 0 && (
+          return (
+            <Fragment key={node.id}>
+              {renderRow(node, false)}
+              {node.childIds.length > 0 && isExpanded && children.map((child) =>
+                renderRow(child, true),
+              )}
+            </Fragment>
+          );
+        })}
+        {rootNodes.length === 0 && (
           <li className="scene-empty">No objects in scene</li>
         )}
       </ul>

@@ -8,10 +8,12 @@ import type { ViewportActions } from './types/viewport';
 import { useSceneStore } from './store/useSceneStore';
 import { undoStack } from './store/undoStack';
 import { RemoveNodeCommand } from './store/commands';
+import { useCsgAutoRecompute } from './lib/useCsgAutoRecompute';
 import './App.css';
 
 export default function App() {
   const actionsRef = useRef<ViewportActions | null>(null);
+  useCsgAutoRecompute();
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -53,10 +55,13 @@ export default function App() {
           break;
         case 'Delete':
         case 'Backspace': {
-          const { selectedIds } = useSceneStore.getState();
+          const { selectedIds, nodes } = useSceneStore.getState();
           if (selectedIds.length === 0) break;
-          // Push each removal as a separate command so they undo independently
-          for (const id of [...selectedIds]) {
+          // Skip children of CSG results — they cannot be deleted independently
+          const deletableIds = selectedIds.filter(
+            (id) => nodes.find((n) => n.id === id)?.parentId === null,
+          );
+          for (const id of deletableIds) {
             undoStack.push(new RemoveNodeCommand(id));
           }
           break;

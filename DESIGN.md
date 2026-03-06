@@ -51,7 +51,8 @@ The guiding principle is **approachability over completeness**: the tool should 
 - Hierarchical list of all objects
 - Rename, hide/show, lock, delete objects
 - Single and multi-select
-- Group/ungroup objects
+- Trees of CSG parent/child groups (collapse/expand)
+- General-purpose group/ungroup with transform inheritance (Phase 7.5)
 
 ### Reference Planes (Workplane)
 
@@ -86,8 +87,12 @@ A reference plane defines the surface on which new objects are placed and dragge
 
 ### Boolean Operations (CSG)
 - Union, Subtract, Intersect
-- Non-destructive: source objects are preserved and hidden until the user confirms
-- Result becomes a new mesh
+- Non-destructive preview before commit: source objects hidden, result shown; commit or discard
+- On commit, source objects become hidden children of the result node in the scene tree
+- Editing a child (transform or geometry) silently re-runs the boolean in the background (~150 ms debounce)
+- Deleting the parent releases and unhides its children; this is fully undoable
+- Children cannot be independently deleted while parented (delete the parent first)
+- If a background recompute fails, the result is blanked (invisible) and an error badge appears on the node in the scene tree; fixing the child geometry clears the error
 
 ### Materials
 - Assign flat color or simple phong material to objects
@@ -141,7 +146,11 @@ ZustandStore (source of truth)
   │     ├── id, name, visible, locked
   │     ├── transform: { position, rotation, scale }
   │     ├── geometry: PrimitiveParams | MeshData
-  │     └── material: { color, opacity, ... }
+  │     ├── material: { color, opacity, ... }
+  │     ├── parentId: string | null       (non-null = hidden child of a CSG result)
+  │     ├── childIds: string[]            (non-empty = this is a CSG result node)
+  │     ├── csgOperation: 'union' | 'subtract' | 'intersect' | null
+  │     └── csgError: string | null       (set when background recompute fails)
   └── workplane: { origin: Vector3, normal: Vector3, tangentX: Vector3 }
         (identity default = XZ plane, normal = world +Y)
 
@@ -307,6 +316,18 @@ App
 - [x] Cancel button terminates and restarts the worker, leaving source objects unchanged
 - [x] Result appears as new mesh in scene tree
 
+### Phase 5.5 — CSG Parent-Child Groups ✅
+**Goal:** Boolean results retain their inputs as hidden children, enabling live re-evaluation when inputs change.
+
+- [x] `SceneNode` extended with `parentId`, `childIds`, `csgOperation`, `csgError` fields
+- [x] On commit, source nodes become hidden children of the result node (`CsgAdoptCommand` replaces `CsgCommitCommand`); sources are no longer deleted
+- [x] Scene panel renders children indented under their parent with a `└` connector; collapse/expand toggle on parent rows
+- [x] Children cannot be deleted independently (lock indicator shown); delete the parent to release them
+- [x] Deleting a CSG parent unparents and unhides its children (`removeNode` cascade); fully undoable
+- [x] Editing a child (transform or geometry params) silently re-runs the boolean in the background via `useCsgAutoRecompute` hook (150 ms debounce, per-parent in-flight lock)
+- [x] Failed recompute: result blanked (empty geometry, node hidden) and `⚠` error badge shown in scene panel with error tooltip; recovers automatically when child is fixed
+- [x] Worker contention handled: if the interactive CSG worker is busy when a background recompute fires, the recompute is silently skipped (next child edit will retry)
+
 ### Phase 6 — Materials and Appearance
 **Goal:** Objects can be colored and styled.
 
@@ -326,12 +347,25 @@ App
 - [ ] Import OBJ
 - [ ] "Export all" and "Export selection" options
 
+### Phase 7.5 — General-Purpose Groups
+**Goal:** Users can organize objects into named groups that move and transform in unison.
+
+- [ ] `{ type: 'group' }` geometry variant — a null node with a transform but no mesh; `buildGeometry` returns an empty object, `useSceneSync` skips mesh creation for it
+- [ ] Transform inheritance in `useSceneSync`: child world matrix = parent world matrix × child local matrix; walk the `parentId` chain to root before applying to Three.js mesh
+- [ ] `TransformCommand` and gizmo write *local* transforms for parented nodes, *world* transforms for root nodes
+- [ ] Properties panel shows local transform values for children; world values for root nodes
+- [ ] `buildWorldGeometry` in `triggerCsg.ts` updated to compute true world matrix via parent chain (needed for CSG on grouped objects)
+- [ ] Group action (Ctrl+G): create a group node at the bounding-box centroid of selected objects, convert their world transforms to local-relative, reparent them; push `GroupCommand` to undo stack
+- [ ] Ungroup action: convert children's local transforms back to world, reparent to world root, delete group node; push `UngroupCommand` to undo stack
+- [ ] Scene panel renders group tree at arbitrary depth (recursive); collapse/expand per node
+- [ ] Click group in viewport or scene panel → selects the group; gizmo acts on group transform
+- [ ] Visibility toggle on group propagates to all children
+
 ### Phase 8 — Polish and UX
 **Goal:** Feels good to use, not just functional.
 
 - [x] Keyboard shortcuts (G=grab/move, R=rotate, S=scale, Del=delete)
 - [ ] Keyboard shortcuts (X/Y/Z=constrain axis, F=focus selection)
-- [ ] Group / ungroup
 - [ ] Snap to grid (configurable increment)
 - [ ] Snap to object vertices/edges
 - [ ] Measurement overlay (distance between two points)

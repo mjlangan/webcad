@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { SceneNode, Transform, PrimitiveParams, Workplane } from '../types/scene';
+import type { SceneNode, Transform, PrimitiveParams, Workplane, CsgOperation, ImportedMeshParams } from '../types/scene';
 import { DEFAULT_WORKPLANE } from '../types/scene';
 import { workplaneSpawn } from '../lib/workplaneUtils';
 
@@ -53,8 +53,9 @@ interface SceneState {
   csgStatus: CsgStatus;
   csgSourceIds: string[];
   csgResultId: string | null;
+  csgPendingOperation: CsgOperation | null;
   setNodeVisible:  (id: string, visible: boolean) => void;
-  beginCsg:        (sourceIds: string[]) => void;
+  beginCsg:        (sourceIds: string[], operation: CsgOperation) => void;
   setCsgPreview:   (resultId: string) => void;
   clearCsg:        (restoreSources?: boolean) => void;
 
@@ -66,6 +67,9 @@ interface SceneState {
   renameNode:            (id: string, name: string) => void;
   toggleVisible:         (id: string) => void;
   updatePrimitiveParams: (id: string, geometry: PrimitiveParams) => void;
+  adoptChildren:         (parentId: string, childIds: string[], op: CsgOperation) => void;
+  releaseChildren:       (parentId: string) => void;
+  updateCsgResult:       (parentId: string, newMeshId: string, error: string | null) => void;
 }
 
 export const useSceneStore = create<SceneState>((set, get) => ({
@@ -82,6 +86,10 @@ export const useSceneStore = create<SceneState>((set, get) => ({
       },
       geometry: { type: 'box', width: 20, height: 20, depth: 20 },
       material: { color: '#4488ff', opacity: 1 },
+      parentId: null,
+      childIds: [],
+      csgOperation: null,
+      csgError: null,
     },
   ],
   selectedIds: [],
@@ -91,6 +99,7 @@ export const useSceneStore = create<SceneState>((set, get) => ({
   csgStatus: 'idle',
   csgSourceIds: [],
   csgResultId: null,
+  csgPendingOperation: null,
 
   selectNode: (id) => set({ selectedIds: id ? [id] : [] }),
 
@@ -116,11 +125,12 @@ export const useSceneStore = create<SceneState>((set, get) => ({
       nodes: state.nodes.map((n) => (n.id === id ? { ...n, visible } : n)),
     })),
 
-  beginCsg: (sourceIds) =>
+  beginCsg: (sourceIds, operation) =>
     set((state) => ({
       csgStatus: 'in_flight',
       csgSourceIds: sourceIds,
       csgResultId: null,
+      csgPendingOperation: operation,
       nodes: state.nodes.map((n) =>
         sourceIds.includes(n.id) ? { ...n, visible: false } : n,
       ),
@@ -133,6 +143,7 @@ export const useSceneStore = create<SceneState>((set, get) => ({
       csgStatus: 'idle',
       csgResultId: null,
       csgSourceIds: [],
+      csgPendingOperation: null,
       nodes: restoreSources
         ? state.nodes.map((n) =>
             state.csgSourceIds.includes(n.id) ? { ...n, visible: true } : n,
@@ -162,16 +173,35 @@ export const useSceneStore = create<SceneState>((set, get) => ({
       transform: { position, rotation, scale: [1, 1, 1] },
       geometry,
       material: { color: '#4488ff', opacity: 1 },
+      parentId: null,
+      childIds: [],
+      csgOperation: null,
+      csgError: null,
     };
     set((state) => ({ nodes: [...state.nodes, node], selectedIds: [id] }));
     return id;
   },
 
   removeNode: (id) =>
-    set((state) => ({
-      nodes: state.nodes.filter((n) => n.id !== id),
-      selectedIds: state.selectedIds.filter((s) => s !== id),
-    })),
+    set((state) => {
+      const node = state.nodes.find((n) => n.id === id);
+      if (!node) return {};
+
+      // If this is a CSG parent, release children (make them top-level and visible)
+      let updatedNodes = state.nodes;
+      if (node.childIds.length > 0) {
+        updatedNodes = updatedNodes.map((n) =>
+          node.childIds.includes(n.id)
+            ? { ...n, parentId: null, visible: true }
+            : n,
+        );
+      }
+
+      return {
+        nodes: updatedNodes.filter((n) => n.id !== id),
+        selectedIds: state.selectedIds.filter((s) => s !== id),
+      };
+    }),
 
   restoreNode: (node, atIndex) =>
     set((state) => {
@@ -196,5 +226,50 @@ export const useSceneStore = create<SceneState>((set, get) => ({
   updatePrimitiveParams: (id, geometry) =>
     set((state) => ({
       nodes: state.nodes.map((n) => (n.id === id ? { ...n, geometry } : n)),
+    })),
+
+  adoptChildren: (parentId, childIds, op) =>
+    set((state) => ({
+      nodes: state.nodes.map((n) => {
+        if (n.id === parentId) {
+          return { ...n, childIds, csgOperation: op };
+        }
+        if (childIds.includes(n.id)) {
+          return { ...n, parentId, visible: false };
+        }
+        return n;
+      }),
+    })),
+
+  releaseChildren: (parentId) =>
+    set((state) => {
+      const parent = state.nodes.find((n) => n.id === parentId);
+      if (!parent) return {};
+      const childIds = parent.childIds;
+      return {
+        nodes: state.nodes.map((n) => {
+          if (n.id === parentId) {
+            return { ...n, childIds: [], csgOperation: null, csgError: null };
+          }
+          if (childIds.includes(n.id)) {
+            return { ...n, parentId: null, visible: true };
+          }
+          return n;
+        }),
+      };
+    }),
+
+  updateCsgResult: (parentId, newMeshId, error) =>
+    set((state) => ({
+      nodes: state.nodes.map((n) => {
+        if (n.id !== parentId) return n;
+        const geo = n.geometry as ImportedMeshParams;
+        return {
+          ...n,
+          geometry: { ...geo, meshId: newMeshId },
+          csgError: error,
+          visible: error === null,
+        };
+      }),
     })),
 }));

@@ -100,3 +100,48 @@
   color: #555;
   font-style: italic;
 }
+
+/* Child row indentation */
+.scene-row--child {
+  padding-left: 4px;
+  background: #1e1e1e;
+  opacity: 0.8;
+}
+
+.scene-row--child:hover {
+  background: #262626;
+}
+
+.scene-row--child.scene-row--selected {
+  background: #1a3a5c;
+  opacity: 1;
+}
+
+.scene-tree-connector {
+  color: #555;
+  font-size: 11px;
+  padding: 0 2px 0 12px;
+  flex-shrink: 0;
+}
+
+/* Expand/collapse button */
+.scene-row-expand-btn {
+  font-size: 10px;
+  padding: 1px 2px;
+}
+
+/* Error badge on CSG result nodes */
+.scene-row-error-badge {
+  font-size: 12px;
+  flex-shrink: 0;
+  cursor: help;
+}
+
+/* Lock indicator on child nodes */
+.scene-row-child-locked {
+  margin-left: auto;
+  font-size: 10px;
+  opacity: 0.4;
+  flex-shrink: 0;
+  cursor: help;
+}

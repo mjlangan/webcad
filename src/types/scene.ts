@@ -60,6 +60,8 @@ export interface MaterialProps {
   opacity: number;
 }
 
+export type CsgOperation = 'union' | 'subtract' | 'intersect';
+
 export interface SceneNode {
   id: string;
   name: string;
@@ -68,6 +70,11 @@ export interface SceneNode {
   transform: Transform;
   geometry: PrimitiveParams;
   material: MaterialProps;
+  // Parent-child for CSG groups
+  parentId: string | null;
+  childIds: string[];
+  csgOperation: CsgOperation | null;
+  csgError: string | null;
 }
 
 export interface Workplane {
