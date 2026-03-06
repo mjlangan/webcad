@@ -27,6 +27,8 @@ function labelFor(geometry: PrimitiveParams): string {
   }
 }
 
+export type CsgStatus = 'idle' | 'in_flight' | 'preview';
+
 interface SceneState {
   nodes: SceneNode[];
   workplane: Workplane;
@@ -46,6 +48,15 @@ interface SceneState {
   // Workplane
   setWorkplane: (workplane: Workplane) => void;
   setWorkplanePlacementMode: (active: boolean) => void;
+
+  // CSG
+  csgStatus: CsgStatus;
+  csgSourceIds: string[];
+  csgResultId: string | null;
+  setNodeVisible:  (id: string, visible: boolean) => void;
+  beginCsg:        (sourceIds: string[]) => void;
+  setCsgPreview:   (resultId: string) => void;
+  clearCsg:        (restoreSources?: boolean) => void;
 
   // Mutations
   updateTransform:       (id: string, transform: Transform) => void;
@@ -77,6 +88,9 @@ export const useSceneStore = create<SceneState>((set, get) => ({
   transformMode: 'translate',
   workplane: DEFAULT_WORKPLANE,
   workplanePlacementMode: false,
+  csgStatus: 'idle',
+  csgSourceIds: [],
+  csgResultId: null,
 
   selectNode: (id) => set({ selectedIds: id ? [id] : [] }),
 
@@ -96,6 +110,35 @@ export const useSceneStore = create<SceneState>((set, get) => ({
   setWorkplane: (workplane) => set({ workplane }),
 
   setWorkplanePlacementMode: (active) => set({ workplanePlacementMode: active }),
+
+  setNodeVisible: (id, visible) =>
+    set((state) => ({
+      nodes: state.nodes.map((n) => (n.id === id ? { ...n, visible } : n)),
+    })),
+
+  beginCsg: (sourceIds) =>
+    set((state) => ({
+      csgStatus: 'in_flight',
+      csgSourceIds: sourceIds,
+      csgResultId: null,
+      nodes: state.nodes.map((n) =>
+        sourceIds.includes(n.id) ? { ...n, visible: false } : n,
+      ),
+    })),
+
+  setCsgPreview: (resultId) => set({ csgStatus: 'preview', csgResultId: resultId }),
+
+  clearCsg: (restoreSources = false) =>
+    set((state) => ({
+      csgStatus: 'idle',
+      csgResultId: null,
+      csgSourceIds: [],
+      nodes: restoreSources
+        ? state.nodes.map((n) =>
+            state.csgSourceIds.includes(n.id) ? { ...n, visible: true } : n,
+          )
+        : state.nodes,
+    })),
 
   updateTransform: (id, transform) =>
     set((state) => ({

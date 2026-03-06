@@ -107,6 +107,55 @@ export class UpdateGeometryCommand {
   }
 }
 
+export class CsgCommitCommand {
+  private readonly savedSourceNodes: SceneNode[];
+  private readonly savedSourceIndices: number[];
+  private readonly resultId: string;
+  private savedResultNode: SceneNode | null = null;
+
+  constructor(
+    savedSourceNodes: SceneNode[],
+    savedSourceIndices: number[],
+    resultId: string,
+  ) {
+    this.savedSourceNodes = savedSourceNodes;
+    this.savedSourceIndices = savedSourceIndices;
+    this.resultId = resultId;
+  }
+
+  execute(): void {
+    const state = useSceneStore.getState();
+
+    // On redo: result node was removed by undo(), re-add it
+    if (!state.nodes.find((n) => n.id === this.resultId) && this.savedResultNode) {
+      state.restoreNode(this.savedResultNode, state.nodes.length);
+    }
+
+    // Remove source nodes
+    this.savedSourceNodes.forEach((n) => useSceneStore.getState().removeNode(n.id));
+  }
+
+  undo(): void {
+    const state = useSceneStore.getState();
+
+    // Save result node before removing so redo can restore it
+    const resultIdx = state.nodes.findIndex((n) => n.id === this.resultId);
+    if (resultIdx >= 0) {
+      this.savedResultNode = state.nodes[resultIdx];
+    }
+
+    useSceneStore.getState().removeNode(this.resultId);
+
+    // Restore source nodes as visible at their original positions
+    this.savedSourceNodes.forEach((node, i) => {
+      useSceneStore.getState().restoreNode(
+        { ...node, visible: true },
+        this.savedSourceIndices[i],
+      );
+    });
+  }
+}
+
 export class SetWorkplaneCommand {
   private readonly before: Workplane;
   private readonly after: Workplane;

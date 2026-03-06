@@ -2,53 +2,11 @@ import { useEffect, useRef, type RefObject } from 'react';
 import * as THREE from 'three';
 import type { ThreeSetup } from './useThreeSetup';
 import { useSceneStore } from '../../store/useSceneStore';
-import type { PrimitiveParams } from '../../types/scene';
-import { meshGeometryMap } from '../../lib/meshGeometryMap';
+import { buildGeometry } from '../../lib/buildGeometry';
 
 const SELECTED_COLOR = new THREE.Color('#ff8822');
 const SELECTED_EMISSIVE = new THREE.Color('#331100');
 const DEFAULT_EMISSIVE = new THREE.Color('#000000');
-
-function buildGeometry(params: PrimitiveParams): THREE.BufferGeometry {
-  switch (params.type) {
-    case 'box':
-      return new THREE.BoxGeometry(params.width, params.height, params.depth);
-    case 'sphere':
-      return new THREE.SphereGeometry(
-        params.radius,
-        params.widthSegments,
-        params.heightSegments,
-      );
-    case 'cylinder':
-      return new THREE.CylinderGeometry(
-        params.radiusTop,
-        params.radiusBottom,
-        params.height,
-        params.radialSegments,
-      );
-    case 'cone':
-      return new THREE.ConeGeometry(
-        params.radius,
-        params.height,
-        params.radialSegments,
-      );
-    case 'torus':
-      return new THREE.TorusGeometry(
-        params.radius,
-        params.tube,
-        params.radialSegments,
-        params.tubularSegments,
-      );
-    case 'imported': {
-      const geo = meshGeometryMap.get(params.meshId);
-      if (!geo) {
-        // Fallback for a missing imported mesh (e.g. after re-mount before import completes)
-        return new THREE.BufferGeometry();
-      }
-      return geo;
-    }
-  }
-}
 
 export function useSceneSync(
   threeRef: RefObject<ThreeSetup | null>,

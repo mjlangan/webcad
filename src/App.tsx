@@ -3,6 +3,7 @@ import Viewport from './components/Viewport/Viewport';
 import Toolbar from './components/Toolbar/Toolbar';
 import ScenePanel from './components/ScenePanel/ScenePanel';
 import PropertiesPanel from './components/PropertiesPanel/PropertiesPanel';
+import CsgOverlay from './components/CsgOverlay/CsgOverlay';
 import type { ViewportActions } from './types/viewport';
 import { useSceneStore } from './store/useSceneStore';
 import { undoStack } from './store/undoStack';
@@ -73,6 +74,7 @@ export default function App() {
       <ScenePanel />
       <div className="app-viewport">
         <Viewport actionsRef={actionsRef} />
+        <CsgOverlay />
       </div>
       <PropertiesPanel />
     </div>

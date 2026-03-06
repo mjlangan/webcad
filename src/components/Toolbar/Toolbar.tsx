@@ -7,6 +7,8 @@ import type { CameraPreset, ViewportActions } from '../../types/viewport';
 import { importStlFile } from '../../lib/stlImport';
 import { undoStack } from '../../store/undoStack';
 import { SetWorkplaneCommand } from '../../store/commands';
+import { triggerCsg } from '../../lib/triggerCsg';
+import type { CsgOperation } from '../../lib/csgWorker';
 import './Toolbar.css';
 
 const CAMERA_PRESETS: CameraPreset[] = [
@@ -23,6 +25,12 @@ const TRANSFORM_MODES: { mode: TransformMode; label: string }[] = [
   { mode: 'scale',     label: 'Scale' },
 ];
 
+const BOOLEAN_OPS: { op: CsgOperation; label: string; title: string }[] = [
+  { op: 'union',     label: 'Union',     title: 'Combine two selected objects (A ∪ B)' },
+  { op: 'subtract',  label: 'Subtract',  title: 'Subtract second object from first (A − B)' },
+  { op: 'intersect', label: 'Intersect', title: 'Keep only the overlapping volume (A ∩ B)' },
+];
+
 export default function Toolbar({ actionsRef }: ToolbarProps) {
   const addNode = useSceneStore((s) => s.addNode);
   const transformMode = useSceneStore((s) => s.transformMode);
@@ -30,7 +38,11 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
   const workplanePlacementMode = useSceneStore((s) => s.workplanePlacementMode);
   const setWorkplanePlacementMode = useSceneStore((s) => s.setWorkplanePlacementMode);
   const workplane = useSceneStore((s) => s.workplane);
+  const selectedIds = useSceneStore((s) => s.selectedIds);
+  const csgStatus = useSceneStore((s) => s.csgStatus);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const booleanEnabled = selectedIds.length === 2 && csgStatus === 'idle';
 
   const handleAddPrimitive = (type: string) => {
     let geometry: PrimitiveParams;
@@ -105,6 +117,21 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
             className={`toolbar-btn${transformMode === mode ? ' toolbar-btn--active' : ''}`}
             onClick={() => setTransformMode(mode)}
             title={`${label} (${mode === 'translate' ? 'G' : mode === 'rotate' ? 'R' : 'S'})`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      <div className="toolbar-group">
+        <span className="toolbar-label">Boolean</span>
+        {BOOLEAN_OPS.map(({ op, label, title }) => (
+          <button
+            key={op}
+            className="toolbar-btn"
+            disabled={!booleanEnabled}
+            onClick={() => { void triggerCsg(op); }}
+            title={booleanEnabled ? title : 'Select exactly 2 objects to use boolean operations'}
           >
             {label}
           </button>

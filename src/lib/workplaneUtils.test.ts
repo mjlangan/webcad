@@ -93,7 +93,7 @@ describe('computeTangentFrame', () => {
   });
 
   it('normal = [0,0,1] uses world-up reference → tangentX = [1,0,0]', () => {
-    const { tangentX, tangentZ } = computeTangentFrame(vec(0, 0, 1));
+    const { tangentX } = computeTangentFrame(vec(0, 0, 1));
     expect(tangentX.x).toBeCloseTo(1, 5);
     expect(tangentX.y).toBeCloseTo(0, 5);
     expect(tangentX.z).toBeCloseTo(0, 5);

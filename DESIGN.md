@@ -295,17 +295,17 @@ App
 - [x] New primitives and imported STLs placed at workplane, rotated so local Y aligns with workplane normal, offset by half bounding-box height
 - [x] Move tool drag plane switches from world XZ to `THREE.Plane` constructed from workplane normal + origin when workplane is non-default
 
-### Phase 5 — Boolean Operations
+### Phase 5 — Boolean Operations ✅
 **Goal:** Users can subtract and combine shapes without blocking the UI.
 
-- [ ] CSG Web Worker: accepts `CSG_OPERATION` messages with transferable `ArrayBuffer` meshes, returns `CSG_RESULT` or `CSG_ERROR`
-- [ ] Worker instantiated once on startup; restarted automatically on unhandled crash
-- [ ] Integrate `three-bvh-csg` inside the worker (confirm it runs without `window`/DOM dependencies)
-- [ ] Union, Subtract, Intersect operations on two selected objects
-- [ ] Non-destructive preview before commit: source objects hidden, result shown; commit or discard
-- [ ] Toolbar and affected objects disabled while operation is in flight; progress indicator shown over viewport
-- [ ] Cancel button terminates and restarts the worker, leaving source objects unchanged
-- [ ] Result appears as new mesh in scene tree
+- [x] CSG Web Worker: accepts `CSG_OPERATION` messages with transferable `ArrayBuffer` meshes, returns `CSG_RESULT` or `CSG_ERROR`
+- [x] Worker instantiated once on startup; restarted automatically on unhandled crash
+- [x] Integrate `three-bvh-csg` inside the worker (confirm it runs without `window`/DOM dependencies)
+- [x] Union, Subtract, Intersect operations on two selected objects
+- [x] Non-destructive preview before commit: source objects hidden, result shown; commit or discard
+- [x] Toolbar and affected objects disabled while operation is in flight; progress indicator shown over viewport
+- [x] Cancel button terminates and restarts the worker, leaving source objects unchanged
+- [x] Result appears as new mesh in scene tree
 
 ### Phase 6 — Materials and Appearance
 **Goal:** Objects can be colored and styled.
