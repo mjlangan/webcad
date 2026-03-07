@@ -137,6 +137,14 @@ describe('addNode', () => {
     expect(transform.scale).toEqual([1, 1, 1]);
   });
 
+  it('node starts with default material: blue, fully opaque, non-wireframe', () => {
+    const id = addBox();
+    const { material } = useSceneStore.getState().nodes.find((n) => n.id === id)!;
+    expect(material.color).toBe('#4488ff');
+    expect(material.opacity).toBe(1);
+    expect(material.wireframe).toBe(false);
+  });
+
   // Y-offset placement tests
   it('Box: y = height / 2', () => {
     const id = useSceneStore.getState().addNode({ type: 'box', width: 10, height: 40, depth: 10 });
@@ -491,5 +499,54 @@ describe('setWorkplanePlacementMode', () => {
     useSceneStore.getState().setWorkplanePlacementMode(true);
     useSceneStore.getState().setWorkplanePlacementMode(false);
     expect(useSceneStore.getState().workplanePlacementMode).toBe(false);
+  });
+});
+
+// ── updateMaterial ─────────────────────────────────────────────────────────────
+
+describe('updateMaterial', () => {
+  it('updates the color on the target node', () => {
+    const id = addBox();
+    const mat = useSceneStore.getState().nodes.find((n) => n.id === id)!.material;
+    useSceneStore.getState().updateMaterial(id, { ...mat, color: '#ff0000' });
+    expect(useSceneStore.getState().nodes.find((n) => n.id === id)!.material.color).toBe('#ff0000');
+  });
+
+  it('updates opacity on the target node', () => {
+    const id = addBox();
+    const mat = useSceneStore.getState().nodes.find((n) => n.id === id)!.material;
+    useSceneStore.getState().updateMaterial(id, { ...mat, opacity: 0.3 });
+    expect(useSceneStore.getState().nodes.find((n) => n.id === id)!.material.opacity).toBe(0.3);
+  });
+
+  it('enables wireframe on the target node', () => {
+    const id = addBox();
+    const mat = useSceneStore.getState().nodes.find((n) => n.id === id)!.material;
+    useSceneStore.getState().updateMaterial(id, { ...mat, wireframe: true });
+    expect(useSceneStore.getState().nodes.find((n) => n.id === id)!.material.wireframe).toBe(true);
+  });
+
+  it('replaces all three fields in one call', () => {
+    const id = addBox();
+    const newMat = { color: '#aabbcc', opacity: 0.6, wireframe: true };
+    useSceneStore.getState().updateMaterial(id, newMat);
+    expect(useSceneStore.getState().nodes.find((n) => n.id === id)!.material).toEqual(newMat);
+  });
+
+  it('does not affect other nodes', () => {
+    const a = addBox();
+    const b = addBox();
+    const matA = useSceneStore.getState().nodes.find((n) => n.id === a)!.material;
+    const matBefore = useSceneStore.getState().nodes.find((n) => n.id === b)!.material;
+    useSceneStore.getState().updateMaterial(a, { ...matA, color: '#ffffff' });
+    expect(useSceneStore.getState().nodes.find((n) => n.id === b)!.material).toEqual(matBefore);
+  });
+
+  it('successive calls replace the material each time', () => {
+    const id = addBox();
+    const mat = useSceneStore.getState().nodes.find((n) => n.id === id)!.material;
+    useSceneStore.getState().updateMaterial(id, { ...mat, color: '#111111' });
+    useSceneStore.getState().updateMaterial(id, { ...mat, color: '#222222' });
+    expect(useSceneStore.getState().nodes.find((n) => n.id === id)!.material.color).toBe('#222222');
   });
 });

@@ -6,6 +6,7 @@ import {
   RenameNodeCommand,
   TransformCommand,
   UpdateGeometryCommand,
+  UpdateMaterialCommand,
   SetWorkplaneCommand,
 } from './commands';
 import type { Transform } from '../types/scene';
@@ -257,6 +258,71 @@ describe('UpdateGeometryCommand', () => {
     expect(getNodes().find((n) => n.id === id)!.geometry).toEqual(original);
     cmd.execute();
     expect(getNodes().find((n) => n.id === id)!.geometry).toEqual(modified);
+  });
+});
+
+
+// ── UpdateMaterialCommand ──────────────────────────────────────────────────────
+
+describe('UpdateMaterialCommand', () => {
+  it('execute() applies the new color', () => {
+    const id = addBoxDirect();
+    const before = getNodes().find((n) => n.id === id)!.material;
+    const after = { ...before, color: '#ff0000' };
+    const cmd = new UpdateMaterialCommand(id, before, after);
+    cmd.execute();
+    expect(getNodes().find((n) => n.id === id)!.material.color).toBe('#ff0000');
+  });
+
+  it('execute() applies the new opacity', () => {
+    const id = addBoxDirect();
+    const before = getNodes().find((n) => n.id === id)!.material;
+    const after = { ...before, opacity: 0.5 };
+    const cmd = new UpdateMaterialCommand(id, before, after);
+    cmd.execute();
+    expect(getNodes().find((n) => n.id === id)!.material.opacity).toBe(0.5);
+  });
+
+  it('execute() applies wireframe: true', () => {
+    const id = addBoxDirect();
+    const before = getNodes().find((n) => n.id === id)!.material;
+    const after = { ...before, wireframe: true };
+    const cmd = new UpdateMaterialCommand(id, before, after);
+    cmd.execute();
+    expect(getNodes().find((n) => n.id === id)!.material.wireframe).toBe(true);
+  });
+
+  it('undo() restores the previous material in full', () => {
+    const id = addBoxDirect();
+    const before = getNodes().find((n) => n.id === id)!.material;
+    const after = { color: '#112233', opacity: 0.75, wireframe: true };
+    const cmd = new UpdateMaterialCommand(id, before, after);
+    cmd.execute();
+    cmd.undo();
+    expect(getNodes().find((n) => n.id === id)!.material).toEqual(before);
+  });
+
+  it('does not affect other nodes', () => {
+    const a = addBoxDirect();
+    const b = addBoxDirect();
+    const beforeA = getNodes().find((n) => n.id === a)!.material;
+    const beforeB = getNodes().find((n) => n.id === b)!.material;
+    const cmd = new UpdateMaterialCommand(a, beforeA, { ...beforeA, color: '#abcdef' });
+    cmd.execute();
+    expect(getNodes().find((n) => n.id === b)!.material).toEqual(beforeB);
+  });
+
+  it('full round-trip: execute → undo → execute', () => {
+    const id = addBoxDirect();
+    const before = getNodes().find((n) => n.id === id)!.material;
+    const after = { color: '#aabbcc', opacity: 0.4, wireframe: true };
+    const cmd = new UpdateMaterialCommand(id, before, after);
+    cmd.execute();
+    expect(getNodes().find((n) => n.id === id)!.material).toEqual(after);
+    cmd.undo();
+    expect(getNodes().find((n) => n.id === id)!.material).toEqual(before);
+    cmd.execute();
+    expect(getNodes().find((n) => n.id === id)!.material).toEqual(after);
   });
 });
 
