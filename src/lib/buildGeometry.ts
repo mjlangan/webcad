@@ -5,34 +5,50 @@ import { meshGeometryMap } from './meshGeometryMap';
 
 export function buildGeometry(params: PrimitiveParams): THREE.BufferGeometry {
   switch (params.type) {
-    case 'box':
-      return new THREE.BoxGeometry(params.width, params.height, params.depth);
-    case 'sphere':
-      return new THREE.SphereGeometry(
+    case 'box': {
+      const geo = new THREE.BoxGeometry(params.width, params.height, params.depth);
+      geo.translate(0, params.height / 2, 0);
+      return geo;
+    }
+    case 'sphere': {
+      const geo = new THREE.SphereGeometry(
         params.radius,
         params.widthSegments,
         params.heightSegments,
       );
-    case 'cylinder':
-      return new THREE.CylinderGeometry(
+      geo.translate(0, params.radius, 0);
+      return geo;
+    }
+    case 'cylinder': {
+      const geo = new THREE.CylinderGeometry(
         params.radiusTop,
         params.radiusBottom,
         params.height,
         params.radialSegments,
       );
-    case 'cone':
-      return new THREE.ConeGeometry(
+      geo.translate(0, params.height / 2, 0);
+      return geo;
+    }
+    case 'cone': {
+      const geo = new THREE.ConeGeometry(
         params.radius,
         params.height,
         params.radialSegments,
       );
-    case 'torus':
-      return new THREE.TorusGeometry(
+      geo.translate(0, params.height / 2, 0);
+      return geo;
+    }
+    case 'torus': {
+      const geo = new THREE.TorusGeometry(
         params.radius,
         params.tube,
         params.radialSegments,
         params.tubularSegments,
       );
+      geo.rotateX(Math.PI / 2);  // lay flat (ring in XZ plane, hole along Y)
+      geo.translate(0, params.tube, 0);
+      return geo;
+    }
     case 'beerglass': {
       const rl   = params.radiusLower;
       const ru   = params.radiusUpper;
@@ -61,10 +77,9 @@ export function buildGeometry(params: PrimitiveParams): THREE.BufferGeometry {
         new THREE.Vector2(ru,                       h),          // rim
       ];
       const lathe  = new THREE.LatheGeometry(profile, segs);
-      lathe.translate(0, -h / 2, 0);
       const topCap = new THREE.CircleGeometry(ru, segs);
       topCap.rotateX(-Math.PI / 2);
-      topCap.translate(0, h / 2, 0);
+      topCap.translate(0, h, 0);
       return mergeGeometries([lathe, topCap]) ?? new THREE.BufferGeometry();
     }
     case 'imported': {

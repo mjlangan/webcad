@@ -15,6 +15,11 @@ function boundingSize(geo: THREE.BufferGeometry): THREE.Vector3 {
   return bb.getSize(new THREE.Vector3());
 }
 
+function boundingMinY(geo: THREE.BufferGeometry): number {
+  geo.computeBoundingBox();
+  return geo.boundingBox!.min.y;
+}
+
 // ── box ────────────────────────────────────────────────────────────────────────
 
 describe('buildGeometry — box', () => {
@@ -37,6 +42,11 @@ describe('buildGeometry — box', () => {
     const b = buildGeometry({ type: 'box', width: 10, height: 10, depth: 10 });
     expect(boundingSize(a).x).toBeCloseTo(5);
     expect(boundingSize(b).x).toBeCloseTo(10);
+  });
+
+  it('origin is at bottom (min Y = 0)', () => {
+    const geo = buildGeometry({ type: 'box', width: 10, height: 20, depth: 30 });
+    expect(boundingMinY(geo)).toBeCloseTo(0);
   });
 });
 
@@ -63,6 +73,11 @@ describe('buildGeometry — sphere', () => {
     const hi = buildGeometry({ type: 'sphere', radius: 5, widthSegments: 32, heightSegments: 16 });
     expect(vertexCount(hi)).toBeGreaterThan(vertexCount(lo));
   });
+
+  it('origin is at bottom (min Y = 0)', () => {
+    const geo = buildGeometry({ type: 'sphere', radius: 7, widthSegments: 16, heightSegments: 8 });
+    expect(boundingMinY(geo)).toBeCloseTo(0, 1);
+  });
 });
 
 // ── cylinder ───────────────────────────────────────────────────────────────────
@@ -85,6 +100,11 @@ describe('buildGeometry — cylinder', () => {
     // widest cross-section is at the bottom, so XZ ≈ 2 × radiusBottom
     expect(size.x).toBeCloseTo(16, 0);
   });
+
+  it('origin is at bottom (min Y = 0)', () => {
+    const geo = buildGeometry({ type: 'cylinder', radiusTop: 5, radiusBottom: 5, height: 30, radialSegments: 8 });
+    expect(boundingMinY(geo)).toBeCloseTo(0);
+  });
 });
 
 // ── cone ───────────────────────────────────────────────────────────────────────
@@ -104,6 +124,11 @@ describe('buildGeometry — cone', () => {
   it('bounding box XZ width equals 2 × radius', () => {
     const geo = buildGeometry({ type: 'cone', radius: 6, height: 10, radialSegments: 16 });
     expect(boundingSize(geo).x).toBeCloseTo(12, 0);
+  });
+
+  it('origin is at bottom (min Y = 0)', () => {
+    const geo = buildGeometry({ type: 'cone', radius: 5, height: 15, radialSegments: 8 });
+    expect(boundingMinY(geo)).toBeCloseTo(0);
   });
 });
 
@@ -128,6 +153,11 @@ describe('buildGeometry — torus', () => {
     const hi = buildGeometry({ type: 'torus', radius: 10, tube: 3, radialSegments: 16, tubularSegments: 64 });
     expect(vertexCount(hi)).toBeGreaterThan(vertexCount(lo));
   });
+
+  it('origin is at bottom (min Y = 0)', () => {
+    const geo = buildGeometry({ type: 'torus', radius: 10, tube: 3, radialSegments: 16, tubularSegments: 32 });
+    expect(boundingMinY(geo)).toBeCloseTo(0, 1);
+  });
 });
 
 // ── beerglass ──────────────────────────────────────────────────────────────────
@@ -149,6 +179,11 @@ describe('buildGeometry — beerglass', () => {
     const narrow = buildGeometry({ type: 'beerglass', radiusLower: 20, radiusUpper: 20, height: 100, radialSegments: 16 });
     const wide   = buildGeometry({ type: 'beerglass', radiusLower: 20, radiusUpper: 40, height: 100, radialSegments: 16 });
     expect(boundingSize(wide).x).toBeGreaterThan(boundingSize(narrow).x);
+  });
+
+  it('origin is at bottom (min Y = 0)', () => {
+    const geo = buildGeometry({ type: 'beerglass', radiusLower: 22, radiusUpper: 28.5, height: 130, radialSegments: 16 });
+    expect(boundingMinY(geo)).toBeCloseTo(0, 0);
   });
 });
 

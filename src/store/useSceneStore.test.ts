@@ -145,35 +145,35 @@ describe('addNode', () => {
     expect(material.wireframe).toBe(false);
   });
 
-  // Y-offset placement tests
-  it('Box: y = height / 2', () => {
+  // Y-offset placement tests — origin is at bottom, so spawned y = 0
+  it('Box: y = 0 (origin at bottom)', () => {
     const id = useSceneStore.getState().addNode({ type: 'box', width: 10, height: 40, depth: 10 });
     const { position } = useSceneStore.getState().nodes.find((n) => n.id === id)!.transform;
-    expect(position[1]).toBe(20);
+    expect(position[1]).toBe(0);
   });
 
-  it('Sphere: y = radius', () => {
+  it('Sphere: y = 0 (origin at bottom)', () => {
     const id = useSceneStore.getState().addNode({ type: 'sphere', radius: 15, widthSegments: 32, heightSegments: 16 });
     const { position } = useSceneStore.getState().nodes.find((n) => n.id === id)!.transform;
-    expect(position[1]).toBe(15);
+    expect(position[1]).toBe(0);
   });
 
-  it('Cylinder: y = height / 2', () => {
+  it('Cylinder: y = 0 (origin at bottom)', () => {
     const id = useSceneStore.getState().addNode({ type: 'cylinder', radiusTop: 5, radiusBottom: 5, height: 30, radialSegments: 32 });
     const { position } = useSceneStore.getState().nodes.find((n) => n.id === id)!.transform;
-    expect(position[1]).toBe(15);
+    expect(position[1]).toBe(0);
   });
 
-  it('Cone: y = height / 2', () => {
+  it('Cone: y = 0 (origin at bottom)', () => {
     const id = useSceneStore.getState().addNode({ type: 'cone', radius: 5, height: 24, radialSegments: 32 });
     const { position } = useSceneStore.getState().nodes.find((n) => n.id === id)!.transform;
-    expect(position[1]).toBe(12);
+    expect(position[1]).toBe(0);
   });
 
-  it('Torus: y = tube', () => {
+  it('Torus: y = 0 (origin at bottom)', () => {
     const id = useSceneStore.getState().addNode({ type: 'torus', radius: 10, tube: 3, radialSegments: 16, tubularSegments: 64 });
     const { position } = useSceneStore.getState().nodes.find((n) => n.id === id)!.transform;
-    expect(position[1]).toBe(3);
+    expect(position[1]).toBe(0);
   });
 
   it('Imported: y = 0', () => {
@@ -194,10 +194,10 @@ describe('addNode', () => {
     useSceneStore.setState({
       workplane: { origin: [10, 0, 0], normal: [1, 0, 0], tangentX: [0, 0, -1] },
     });
-    // 20×20×20 box → halfHeight = 10, spawn at origin + normal*10 = [20, 0, 0]
+    // origin at bottom → halfHeight = 0, spawn at workplane origin = [10, 0, 0]
     const id = addBox();
     const { position } = useSceneStore.getState().nodes.find((n) => n.id === id)!.transform;
-    expect(position[0]).toBeCloseTo(20, 5);
+    expect(position[0]).toBeCloseTo(10, 5);
     expect(position[1]).toBeCloseTo(0, 5);
     expect(position[2]).toBeCloseTo(0, 5);
   });
@@ -218,11 +218,11 @@ describe('addNode', () => {
     useSceneStore.setState({
       workplane: { origin: [5, 8, 3], normal: [0, 1, 0], tangentX: [1, 0, 0] },
     });
-    // halfHeight for 20×20×20 box = 10, normal=[0,1,0] → position = [5, 18, 3]
+    // origin at bottom → halfHeight = 0, position = workplane origin = [5, 8, 3]
     const id = addBox();
     const { position } = useSceneStore.getState().nodes.find((n) => n.id === id)!.transform;
     expect(position[0]).toBeCloseTo(5, 5);
-    expect(position[1]).toBeCloseTo(18, 5);
+    expect(position[1]).toBeCloseTo(8, 5);
     expect(position[2]).toBeCloseTo(3, 5);
   });
 
@@ -234,9 +234,9 @@ describe('addNode', () => {
     useSceneStore.setState({
       workplane: { origin: [0, 0, 0], normal: [0, 1, 0], tangentX: [1, 0, 0] },
     });
-    const id = addBox(); // 20×20×20 → halfHeight = 10
+    const id = addBox(); // origin at bottom → halfHeight = 0
     const { position } = useSceneStore.getState().nodes.find((n) => n.id === id)!.transform;
-    expect(position).toEqual([0, 10, 0]);
+    expect(position).toEqual([0, 0, 0]);
   });
 
   // Auto-naming tests

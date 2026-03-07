@@ -5,18 +5,6 @@ import { workplaneSpawn } from '../lib/workplaneUtils';
 
 export type TransformMode = 'translate' | 'rotate' | 'scale';
 
-function yOffsetFor(geometry: PrimitiveParams): number {
-  switch (geometry.type) {
-    case 'box':        return geometry.height / 2;
-    case 'sphere':     return geometry.radius;
-    case 'cylinder':   return geometry.height / 2;
-    case 'cone':       return geometry.height / 2;
-    case 'torus':      return geometry.tube;
-    case 'beerglass':  return geometry.height / 2;
-    case 'imported':   return 0;
-  }
-}
-
 function labelFor(geometry: PrimitiveParams): string {
   switch (geometry.type) {
     case 'box':        return 'Box';
@@ -83,7 +71,7 @@ export const useSceneStore = create<SceneState>((set, get) => ({
       visible: true,
       locked: false,
       transform: {
-        position: [0, 10, 0],
+        position: [0, 0, 0],
         rotation: [0, 0, 0],
         scale: [1, 1, 1],
       },
@@ -170,7 +158,7 @@ export const useSceneStore = create<SceneState>((set, get) => ({
     // Count existing nodes with the same base label to generate suffix
     const count = nodes.filter((n) => n.name.startsWith(label)).length + 1;
     const name = geometry.type === 'imported' ? label : `${label} ${count}`;
-    const halfHeight = spawnHalfHeight ?? yOffsetFor(geometry);
+    const halfHeight = spawnHalfHeight ?? 0;
     const { position, rotation } = workplaneSpawn(workplane, halfHeight);
     const id = crypto.randomUUID();
     const node: SceneNode = {
