@@ -7,23 +7,25 @@ export type TransformMode = 'translate' | 'rotate' | 'scale';
 
 function yOffsetFor(geometry: PrimitiveParams): number {
   switch (geometry.type) {
-    case 'box':      return geometry.height / 2;
-    case 'sphere':   return geometry.radius;
-    case 'cylinder': return geometry.height / 2;
-    case 'cone':     return geometry.height / 2;
-    case 'torus':    return geometry.tube;
-    case 'imported': return 0;
+    case 'box':        return geometry.height / 2;
+    case 'sphere':     return geometry.radius;
+    case 'cylinder':   return geometry.height / 2;
+    case 'cone':       return geometry.height / 2;
+    case 'torus':      return geometry.tube;
+    case 'beerglass':  return geometry.height / 2;
+    case 'imported':   return 0;
   }
 }
 
 function labelFor(geometry: PrimitiveParams): string {
   switch (geometry.type) {
-    case 'box':      return 'Box';
-    case 'sphere':   return 'Sphere';
-    case 'cylinder': return 'Cylinder';
-    case 'cone':     return 'Cone';
-    case 'torus':    return 'Torus';
-    case 'imported': return geometry.originalName;
+    case 'box':        return 'Box';
+    case 'sphere':     return 'Sphere';
+    case 'cylinder':   return 'Cylinder';
+    case 'cone':       return 'Cone';
+    case 'torus':      return 'Torus';
+    case 'beerglass':  return 'Beer Glass';
+    case 'imported':   return geometry.originalName;
   }
 }
 

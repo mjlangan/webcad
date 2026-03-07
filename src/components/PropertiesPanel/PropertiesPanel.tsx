@@ -103,6 +103,15 @@ function GeometryFields({
           <NumField label="Tube Seg"           value={geometry.tubularSegments} step={1} min={3} onChange={(v) => onUpdate({ ...geometry, tubularSegments: Math.max(3, Math.round(v)) })} />
         </Section>
       );
+    case 'beerglass':
+      return (
+        <Section title="Geometry — Beer Glass">
+          <NumField label="R Rim"    unit="mm" value={geometry.radiusUpper} min={0.1} onChange={(v) => onUpdate({ ...geometry, radiusUpper: v })} />
+          <NumField label="R Base"   unit="mm" value={geometry.radiusLower} min={0.1} onChange={(v) => onUpdate({ ...geometry, radiusLower: v })} />
+          <NumField label="Height"   unit="mm" value={geometry.height}      min={0.1} onChange={(v) => onUpdate({ ...geometry, height:      v })} />
+          <NumField label="Segments"           value={geometry.radialSegments} step={1} min={3} onChange={(v) => onUpdate({ ...geometry, radialSegments: Math.max(3, Math.round(v)) })} />
+        </Section>
+      );
     case 'imported':
       return (
         <Section title="Geometry — Imported">

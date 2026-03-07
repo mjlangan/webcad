@@ -62,6 +62,9 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
       case 'torus':
         geometry = { type: 'torus', radius: 10, tube: 4, radialSegments: 16, tubularSegments: 64 };
         break;
+      case 'beerglass':
+        geometry = { type: 'beerglass', radiusUpper: 37.5, radiusLower: 34.2, height: 165, radialSegments: 32 };
+        break;
       default:
         return;
     }
@@ -93,6 +96,13 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
             {type.charAt(0).toUpperCase() + type.slice(1)}
           </button>
         ))}
+        <button
+          className="toolbar-btn"
+          onClick={() => handleAddPrimitive('beerglass')}
+          title="Add beer glass (Superfest)"
+        >
+          Beer Glass
+        </button>
         <button
           className="toolbar-btn"
           onClick={() => fileInputRef.current?.click()}

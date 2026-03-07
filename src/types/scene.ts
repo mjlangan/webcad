@@ -35,6 +35,14 @@ export interface TorusParams {
   tubularSegments: number;
 }
 
+export interface BeerGlassParams {
+  type: 'beerglass';
+  radiusUpper: number;
+  radiusLower: number;
+  height: number;
+  radialSegments: number;
+}
+
 export interface ImportedMeshParams {
   type: 'imported';
   meshId: string;
@@ -47,6 +55,7 @@ export type PrimitiveParams =
   | CylinderParams
   | ConeParams
   | TorusParams
+  | BeerGlassParams
   | ImportedMeshParams;
 
 export interface Transform {
