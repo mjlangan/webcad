@@ -333,10 +333,10 @@ App
 ### Phase 6 — Materials and Appearance
 **Goal:** Objects can be colored and styled.
 
-- [ ] Color picker in properties panel
-- [ ] Opacity slider
-- [ ] Wireframe mode toggle
-- [ ] Basic ambient + directional lighting setup (good defaults, no UI needed yet)
+- [x] Color picker in properties panel
+- [x] Opacity slider
+- [x] Wireframe mode toggle
+- [x] Basic ambient + directional lighting setup (good defaults, no UI needed yet)
 
 ### Phase 7 — Save/Open, Export, and Remaining Import
 **Goal:** Users can persist their work to disk and get geometry in and out.

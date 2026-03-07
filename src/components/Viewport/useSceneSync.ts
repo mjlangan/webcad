@@ -59,6 +59,14 @@ export function useSceneSync(
         mat.color.set(isSelected ? SELECTED_COLOR : node.material.color);
         mat.emissive.set(isSelected ? SELECTED_EMISSIVE : DEFAULT_EMISSIVE);
 
+        const newTransparent = node.material.opacity < 1;
+        if (mat.transparent !== newTransparent) {
+          mat.transparent = newTransparent;
+          mat.needsUpdate = true;
+        }
+        mat.opacity = node.material.opacity;
+        mat.wireframe = node.material.wireframe;
+
         mesh.position.set(...node.transform.position);
         mesh.rotation.set(...node.transform.rotation);
         mesh.scale.set(...node.transform.scale);

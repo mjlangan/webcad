@@ -32,14 +32,19 @@ export function useThreeSetup(
     camera.position.set(80, 80, 120);
     camera.lookAt(0, 0, 0);
 
-    // Lights
-    const ambient = new THREE.AmbientLight(0xffffff, 0.6);
+    // Lights — key + fill + ambient for soft 3-point look
+    const ambient = new THREE.AmbientLight(0xffffff, 0.5);
     scene.add(ambient);
-    const dirLight = new THREE.DirectionalLight(0xffffff, 1.0);
-    dirLight.position.set(160, 240, 120);
-    dirLight.castShadow = true;
-    dirLight.shadow.mapSize.set(1024, 1024);
-    scene.add(dirLight);
+    // Key light: upper-right-front, casts shadows
+    const keyLight = new THREE.DirectionalLight(0xffffff, 1.0);
+    keyLight.position.set(160, 240, 120);
+    keyLight.castShadow = true;
+    keyLight.shadow.mapSize.set(1024, 1024);
+    scene.add(keyLight);
+    // Fill light: lower-left-back, softens shadow side without overpowering
+    const fillLight = new THREE.DirectionalLight(0xffffff, 0.35);
+    fillLight.position.set(-120, 80, -80);
+    scene.add(fillLight);
 
     // Grid — 200mm × 200mm with 10mm divisions
     const grid = new THREE.GridHelper(200, 20, '#444444', '#333333');

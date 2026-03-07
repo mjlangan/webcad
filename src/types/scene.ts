@@ -67,6 +67,7 @@ export interface Transform {
 export interface MaterialProps {
   color: string;
   opacity: number;
+  wireframe: boolean;
 }
 
 export type CsgOperation = 'union' | 'subtract' | 'intersect';

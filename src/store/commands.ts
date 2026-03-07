@@ -1,4 +1,4 @@
-import type { PrimitiveParams, SceneNode, Transform, Workplane, CsgOperation } from '../types/scene';
+import type { PrimitiveParams, SceneNode, Transform, MaterialProps, Workplane, CsgOperation } from '../types/scene';
 import { useSceneStore } from './useSceneStore';
 
 export class AddNodeCommand {
@@ -112,6 +112,29 @@ export class UpdateGeometryCommand {
 
   undo(): void {
     useSceneStore.getState().updatePrimitiveParams(this.id, this.before);
+  }
+}
+
+/**
+ * Records a material change. execute() applies the new material, undo() restores the old one.
+ */
+export class UpdateMaterialCommand {
+  private readonly id: string;
+  private readonly before: MaterialProps;
+  private readonly after: MaterialProps;
+
+  constructor(id: string, before: MaterialProps, after: MaterialProps) {
+    this.id = id;
+    this.before = before;
+    this.after = after;
+  }
+
+  execute(): void {
+    useSceneStore.getState().updateMaterial(this.id, this.after);
+  }
+
+  undo(): void {
+    useSceneStore.getState().updateMaterial(this.id, this.before);
   }
 }
 

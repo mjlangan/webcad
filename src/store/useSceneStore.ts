@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { SceneNode, Transform, PrimitiveParams, Workplane, CsgOperation, ImportedMeshParams } from '../types/scene';
+import type { SceneNode, Transform, PrimitiveParams, MaterialProps, Workplane, CsgOperation, ImportedMeshParams } from '../types/scene';
 import { DEFAULT_WORKPLANE } from '../types/scene';
 import { workplaneSpawn } from '../lib/workplaneUtils';
 
@@ -63,6 +63,7 @@ interface SceneState {
 
   // Mutations
   updateTransform:       (id: string, transform: Transform) => void;
+  updateMaterial:        (id: string, material: MaterialProps) => void;
   addNode:               (geometry: PrimitiveParams, spawnHalfHeight?: number) => string;
   removeNode:            (id: string) => void;
   restoreNode:           (node: SceneNode, atIndex: number) => void;
@@ -87,7 +88,7 @@ export const useSceneStore = create<SceneState>((set, get) => ({
         scale: [1, 1, 1],
       },
       geometry: { type: 'box', width: 20, height: 20, depth: 20 },
-      material: { color: '#4488ff', opacity: 1 },
+      material: { color: '#4488ff', opacity: 1, wireframe: false },
       parentId: null,
       childIds: [],
       csgOperation: null,
@@ -158,6 +159,11 @@ export const useSceneStore = create<SceneState>((set, get) => ({
       nodes: state.nodes.map((n) => (n.id === id ? { ...n, transform } : n)),
     })),
 
+  updateMaterial: (id, material) =>
+    set((state) => ({
+      nodes: state.nodes.map((n) => (n.id === id ? { ...n, material } : n)),
+    })),
+
   addNode: (geometry, spawnHalfHeight) => {
     const { nodes, workplane } = get();
     const label = labelFor(geometry);
@@ -174,7 +180,7 @@ export const useSceneStore = create<SceneState>((set, get) => ({
       locked: false,
       transform: { position, rotation, scale: [1, 1, 1] },
       geometry,
-      material: { color: '#4488ff', opacity: 1 },
+      material: { color: '#4488ff', opacity: 1, wireframe: false },
       parentId: null,
       childIds: [],
       csgOperation: null,

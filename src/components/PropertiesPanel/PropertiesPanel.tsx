@@ -1,6 +1,7 @@
+import { useRef } from 'react';
 import { useSceneStore } from '../../store/useSceneStore';
 import { undoStack } from '../../store/undoStack';
-import { TransformCommand, UpdateGeometryCommand } from '../../store/commands';
+import { TransformCommand, UpdateGeometryCommand, UpdateMaterialCommand } from '../../store/commands';
 import type { ReactNode } from 'react';
 import type { PrimitiveParams, Transform } from '../../types/scene';
 import './PropertiesPanel.css';
@@ -124,8 +125,12 @@ function GeometryFields({
 export default function PropertiesPanel() {
   const nodes = useSceneStore((s) => s.nodes);
   const selectedIds = useSceneStore((s) => s.selectedIds);
+  const updateMaterial = useSceneStore((s) => s.updateMaterial);
 
   const node = nodes.find((n) => n.id === selectedIds[0]);
+
+  // Refs for capturing material state before a drag/edit begins
+  const materialBeforeRef = useRef(node?.material);
 
   if (!node) {
     return (
@@ -136,7 +141,7 @@ export default function PropertiesPanel() {
     );
   }
 
-  const { transform, geometry } = node;
+  const { transform, geometry, material } = node;
 
   const applyTransform = (newTransform: Transform) => {
     undoStack.push(new TransformCommand([node.id], [transform], [newTransform]));
@@ -158,6 +163,15 @@ export default function PropertiesPanel() {
     const sc = [...transform.scale] as [number, number, number];
     sc[axis] = v;
     applyTransform({ ...transform, scale: sc });
+  };
+
+  // Commit current live material as an undoable command. "before" was captured
+  // at the start of the drag/edit via materialBeforeRef.
+  const commitMaterial = () => {
+    const after = useSceneStore.getState().nodes.find((n) => n.id === node.id)?.material;
+    if (after && materialBeforeRef.current) {
+      undoStack.push(new UpdateMaterialCommand(node.id, materialBeforeRef.current, after));
+    }
   };
 
   return (
@@ -193,6 +207,51 @@ export default function PropertiesPanel() {
           onUpdate={(g) => undoStack.push(new UpdateGeometryCommand(node.id, geometry, g))}
         />
       )}
+
+      <Section title="Appearance">
+        <label className="prop-field">
+          <span className="prop-field-label">Color</span>
+          <input
+            type="color"
+            className="prop-color-input"
+            value={material.color}
+            onFocus={() => { materialBeforeRef.current = material; }}
+            onChange={(e) => updateMaterial(node.id, { ...material, color: e.target.value })}
+            onBlur={commitMaterial}
+          />
+        </label>
+
+        <label className="prop-field">
+          <span className="prop-field-label">Opacity</span>
+          <div className="prop-field-input-wrap">
+            <input
+              type="range"
+              className="prop-range"
+              min={0}
+              max={1}
+              step={0.01}
+              value={material.opacity}
+              onPointerDown={() => { materialBeforeRef.current = material; }}
+              onChange={(e) => updateMaterial(node.id, { ...material, opacity: parseFloat(e.target.value) })}
+              onPointerUp={commitMaterial}
+            />
+            <span className="prop-range-value">{Math.round(material.opacity * 100)}%</span>
+          </div>
+        </label>
+
+        <label className="prop-field prop-field--checkbox">
+          <span className="prop-field-label">Wireframe</span>
+          <input
+            type="checkbox"
+            className="prop-checkbox"
+            checked={material.wireframe}
+            onChange={(e) => {
+              const after = { ...material, wireframe: e.target.checked };
+              undoStack.push(new UpdateMaterialCommand(node.id, material, after));
+            }}
+          />
+        </label>
+      </Section>
     </div>
   );
 }
