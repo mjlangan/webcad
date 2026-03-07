@@ -111,10 +111,12 @@ A reference plane defines the surface on which new objects are placed and dragge
 - STL (binary) — primary output for 3D printing
 - OBJ — broad compatibility
 - glTF/GLB — web-native, preserves materials
+- 3MF — widely supported by slicers (PrusaSlicer, Bambu Studio, Cura); preserves object names and per-object color when present
 
 ### Import
 - STL
 - OBJ
+- 3MF — multi-object scenes import as individual nodes; object names from the XML are used as node names
 
 ---
 
@@ -344,7 +346,9 @@ App
 - [ ] Export to STL (binary)
 - [ ] Export to OBJ
 - [ ] Export to glTF/GLB
+- [ ] Export to 3MF — use `fflate` for ZIP creation; produce `[Content_Types].xml`, `_rels/.rels`, and `3D/3dmodel.model` (XML); each visible root node becomes an `<object>` with transform baked into vertices; `unit="millimeter"`
 - [ ] Import OBJ
+- [ ] Import 3MF — use `fflate` for ZIP extraction; parse `3D/3dmodel.model` with `DOMParser`; each `<object>` in `<resources>` (type `model`, not `support`) becomes a separate `SceneNode` with the object's `name` attribute as the node name; reuse the same centre-and-lift placement logic as STL import
 - [ ] "Export all" and "Export selection" options
 
 ### Phase 7.5 — General-Purpose Groups
