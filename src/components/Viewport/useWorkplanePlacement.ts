@@ -69,7 +69,7 @@ export function useWorkplanePlacement(
       updatePointer(e);
       raycaster.setFromCamera(pointer, camera);
 
-      const meshes = Array.from(meshMapRef.current?.values() ?? []);
+      const meshes = Array.from(meshMapRef.current?.values() ?? []).filter((m) => m.visible);
       const intersects = raycaster.intersectObjects(meshes, false);
 
       if (intersects.length > 0) {
@@ -115,7 +115,7 @@ export function useWorkplanePlacement(
       updatePointer(e);
       raycaster.setFromCamera(pointer, camera);
 
-      const meshes = Array.from(meshMapRef.current?.values() ?? []);
+      const meshes = Array.from(meshMapRef.current?.values() ?? []).filter((m) => m.visible);
       const intersects = raycaster.intersectObjects(meshes, false);
 
       if (intersects.length > 0) {

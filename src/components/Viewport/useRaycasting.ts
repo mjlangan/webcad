@@ -36,7 +36,7 @@ export function useRaycasting(
       pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
 
       raycaster.setFromCamera(pointer, camera);
-      const meshes = Array.from(meshMapRef.current.values());
+      const meshes = Array.from(meshMapRef.current.values()).filter((m) => m.visible);
       const hits = raycaster.intersectObjects(meshes, false);
 
       if (hits.length > 0) {

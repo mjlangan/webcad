@@ -81,7 +81,7 @@ export function useBoxSelect(
       const worldPos = new THREE.Vector3();
 
       meshes.forEach((mesh) => {
-        // Use geometry bounding sphere center in world space
+        if (!mesh.visible) return;
         mesh.geometry.computeBoundingSphere();
         const sphere = mesh.geometry.boundingSphere;
         if (!sphere) return;
