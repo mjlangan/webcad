@@ -80,6 +80,7 @@ export async function triggerCsg(operation: CsgOperation): Promise<void> {
   const label = `${operationLabel(operation)} of "${nodeA.name}", "${nodeB.name}"`;
   const resultId = addNode({ type: 'imported', meshId, originalName: label });
   setCsgPreview(resultId);
+  commitCsg();
 }
 
 export function commitCsg(): void {
