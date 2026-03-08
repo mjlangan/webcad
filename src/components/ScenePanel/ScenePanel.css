@@ -120,8 +120,8 @@
 .scene-tree-connector {
   color: #555;
   font-size: 11px;
-  padding: 0 2px 0 12px;
   flex-shrink: 0;
+  /* padding-left/right set via inline style for depth-based indentation */
 }
 
 /* Expand/collapse button */

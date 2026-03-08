@@ -55,11 +55,12 @@ export default function ScenePanel() {
     });
   };
 
-  const renderRow = (node: SceneNode, isChild: boolean) => {
+  const renderRow = (node: SceneNode, depth: number) => {
     const isSelected = selectedIds.includes(node.id);
     const hasChildren = node.childIds.length > 0;
     const isExpanded = !collapsedIds.has(node.id);
     const hasError = node.csgError !== null;
+    const isChild = depth > 0;
 
     let rowClass = 'scene-row';
     if (isSelected) rowClass += ' scene-row--selected';
@@ -69,11 +70,17 @@ export default function ScenePanel() {
     return (
       <li key={node.id} className={rowClass} onClick={(e) => handleRowClick(e, node.id)}>
 
-        {/* Tree indent / connector for children */}
-        {isChild && <span className="scene-tree-connector" aria-hidden="true">└</span>}
+        {/* Tree indent / connector for children — indent scales with depth */}
+        {isChild && (
+          <span
+            className="scene-tree-connector"
+            style={{ paddingLeft: `${depth * 14}px`, paddingRight: '4px' }}
+            aria-hidden="true"
+          >└</span>
+        )}
 
-        {/* Expand/collapse for CSG parent nodes */}
-        {!isChild && hasChildren && (
+        {/* Expand/collapse for any CSG node that has children */}
+        {hasChildren && (
           <button
             className="scene-row-btn scene-row-expand-btn"
             title={isExpanded ? 'Collapse' : 'Expand'}
@@ -147,28 +154,30 @@ export default function ScenePanel() {
     );
   };
 
-  // Only render root nodes at the top level; their children are inlined below
+  const renderSubtree = (node: SceneNode, depth: number) => {
+    const isExpanded = !collapsedIds.has(node.id);
+    const children = node.childIds
+      .map((id) => nodes.find((n) => n.id === id))
+      .filter((n): n is SceneNode => n !== undefined);
+
+    return (
+      <Fragment key={node.id}>
+        {renderRow(node, depth)}
+        {children.length > 0 && isExpanded && children.map((child) =>
+          renderSubtree(child, depth + 1),
+        )}
+      </Fragment>
+    );
+  };
+
+  // Only render root nodes at the top level; their full subtrees are rendered recursively
   const rootNodes = nodes.filter((n) => n.parentId === null);
 
   return (
     <div className="scene-panel">
       <div className="panel-header">Scene</div>
       <ul className="scene-list">
-        {rootNodes.map((node) => {
-          const isExpanded = !collapsedIds.has(node.id);
-          const children = node.childIds
-            .map((id) => nodes.find((n) => n.id === id))
-            .filter((n): n is SceneNode => n !== undefined);
-
-          return (
-            <Fragment key={node.id}>
-              {renderRow(node, false)}
-              {node.childIds.length > 0 && isExpanded && children.map((child) =>
-                renderRow(child, true),
-              )}
-            </Fragment>
-          );
-        })}
+        {rootNodes.map((node) => renderSubtree(node, 0))}
         {rootNodes.length === 0 && (
           <li className="scene-empty">No objects in scene</li>
         )}
