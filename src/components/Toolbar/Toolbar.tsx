@@ -7,7 +7,7 @@ import type { CameraPreset, ViewportActions } from '../../types/viewport';
 import { importStlFile } from '../../lib/stlImport';
 import { importObjFile } from '../../lib/objImport';
 import { import3mfFile } from '../../lib/threemfImport';
-import { saveProject, openProject } from '../../lib/sceneFile';
+import { saveProject, openProject, newProject } from '../../lib/sceneFile';
 import { exportStl, exportObj, exportGltf, export3mf } from '../../lib/exportScene';
 import { undoStack } from '../../store/undoStack';
 import { SetWorkplaneCommand } from '../../store/commands';
@@ -100,6 +100,13 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
     <div className="toolbar">
       <div className="toolbar-group">
         <span className="toolbar-label">File</span>
+        <button
+          className="toolbar-btn"
+          onClick={() => { void newProject(); }}
+          title="New scene (clears current scene)"
+        >
+          New
+        </button>
         <button
           className="toolbar-btn"
           onClick={() => { void saveProject(); }}

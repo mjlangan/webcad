@@ -65,25 +65,7 @@ interface SceneState {
 }
 
 export const useSceneStore = create<SceneState>((set, get) => ({
-  nodes: [
-    {
-      id: 'box-1',
-      name: 'Box',
-      visible: true,
-      locked: false,
-      transform: {
-        position: [0, 0, 0],
-        rotation: [0, 0, 0],
-        scale: [1, 1, 1],
-      },
-      geometry: { type: 'box', width: 20, height: 20, depth: 20 },
-      material: { color: '#4488ff', opacity: 1, wireframe: false },
-      parentId: null,
-      childIds: [],
-      csgOperation: null,
-      csgError: null,
-    },
-  ],
+  nodes: [],
   selectedIds: [],
   transformMode: 'translate',
   workplane: DEFAULT_WORKPLANE,

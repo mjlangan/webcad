@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { STLLoader } from 'three/addons/loaders/STLLoader.js';
 import type { SceneNode, Workplane } from '../types/scene';
+import { DEFAULT_WORKPLANE } from '../types/scene';
 import { meshGeometryMap } from './meshGeometryMap';
 import { geometryToStl } from './geometryToStl';
 import { useSceneStore } from '../store/useSceneStore';
@@ -175,4 +176,18 @@ export function openProject(file: File): void {
   };
 
   reader.readAsText(file);
+}
+
+export async function newProject(): Promise<void> {
+  const { nodes } = useSceneStore.getState();
+
+  if (nodes.length > 0) {
+    const wantSave = window.confirm('Save the current scene before creating a new one?\n\nOK to save, Cancel to discard.');
+    if (wantSave) {
+      await saveProject();
+    }
+  }
+
+  useSceneStore.getState().loadScene([], DEFAULT_WORKPLANE);
+  undoStack.clear();
 }
