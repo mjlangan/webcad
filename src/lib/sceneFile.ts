@@ -6,6 +6,15 @@ import { geometryToStl } from './geometryToStl';
 import { useSceneStore } from '../store/useSceneStore';
 import { undoStack } from '../store/undoStack';
 
+declare global {
+  interface Window {
+    showSaveFilePicker?(options?: {
+      suggestedName?: string;
+      types?: Array<{ description?: string; accept: Record<string, string[]> }>;
+    }): Promise<FileSystemFileHandle>;
+  }
+}
+
 export const WEBCAD_VERSION = 1;
 
 export interface WebcadFile {
@@ -105,11 +114,28 @@ export function triggerDownload(blob: Blob, filename: string): void {
   URL.revokeObjectURL(url);
 }
 
-export function saveProject(): void {
+export async function saveProject(): Promise<void> {
   const { nodes, workplane } = useSceneStore.getState();
   const payload = buildWebcadPayload(nodes, workplane, meshGeometryMap);
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-  triggerDownload(blob, 'scene.webcad');
+  const json = JSON.stringify(payload, null, 2);
+
+  if (window.showSaveFilePicker) {
+    try {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: 'scene.webcad',
+        types: [{ description: 'WebCAD project', accept: { 'application/json': ['.webcad'] } }],
+      });
+      const writable = await handle.createWritable();
+      await writable.write(json);
+      await writable.close();
+    } catch (err) {
+      if (err instanceof Error && err.name !== 'AbortError') {
+        window.alert('Failed to save file.');
+      }
+    }
+  } else {
+    triggerDownload(new Blob([json], { type: 'application/json' }), 'scene.webcad');
+  }
 }
 
 export function openProject(file: File): void {

@@ -102,7 +102,7 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
         <span className="toolbar-label">File</span>
         <button
           className="toolbar-btn"
-          onClick={saveProject}
+          onClick={() => { void saveProject(); }}
           title="Save scene as .webcad file"
         >
           Save

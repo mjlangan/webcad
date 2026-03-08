@@ -210,7 +210,7 @@ export function export3mf(): void {
   });
 
   triggerDownload(
-    new Blob([zipped], { type: 'application/vnd.ms-package.3dmanufacturing-3dmodel+zip' }),
+    new Blob([zipped as Uint8Array<ArrayBuffer>], { type: 'application/vnd.ms-package.3dmanufacturing-3dmodel+zip' }),
     'export.3mf',
   );
 }
