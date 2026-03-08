@@ -378,6 +378,7 @@ App
 - [ ] Preferences menu (control schemes, metric/inch units)
 - [ ] Drop to workplane: translate the selected object along the workplane normal until its lowest point touches the workplane surface
 - [ ] Drop to workplane (face align): user clicks a face on the selected object; the object is re-oriented and translated so that chosen face lies flush on the workplane
+- [ ] Adopt a UI component library (e.g. shadcn/ui, Radix UI) and migrate all app controls — buttons, toggles, sliders, dialogs, tooltips — to it for visual consistency and polish
 
 ---
 

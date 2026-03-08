@@ -134,7 +134,10 @@ export async function saveProject(): Promise<void> {
       }
     }
   } else {
-    triggerDownload(new Blob([json], { type: 'application/json' }), 'scene.webcad');
+    const input = window.prompt('Save as:', 'scene.webcad');
+    if (input === null) return;
+    const filename = input.endsWith('.webcad') ? input : `${input}.webcad`;
+    triggerDownload(new Blob([json], { type: 'application/json' }), filename);
   }
 }
 
