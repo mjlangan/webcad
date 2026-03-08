@@ -7,6 +7,7 @@ import { buildGeometry } from './buildGeometry';
 import { geometryToStl } from './geometryToStl';
 import { meshGeometryMap } from './meshGeometryMap';
 import { runCSG, cancelCSG } from './csgWorker';
+import { computeWorldMatrix } from './worldMatrix';
 import type { CsgOperation, SceneNode } from '../types/scene';
 
 const stlLoader = new STLLoader();
@@ -14,15 +15,9 @@ const stlLoader = new STLLoader();
 // Tracks which CSG parents currently have a silent recompute in flight
 const recomputeInFlight = new Set<string>();
 
-function buildWorldGeometry(node: SceneNode): THREE.BufferGeometry {
+function buildWorldGeometry(node: SceneNode, nodes: SceneNode[]): THREE.BufferGeometry {
   const geo = buildGeometry(node.geometry).clone();
-  const matrix = new THREE.Matrix4().compose(
-    new THREE.Vector3(...node.transform.position),
-    new THREE.Quaternion().setFromEuler(
-      new THREE.Euler(...node.transform.rotation),
-    ),
-    new THREE.Vector3(...node.transform.scale),
-  );
+  const matrix = computeWorldMatrix(node.id, nodes);
   geo.applyMatrix4(matrix);
   return geo;
 }
@@ -48,8 +43,8 @@ export async function triggerCsg(operation: CsgOperation): Promise<void> {
   if (!nodeA || !nodeB) return;
 
   // Build world-space geometries and serialize
-  const geoA = buildWorldGeometry(nodeA);
-  const geoB = buildWorldGeometry(nodeB);
+  const geoA = buildWorldGeometry(nodeA, nodes);
+  const geoB = buildWorldGeometry(nodeB, nodes);
   const bufA = geometryToStl(geoA);
   const bufB = geometryToStl(geoB);
   geoA.dispose();
@@ -145,8 +140,8 @@ export async function rerunCsgForParent(parentId: string): Promise<void> {
 
   recomputeInFlight.add(parentId);
 
-  const geoA = buildWorldGeometry(nodeA);
-  const geoB = buildWorldGeometry(nodeB);
+  const geoA = buildWorldGeometry(nodeA, nodes);
+  const geoB = buildWorldGeometry(nodeB, nodes);
   const bufA = geometryToStl(geoA);
   const bufB = geometryToStl(geoB);
   geoA.dispose();

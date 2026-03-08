@@ -8,6 +8,50 @@ import { undoStack } from '../../store/undoStack';
 import { TransformCommand } from '../../store/commands';
 import type { Transform } from '../../types/scene';
 import { workplaneToThreePlane } from '../../lib/workplaneUtils';
+import { computeWorldMatrix } from '../../lib/worldMatrix';
+
+/**
+ * Converts a mesh's current world transform into a store Transform for the
+ * given node.  For children of a general-purpose group the result is in local
+ * space relative to the parent; for root-level nodes it is world space.
+ */
+function meshTransformToStoreTransform(mesh: THREE.Mesh, nodeId: string): Transform {
+  const { nodes } = useSceneStore.getState();
+  const node = nodes.find((n) => n.id === nodeId);
+  const parentNode = node?.parentId
+    ? nodes.find((n) => n.id === node.parentId)
+    : null;
+
+  const worldPos = mesh.position.clone();
+  const worldQuat = mesh.quaternion.clone();
+  const worldScale = mesh.scale.clone();
+
+  if (parentNode?.geometry.type === 'group') {
+    // Convert world → local relative to the parent group
+    const parentWorldMatInv = computeWorldMatrix(parentNode.id, nodes).invert();
+    const childWorldMat = new THREE.Matrix4().compose(worldPos, worldQuat, worldScale);
+    const localMat = parentWorldMatInv.multiply(childWorldMat);
+
+    const localPos = new THREE.Vector3();
+    const localQuat = new THREE.Quaternion();
+    const localScale = new THREE.Vector3();
+    localMat.decompose(localPos, localQuat, localScale);
+    const euler = new THREE.Euler().setFromQuaternion(localQuat);
+    return {
+      position: [localPos.x, localPos.y, localPos.z],
+      rotation: [euler.x, euler.y, euler.z],
+      scale: [localScale.x, localScale.y, localScale.z],
+    };
+  }
+
+  // Root node or CSG child — transform is stored in world space
+  const euler = new THREE.Euler().setFromQuaternion(worldQuat);
+  return {
+    position: worldPos.toArray() as [number, number, number],
+    rotation: [euler.x, euler.y, euler.z],
+    scale: worldScale.toArray() as [number, number, number],
+  };
+}
 
 export function useTransformControls(
   threeRef: RefObject<ThreeSetup | null>,
@@ -60,22 +104,12 @@ export function useTransformControls(
       }
 
       if (!dragging && tc.object && dragIds.length > 0) {
-        const primaryObj = tc.object;
+        const primaryObj = tc.object as THREE.Mesh;
         const afterTransforms: Transform[] = dragIds.map((id, i) => {
-          if (i === 0) {
-            return {
-              position: primaryObj.position.toArray() as [number, number, number],
-              rotation: [primaryObj.rotation.x, primaryObj.rotation.y, primaryObj.rotation.z],
-              scale: primaryObj.scale.toArray() as [number, number, number],
-            };
-          }
-          const mesh = meshMapRef.current.get(id);
+          const mesh = i === 0 ? primaryObj : (meshMapRef.current.get(id) ?? null);
           if (!mesh) return dragBeforeTransforms[i];
-          return {
-            position: mesh.position.toArray() as [number, number, number],
-            rotation: [mesh.rotation.x, mesh.rotation.y, mesh.rotation.z],
-            scale: mesh.scale.toArray() as [number, number, number],
-          };
+          // Convert the mesh's world transform to the store format (local for group children)
+          return meshTransformToStoreTransform(mesh, id);
         });
         undoStack.push(new TransformCommand(dragIds, dragBeforeTransforms, afterTransforms));
         dragIds = [];
@@ -90,7 +124,7 @@ export function useTransformControls(
 
       // Workplane constraint: project the primary object onto the workplane plane during
       // translate. This replaces the implicit world-XZ drag plane with the active workplane.
-      const { workplane, transformMode } = useSceneStore.getState();
+      const { workplane, transformMode, nodes } = useSceneStore.getState();
       if (transformMode === 'translate') {
         const isDefaultWorkplane =
           workplane.normal[0] === 0 && workplane.normal[1] === 1 && workplane.normal[2] === 0 &&
@@ -103,15 +137,43 @@ export function useTransformControls(
         }
       }
 
-      if (dragIds.length <= 1) return;
-      const delta = tc.object.position.clone().sub(startPrimary);
-      dragIds.slice(1).forEach((id) => {
-        const mesh = meshMapRef.current.get(id);
-        const start = startSecondariesPos.get(id);
-        if (mesh && start) {
-          mesh.position.copy(start).add(delta);
+      // Move secondary selected meshes (multi-select translate)
+      if (dragIds.length > 1) {
+        const delta = tc.object.position.clone().sub(startPrimary);
+        dragIds.slice(1).forEach((id) => {
+          const mesh = meshMapRef.current.get(id);
+          const start = startSecondariesPos.get(id);
+          if (mesh && start) {
+            mesh.position.copy(start).add(delta);
+          }
+        });
+      }
+
+      // If the primary is a group, update all its children's mesh positions live
+      // so they move with the group gizmo instead of snapping at drag end.
+      if (dragIds.length > 0) {
+        const primaryNode = nodes.find((n) => n.id === dragIds[0]);
+        if (primaryNode?.geometry.type === 'group') {
+          const groupWorldMat = new THREE.Matrix4().compose(
+            tc.object.position,
+            tc.object.quaternion,
+            tc.object.scale,
+          );
+          primaryNode.childIds.forEach((childId) => {
+            const childNode = nodes.find((n) => n.id === childId);
+            const childMesh = meshMapRef.current.get(childId);
+            if (!childNode || !childMesh) return;
+            const childLocalMat = new THREE.Matrix4().compose(
+              new THREE.Vector3(...childNode.transform.position),
+              new THREE.Quaternion().setFromEuler(new THREE.Euler(...childNode.transform.rotation)),
+              new THREE.Vector3(...childNode.transform.scale),
+            );
+            const childWorldMat = groupWorldMat.clone().multiply(childLocalMat);
+            childWorldMat.decompose(childMesh.position, childMesh.quaternion, childMesh.scale);
+            childMesh.rotation.setFromQuaternion(childMesh.quaternion);
+          });
         }
-      });
+      }
     };
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any

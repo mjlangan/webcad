@@ -9,6 +9,7 @@ import { useSceneStore } from './store/useSceneStore';
 import { undoStack } from './store/undoStack';
 import { RemoveNodeCommand } from './store/commands';
 import { useCsgAutoRecompute } from './lib/useCsgAutoRecompute';
+import { groupSelected } from './lib/groupActions';
 import './App.css';
 
 export default function App() {
@@ -37,6 +38,11 @@ export default function App() {
           undoStack.redo();
           return;
         }
+        if (e.key === 'g') {
+          e.preventDefault();
+          groupSelected();
+          return;
+        }
         return;
       }
 
@@ -57,10 +63,15 @@ export default function App() {
         case 'Backspace': {
           const { selectedIds, nodes } = useSceneStore.getState();
           if (selectedIds.length === 0) break;
-          // Skip children of CSG results — they cannot be deleted independently
-          const deletableIds = selectedIds.filter(
-            (id) => nodes.find((n) => n.id === id)?.parentId === null,
-          );
+          // Skip CSG children (locked) — allow deleting root nodes and group children
+          const deletableIds = selectedIds.filter((id) => {
+            const node = nodes.find((n) => n.id === id);
+            if (!node) return false;
+            if (node.parentId === null) return true;
+            // Allow deletion if the parent is a general-purpose group
+            const parent = nodes.find((n) => n.id === node.parentId);
+            return parent?.geometry.type === 'group';
+          });
           for (const id of deletableIds) {
             undoStack.push(new RemoveNodeCommand(id));
           }

@@ -89,5 +89,10 @@ export function buildGeometry(params: PrimitiveParams): THREE.BufferGeometry {
       }
       return geo;
     }
+    case 'group': {
+      // Group nodes have no geometry; an empty BufferGeometry is used as a
+      // placeholder so the TransformControls gizmo can attach to the node.
+      return new THREE.BufferGeometry();
+    }
   }
 }

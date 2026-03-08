@@ -12,6 +12,7 @@ import { exportStl, exportObj, exportGltf, export3mf } from '../../lib/exportSce
 import { undoStack } from '../../store/undoStack';
 import { SetWorkplaneCommand } from '../../store/commands';
 import { triggerCsg } from '../../lib/triggerCsg';
+import { groupSelected, ungroupSelected } from '../../lib/groupActions';
 import type { CsgOperation } from '../../lib/csgWorker';
 import './Toolbar.css';
 
@@ -37,6 +38,7 @@ const BOOLEAN_OPS: { op: CsgOperation; label: string; title: string }[] = [
 
 export default function Toolbar({ actionsRef }: ToolbarProps) {
   const addNode = useSceneStore((s) => s.addNode);
+  const nodes = useSceneStore((s) => s.nodes);
   const transformMode = useSceneStore((s) => s.transformMode);
   const setTransformMode = useSceneStore((s) => s.setTransformMode);
   const workplanePlacementMode = useSceneStore((s) => s.workplanePlacementMode);
@@ -51,6 +53,12 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
   const openInputRef = useRef<HTMLInputElement>(null);
 
   const booleanEnabled = selectedIds.length === 2 && csgStatus === 'idle';
+  const groupEnabled =
+    selectedIds.length >= 2 &&
+    selectedIds.every((id) => nodes.find((n) => n.id === id)?.parentId === null);
+  const ungroupEnabled = selectedIds.some(
+    (id) => nodes.find((n) => n.id === id)?.geometry.type === 'group',
+  );
   const exportScope = selectedIds.length > 0 ? 'Selection' : 'All';
   const exportTitle = (fmt: string) =>
     selectedIds.length > 0
@@ -224,6 +232,26 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
             {label}
           </button>
         ))}
+      </div>
+
+      <div className="toolbar-group">
+        <span className="toolbar-label">Group</span>
+        <button
+          className="toolbar-btn"
+          disabled={!groupEnabled}
+          onClick={groupSelected}
+          title={groupEnabled ? 'Group selected objects (Ctrl+G)' : 'Select 2+ root objects to group'}
+        >
+          Group
+        </button>
+        <button
+          className="toolbar-btn"
+          disabled={!ungroupEnabled}
+          onClick={ungroupSelected}
+          title={ungroupEnabled ? 'Ungroup selected group' : 'Select a group node to ungroup'}
+        >
+          Ungroup
+        </button>
       </div>
 
       <div className="toolbar-group">

@@ -14,6 +14,7 @@ function labelFor(geometry: PrimitiveParams): string {
     case 'torus':      return 'Torus';
     case 'beerglass':  return 'Beer Glass';
     case 'imported':   return geometry.originalName;
+    case 'group':      return 'Group';
   }
 }
 
@@ -53,6 +54,8 @@ interface SceneState {
   updateTransform:       (id: string, transform: Transform) => void;
   updateMaterial:        (id: string, material: MaterialProps) => void;
   addNode:               (geometry: PrimitiveParams, spawnHalfHeight?: number) => string;
+  addGroupNode:          (position: [number, number, number], name?: string, id?: string) => string;
+  reparentNodes:         (ids: string[], newParentId: string | null, newTransforms: Transform[]) => void;
   removeNode:            (id: string) => void;
   restoreNode:           (node: SceneNode, atIndex: number) => void;
   renameNode:            (id: string, name: string) => void;
@@ -161,17 +164,72 @@ export const useSceneStore = create<SceneState>((set, get) => ({
     return id;
   },
 
+  addGroupNode: (position, name, forcedId) => {
+    const { nodes } = get();
+    const label = 'Group';
+    const count = nodes.filter((n) => n.name.startsWith(label)).length + 1;
+    const nodeName = name ?? `${label} ${count}`;
+    const id = forcedId ?? crypto.randomUUID();
+    const groupNode: SceneNode = {
+      id,
+      name: nodeName,
+      visible: true,
+      locked: false,
+      transform: { position, rotation: [0, 0, 0], scale: [1, 1, 1] },
+      geometry: { type: 'group' },
+      material: { color: '#4488ff', opacity: 1, wireframe: false },
+      parentId: null,
+      childIds: [],
+      csgOperation: null,
+      csgError: null,
+    };
+    set((state) => ({ nodes: [...state.nodes, groupNode], selectedIds: [id] }));
+    return id;
+  },
+
+  reparentNodes: (ids, newParentId, newTransforms) =>
+    set((state) => {
+      const updated = state.nodes.map((n) => {
+        const idx = ids.indexOf(n.id);
+        if (idx >= 0) {
+          // Update the node's parent and local transform
+          const updatedNode = { ...n, parentId: newParentId, transform: newTransforms[idx] };
+          return updatedNode;
+        }
+        // Update the new parent's childIds
+        if (newParentId !== null && n.id === newParentId) {
+          const existingChildren = n.childIds.filter((c) => !ids.includes(c));
+          return { ...n, childIds: [...existingChildren, ...ids] };
+        }
+        // Remove ids from old parent's childIds
+        if (n.childIds.some((c) => ids.includes(c))) {
+          return { ...n, childIds: n.childIds.filter((c) => !ids.includes(c)) };
+        }
+        return n;
+      });
+      return { nodes: updated };
+    }),
+
   removeNode: (id) =>
     set((state) => {
       const node = state.nodes.find((n) => n.id === id);
       if (!node) return {};
 
-      // If this is a CSG parent, release children (make them top-level and visible)
+      // If this is a CSG parent or general group, release children (make them top-level and visible)
       let updatedNodes = state.nodes;
       if (node.childIds.length > 0) {
         updatedNodes = updatedNodes.map((n) =>
           node.childIds.includes(n.id)
             ? { ...n, parentId: null, visible: true }
+            : n,
+        );
+      }
+
+      // If this node is itself a child (group child), remove it from the parent's childIds
+      if (node.parentId !== null) {
+        updatedNodes = updatedNodes.map((n) =>
+          n.id === node.parentId
+            ? { ...n, childIds: n.childIds.filter((c) => c !== id) }
             : n,
         );
       }
@@ -196,11 +254,34 @@ export const useSceneStore = create<SceneState>((set, get) => ({
     })),
 
   toggleVisible: (id) =>
-    set((state) => ({
-      nodes: state.nodes.map((n) =>
-        n.id === id ? { ...n, visible: !n.visible } : n,
-      ),
-    })),
+    set((state) => {
+      const target = state.nodes.find((n) => n.id === id);
+      if (!target) return {};
+      const newVisible = !target.visible;
+
+      // Collect all recursive group-child descendants to propagate visibility
+      const descendantIds = new Set<string>();
+      const collectGroupDescendants = (parentId: string) => {
+        state.nodes.forEach((n) => {
+          if (n.parentId === parentId) {
+            const parent = state.nodes.find((p) => p.id === parentId);
+            if (parent?.geometry.type === 'group') {
+              descendantIds.add(n.id);
+              collectGroupDescendants(n.id);
+            }
+          }
+        });
+      };
+      if (target.geometry.type === 'group') collectGroupDescendants(id);
+
+      return {
+        nodes: state.nodes.map((n) => {
+          if (n.id === id) return { ...n, visible: newVisible };
+          if (descendantIds.has(n.id)) return { ...n, visible: newVisible };
+          return n;
+        }),
+      };
+    }),
 
   updatePrimitiveParams: (id, geometry) =>
     set((state) => ({

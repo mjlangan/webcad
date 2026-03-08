@@ -62,9 +62,15 @@ export default function ScenePanel() {
     const hasError = node.csgError !== null;
     const isChild = depth > 0;
 
+    // Distinguish general-group children (deletable) from CSG children (locked).
+    const parentNode = node.parentId ? nodes.find((n) => n.id === node.parentId) : null;
+    const isGroupChild = parentNode?.geometry.type === 'group';
+    const isCsgChild = isChild && !isGroupChild;
+    const isDeletable = !isChild || isGroupChild;
+
     let rowClass = 'scene-row';
     if (isSelected) rowClass += ' scene-row--selected';
-    if (!node.visible && !isChild) rowClass += ' scene-row--hidden';
+    if (!node.visible && (!isChild || isGroupChild)) rowClass += ' scene-row--hidden';
     if (isChild) rowClass += ' scene-row--child';
 
     return (
@@ -90,8 +96,8 @@ export default function ScenePanel() {
           </button>
         )}
 
-        {/* Visibility eye — root nodes only (system manages child visibility) */}
-        {!isChild && (
+        {/* Visibility eye — root nodes and group children; CSG children are system-managed */}
+        {!isCsgChild && (
           <button
             className="scene-row-btn"
             title={node.visible ? 'Hide' : 'Show'}
@@ -130,8 +136,8 @@ export default function ScenePanel() {
           </span>
         )}
 
-        {/* Delete for root nodes; lock indicator for children */}
-        {!isChild ? (
+        {/* Delete for root nodes and group children; lock indicator for CSG children */}
+        {isDeletable ? (
           <button
             className="scene-row-btn scene-row-btn--delete"
             title="Delete"

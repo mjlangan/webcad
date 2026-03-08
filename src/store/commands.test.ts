@@ -8,6 +8,8 @@ import {
   UpdateGeometryCommand,
   UpdateMaterialCommand,
   SetWorkplaneCommand,
+  GroupCommand,
+  UngroupCommand,
 } from './commands';
 import type { Transform } from '../types/scene';
 
@@ -353,5 +355,159 @@ describe('SetWorkplaneCommand', () => {
     expect(useSceneStore.getState().workplane).toEqual(defaultWp);
     cmd.execute();
     expect(useSceneStore.getState().workplane).toEqual(faceWp);
+  });
+});
+
+// ── GroupCommand ───────────────────────────────────────────────────────────────
+
+describe('GroupCommand', () => {
+  const groupPosition: [number, number, number] = [0, 0, 0];
+  const localTransforms: Transform[] = [
+    { position: [-5, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] },
+    { position: [5, 0, 0],  rotation: [0, 0, 0], scale: [1, 1, 1] },
+  ];
+  const worldTransforms: Transform[] = [
+    { position: [-5, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] },
+    { position: [5, 0, 0],  rotation: [0, 0, 0], scale: [1, 1, 1] },
+  ];
+
+  it('execute() creates a group node with both children in childIds', () => {
+    const idA = addBoxDirect();
+    const idB = addBoxDirect();
+    const groupId = 'grp-1';
+    const cmd = new GroupCommand([idA, idB], groupId, 'Group 1', groupPosition, localTransforms, worldTransforms);
+    cmd.execute();
+
+    const group = getNodes().find((n) => n.id === groupId);
+    expect(group).toBeDefined();
+    expect(group!.geometry.type).toBe('group');
+    expect(group!.childIds).toContain(idA);
+    expect(group!.childIds).toContain(idB);
+  });
+
+  it('execute() reparents children to the group with local transforms', () => {
+    const idA = addBoxDirect();
+    const idB = addBoxDirect();
+    const groupId = 'grp-2';
+    const cmd = new GroupCommand([idA, idB], groupId, 'Group 1', groupPosition, localTransforms, worldTransforms);
+    cmd.execute();
+
+    const nodeA = getNodes().find((n) => n.id === idA)!;
+    const nodeB = getNodes().find((n) => n.id === idB)!;
+    expect(nodeA.parentId).toBe(groupId);
+    expect(nodeB.parentId).toBe(groupId);
+    expect(nodeA.transform.position).toEqual([-5, 0, 0]);
+    expect(nodeB.transform.position).toEqual([5, 0, 0]);
+  });
+
+  it('undo() removes the group and restores children to root with world transforms', () => {
+    const idA = addBoxDirect();
+    const idB = addBoxDirect();
+    const groupId = 'grp-3';
+    const cmd = new GroupCommand([idA, idB], groupId, 'Group 1', groupPosition, localTransforms, worldTransforms);
+    cmd.execute();
+    cmd.undo();
+
+    expect(getNodes().find((n) => n.id === groupId)).toBeUndefined();
+    const nodeA = getNodes().find((n) => n.id === idA)!;
+    const nodeB = getNodes().find((n) => n.id === idB)!;
+    expect(nodeA.parentId).toBeNull();
+    expect(nodeB.parentId).toBeNull();
+    expect(nodeA.transform.position).toEqual([-5, 0, 0]);
+    expect(nodeB.transform.position).toEqual([5, 0, 0]);
+  });
+
+  it('full round-trip: execute → undo → execute', () => {
+    const idA = addBoxDirect();
+    const idB = addBoxDirect();
+    const groupId = 'grp-rt';
+    const cmd = new GroupCommand([idA, idB], groupId, 'Group 1', groupPosition, localTransforms, worldTransforms);
+
+    cmd.execute();
+    expect(getNodes().find((n) => n.id === groupId)).toBeDefined();
+    expect(getNodes().find((n) => n.id === idA)!.parentId).toBe(groupId);
+
+    cmd.undo();
+    expect(getNodes().find((n) => n.id === groupId)).toBeUndefined();
+    expect(getNodes().find((n) => n.id === idA)!.parentId).toBeNull();
+
+    cmd.execute();
+    expect(getNodes().find((n) => n.id === groupId)).toBeDefined();
+    expect(getNodes().find((n) => n.id === idA)!.parentId).toBe(groupId);
+  });
+});
+
+// ── UngroupCommand ─────────────────────────────────────────────────────────────
+
+describe('UngroupCommand', () => {
+  const groupPosition: [number, number, number] = [0, 0, 0];
+  const localTransforms: Transform[] = [
+    { position: [-5, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] },
+    { position: [5, 0, 0],  rotation: [0, 0, 0], scale: [1, 1, 1] },
+  ];
+  const worldTransforms: Transform[] = [
+    { position: [-5, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] },
+    { position: [5, 0, 0],  rotation: [0, 0, 0], scale: [1, 1, 1] },
+  ];
+
+  function setupGroup(groupId: string): [string, string] {
+    const idA = addBoxDirect();
+    const idB = addBoxDirect();
+    new GroupCommand([idA, idB], groupId, 'Group 1', groupPosition, localTransforms, worldTransforms).execute();
+    return [idA, idB];
+  }
+
+  it('execute() removes the group node and releases children to root', () => {
+    const groupId = 'ug-1';
+    const [idA, idB] = setupGroup(groupId);
+
+    const cmd = new UngroupCommand(groupId, 'Group 1', groupPosition, [idA, idB], localTransforms, worldTransforms);
+    cmd.execute();
+
+    expect(getNodes().find((n) => n.id === groupId)).toBeUndefined();
+    const nodeA = getNodes().find((n) => n.id === idA)!;
+    const nodeB = getNodes().find((n) => n.id === idB)!;
+    expect(nodeA.parentId).toBeNull();
+    expect(nodeB.parentId).toBeNull();
+    expect(nodeA.transform.position).toEqual([-5, 0, 0]);
+    expect(nodeB.transform.position).toEqual([5, 0, 0]);
+  });
+
+  it('undo() re-creates the group and reparents children with local transforms', () => {
+    const groupId = 'ug-2';
+    const [idA, idB] = setupGroup(groupId);
+
+    const cmd = new UngroupCommand(groupId, 'Group 1', groupPosition, [idA, idB], localTransforms, worldTransforms);
+    cmd.execute();
+    cmd.undo();
+
+    const group = getNodes().find((n) => n.id === groupId);
+    expect(group).toBeDefined();
+    expect(group!.geometry.type).toBe('group');
+    const nodeA = getNodes().find((n) => n.id === idA)!;
+    const nodeB = getNodes().find((n) => n.id === idB)!;
+    expect(nodeA.parentId).toBe(groupId);
+    expect(nodeB.parentId).toBe(groupId);
+    expect(nodeA.transform.position).toEqual([-5, 0, 0]);
+    expect(nodeB.transform.position).toEqual([5, 0, 0]);
+  });
+
+  it('full round-trip: execute → undo → execute', () => {
+    const groupId = 'ug-rt';
+    const [idA, idB] = setupGroup(groupId);
+
+    const cmd = new UngroupCommand(groupId, 'Group 1', groupPosition, [idA, idB], localTransforms, worldTransforms);
+
+    cmd.execute();
+    expect(getNodes().find((n) => n.id === groupId)).toBeUndefined();
+    expect(getNodes().find((n) => n.id === idA)!.parentId).toBeNull();
+
+    cmd.undo();
+    expect(getNodes().find((n) => n.id === groupId)).toBeDefined();
+    expect(getNodes().find((n) => n.id === idA)!.parentId).toBe(groupId);
+
+    cmd.execute();
+    expect(getNodes().find((n) => n.id === groupId)).toBeUndefined();
+    expect(getNodes().find((n) => n.id === idA)!.parentId).toBeNull();
   });
 });

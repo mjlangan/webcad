@@ -149,8 +149,8 @@ ZustandStore (source of truth)
   │     ├── transform: { position, rotation, scale }
   │     ├── geometry: PrimitiveParams | MeshData
   │     ├── material: { color, opacity, ... }
-  │     ├── parentId: string | null       (non-null = hidden child of a CSG result)
-  │     ├── childIds: string[]            (non-empty = this is a CSG result node)
+  │     ├── parentId: string | null       (non-null = child of a CSG result or general group)
+  │     ├── childIds: string[]            (non-empty = this is a CSG result or general group node)
   │     ├── csgOperation: 'union' | 'subtract' | 'intersect' | null
   │     └── csgError: string | null       (set when background recompute fails)
   └── workplane: { origin: Vector3, normal: Vector3, tangentX: Vector3 }
@@ -351,19 +351,18 @@ App
 - [x] Import 3MF — use `fflate` for ZIP extraction; parse `3D/3dmodel.model` with `DOMParser`; each `<object>` in `<resources>` (type `model`, not `support`) becomes a separate `SceneNode` with the object's `name` attribute as the node name; reuse the same centre-and-lift placement logic as STL import
 - [x] "Export all" and "Export selection" options
 
-### Phase 7.5 — General-Purpose Groups
+### Phase 7.5 — General-Purpose Groups ✅
 **Goal:** Users can organize objects into named groups that move and transform in unison.
 
-- [ ] `{ type: 'group' }` geometry variant — a null node with a transform but no mesh; `buildGeometry` returns an empty object, `useSceneSync` skips mesh creation for it
-- [ ] Transform inheritance in `useSceneSync`: child world matrix = parent world matrix × child local matrix; walk the `parentId` chain to root before applying to Three.js mesh
-- [ ] `TransformCommand` and gizmo write *local* transforms for parented nodes, *world* transforms for root nodes
-- [ ] Properties panel shows local transform values for children; world values for root nodes
-- [ ] `buildWorldGeometry` in `triggerCsg.ts` updated to compute true world matrix via parent chain (needed for CSG on grouped objects)
-- [ ] Group action (Ctrl+G): create a group node at the bounding-box centroid of selected objects, convert their world transforms to local-relative, reparent them; push `GroupCommand` to undo stack
-- [ ] Ungroup action: convert children's local transforms back to world, reparent to world root, delete group node; push `UngroupCommand` to undo stack
-- [ ] Scene panel renders group tree at arbitrary depth (recursive); collapse/expand per node
-- [ ] Click group in viewport or scene panel → selects the group; gizmo acts on group transform
-- [ ] Visibility toggle on group propagates to all children
+- [x] `{ type: 'group' }` geometry variant — a null node with a transform but no mesh; `buildGeometry` returns an empty `BufferGeometry` (invisible); `computeWorldMatrix` walks the `parentId` chain to compose world transforms
+- [x] Transform inheritance in `useSceneSync`: child world matrix = parent world matrix × child local matrix; decomposed into `mesh.position/quaternion/scale` so TransformControls works normally
+- [x] TransformControls and transform store write *local* transforms for group children, *world* transforms for root nodes (`meshTransformToStoreTransform` converts at drag-end)
+- [x] `buildWorldGeometry` in `triggerCsg.ts` updated to use `computeWorldMatrix` via parent chain (needed for CSG on grouped objects)
+- [x] Group action (Ctrl+G): create a group node at the centroid of selected objects, convert their world transforms to local-relative, reparent them; push `GroupCommand` to undo stack
+- [x] Ungroup action: convert children's local transforms back to world, reparent to world root, delete group node; push `UngroupCommand` to undo stack
+- [x] Scene panel renders group tree at arbitrary depth (recursive); collapse/expand per node; group children get delete button (not lock icon)
+- [x] Click group child in viewport → selects the parent group; gizmo acts on group transform
+- [x] Visibility toggle on group propagates to all recursive group children
 
 ### Phase 8 — Polish and UX
 **Goal:** Feels good to use, not just functional.

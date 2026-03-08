@@ -1,3 +1,4 @@
+import * as THREE from 'three';
 import type { PrimitiveParams, SceneNode, Transform, MaterialProps, Workplane, CsgOperation } from '../types/scene';
 import { useSceneStore } from './useSceneStore';
 
@@ -209,3 +210,107 @@ export class SetWorkplaneCommand {
     useSceneStore.getState().setWorkplane(this.before);
   }
 }
+
+function decomposeMatrix(m: THREE.Matrix4): Transform {
+  const pos = new THREE.Vector3();
+  const quat = new THREE.Quaternion();
+  const scale = new THREE.Vector3();
+  m.decompose(pos, quat, scale);
+  const euler = new THREE.Euler().setFromQuaternion(quat);
+  return {
+    position: [pos.x, pos.y, pos.z],
+    rotation: [euler.x, euler.y, euler.z],
+    scale: [scale.x, scale.y, scale.z],
+  };
+}
+
+/**
+ * Groups selected root-level nodes under a new group node placed at their
+ * centroid. Children's transforms are converted from world to local space.
+ * Undo releases them back to root with their original world transforms.
+ */
+export class GroupCommand {
+  private readonly nodeIds: string[];
+  private readonly groupId: string;
+  private readonly groupName: string;
+  private readonly groupPosition: [number, number, number];
+  private readonly localTransforms: Transform[];
+  private readonly worldTransforms: Transform[];
+
+  constructor(
+    nodeIds: string[],
+    groupId: string,
+    groupName: string,
+    groupPosition: [number, number, number],
+    localTransforms: Transform[],
+    worldTransforms: Transform[],
+  ) {
+    this.nodeIds = nodeIds;
+    this.groupId = groupId;
+    this.groupName = groupName;
+    this.groupPosition = groupPosition;
+    this.localTransforms = localTransforms;
+    this.worldTransforms = worldTransforms;
+  }
+
+  execute(): void {
+    const state = useSceneStore.getState();
+    // Create group node if it doesn't exist (first execute or redo after undo)
+    if (!state.nodes.find((n) => n.id === this.groupId)) {
+      state.addGroupNode(this.groupPosition, this.groupName, this.groupId);
+    }
+    useSceneStore.getState().reparentNodes(this.nodeIds, this.groupId, this.localTransforms);
+  }
+
+  undo(): void {
+    useSceneStore.getState().reparentNodes(this.nodeIds, null, this.worldTransforms);
+    useSceneStore.getState().removeNode(this.groupId);
+  }
+}
+
+/**
+ * Dissolves a group node: converts children's local transforms back to world
+ * space, reparents them to the scene root, and removes the group node.
+ * Undo restores the group and reparents children back inside it.
+ */
+export class UngroupCommand {
+  private readonly groupId: string;
+  private readonly groupName: string;
+  private readonly groupPosition: [number, number, number];
+  private readonly childIds: string[];
+  private readonly localTransforms: Transform[];
+  private readonly worldTransforms: Transform[];
+
+  constructor(
+    groupId: string,
+    groupName: string,
+    groupPosition: [number, number, number],
+    childIds: string[],
+    localTransforms: Transform[],
+    worldTransforms: Transform[],
+  ) {
+    this.groupId = groupId;
+    this.groupName = groupName;
+    this.groupPosition = groupPosition;
+    this.childIds = childIds;
+    this.localTransforms = localTransforms;
+    this.worldTransforms = worldTransforms;
+  }
+
+  execute(): void {
+    useSceneStore.getState().reparentNodes(this.childIds, null, this.worldTransforms);
+    useSceneStore.getState().removeNode(this.groupId);
+  }
+
+  undo(): void {
+    const state = useSceneStore.getState();
+    // Re-create the group node if it was removed by execute()
+    if (!state.nodes.find((n) => n.id === this.groupId)) {
+      state.addGroupNode(this.groupPosition, this.groupName, this.groupId);
+    }
+    useSceneStore.getState().reparentNodes(this.childIds, this.groupId, this.localTransforms);
+  }
+}
+
+// Re-export the decompose helper so groupActions can use it without importing THREE directly
+export { decomposeMatrix };

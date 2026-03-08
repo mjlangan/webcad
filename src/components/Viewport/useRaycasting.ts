@@ -40,7 +40,17 @@ export function useRaycasting(
       const hits = raycaster.intersectObjects(meshes, false);
 
       if (hits.length > 0) {
-        const nodeId = hits[0].object.userData.nodeId as string;
+        const hitNodeId = hits[0].object.userData.nodeId as string;
+
+        // Bubble up to the parent group if the hit node is a group child.
+        // Clicking any mesh inside a group selects the group itself.
+        const { nodes } = useSceneStore.getState();
+        const hitNode = nodes.find((n) => n.id === hitNodeId);
+        const parentNode = hitNode?.parentId
+          ? nodes.find((n) => n.id === hitNode.parentId)
+          : null;
+        const nodeId = parentNode?.geometry.type === 'group' ? parentNode.id : hitNodeId;
+
         if (e.shiftKey) {
           useSceneStore.getState().toggleNodeSelection(nodeId);
         } else {

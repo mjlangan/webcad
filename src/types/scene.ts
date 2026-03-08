@@ -49,6 +49,10 @@ export interface ImportedMeshParams {
   originalName: string;
 }
 
+export interface GroupParams {
+  type: 'group';
+}
+
 export type PrimitiveParams =
   | BoxParams
   | SphereParams
@@ -56,7 +60,8 @@ export type PrimitiveParams =
   | ConeParams
   | TorusParams
   | BeerGlassParams
-  | ImportedMeshParams;
+  | ImportedMeshParams
+  | GroupParams;
 
 export interface Transform {
   position: [number, number, number];
