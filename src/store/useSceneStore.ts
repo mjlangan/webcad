@@ -61,6 +61,7 @@ interface SceneState {
   adoptChildren:         (parentId: string, childIds: string[], op: CsgOperation) => void;
   releaseChildren:       (parentId: string) => void;
   updateCsgResult:       (parentId: string, newMeshId: string, error: string | null) => void;
+  loadScene:             (nodes: SceneNode[], workplane: Workplane) => void;
 }
 
 export const useSceneStore = create<SceneState>((set, get) => ({
@@ -268,4 +269,17 @@ export const useSceneStore = create<SceneState>((set, get) => ({
         };
       }),
     })),
+
+  loadScene: (nodes, workplane) =>
+    set({
+      nodes,
+      workplane,
+      selectedIds: [],
+      transformMode: 'translate',
+      csgStatus: 'idle',
+      csgSourceIds: [],
+      csgResultId: null,
+      csgPendingOperation: null,
+      workplanePlacementMode: false,
+    }),
 }));

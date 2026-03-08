@@ -222,4 +222,46 @@ describe('UndoStack', () => {
     expect(a).toBe(0);
     expect(b).toBe(1);
   });
+
+  // ── clear ──────────────────────────────────────────────────────────────────
+
+  it('clear resets canUndo to false after pushes', () => {
+    stack.push(makeCmd([]));
+    stack.push(makeCmd([]));
+    stack.clear();
+    expect(stack.canUndo).toBe(false);
+  });
+
+  it('clear resets canRedo to false after undo', () => {
+    stack.push(makeCmd([]));
+    stack.undo();
+    expect(stack.canRedo).toBe(true);
+    stack.clear();
+    expect(stack.canRedo).toBe(false);
+  });
+
+  it('clear on an already-empty stack is a no-op', () => {
+    expect(() => stack.clear()).not.toThrow();
+    expect(stack.canUndo).toBe(false);
+    expect(stack.canRedo).toBe(false);
+  });
+
+  it('clear notifies subscribers', () => {
+    let calls = 0;
+    stack.subscribe(() => { calls++; });
+    stack.push(makeCmd([]));
+    calls = 0;
+    stack.clear();
+    expect(calls).toBe(1);
+  });
+
+  it('undo and redo are no-ops after clear', () => {
+    stack.push(makeCmd([]));
+    stack.push(makeCmd([]));
+    stack.clear();
+    expect(() => stack.undo()).not.toThrow();
+    expect(() => stack.redo()).not.toThrow();
+    expect(stack.canUndo).toBe(false);
+    expect(stack.canRedo).toBe(false);
+  });
 });

@@ -5,6 +5,10 @@ import type { PrimitiveParams } from '../../types/scene';
 import { DEFAULT_WORKPLANE } from '../../types/scene';
 import type { CameraPreset, ViewportActions } from '../../types/viewport';
 import { importStlFile } from '../../lib/stlImport';
+import { importObjFile } from '../../lib/objImport';
+import { import3mfFile } from '../../lib/threemfImport';
+import { saveProject, openProject } from '../../lib/sceneFile';
+import { exportStl, exportObj, exportGltf, export3mf } from '../../lib/exportScene';
 import { undoStack } from '../../store/undoStack';
 import { SetWorkplaneCommand } from '../../store/commands';
 import { triggerCsg } from '../../lib/triggerCsg';
@@ -40,9 +44,18 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
   const workplane = useSceneStore((s) => s.workplane);
   const selectedIds = useSceneStore((s) => s.selectedIds);
   const csgStatus = useSceneStore((s) => s.csgStatus);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const stlInputRef = useRef<HTMLInputElement>(null);
+  const objInputRef = useRef<HTMLInputElement>(null);
+  const mfInputRef  = useRef<HTMLInputElement>(null);
+  const openInputRef = useRef<HTMLInputElement>(null);
 
   const booleanEnabled = selectedIds.length === 2 && csgStatus === 'idle';
+  const exportScope = selectedIds.length > 0 ? 'Selection' : 'All';
+  const exportTitle = (fmt: string) =>
+    selectedIds.length > 0
+      ? `Export selected objects as ${fmt}`
+      : `Export all visible objects as ${fmt}`;
 
   const handleAddPrimitive = (type: string) => {
     let geometry: PrimitiveParams;
@@ -71,19 +84,45 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
     addNode(geometry);
   };
 
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) importStlFile(file);
-    // Reset so the same file can be re-imported
-    e.target.value = '';
-  };
-
   const handleResetWorkplane = () => {
     undoStack.push(new SetWorkplaneCommand(workplane, DEFAULT_WORKPLANE));
   };
 
+  const makeFileHandler =
+    <T extends File>(fn: (f: T) => void) =>
+    (e: ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0] as T | undefined;
+      if (file) fn(file);
+      e.target.value = '';
+    };
+
   return (
     <div className="toolbar">
+      <div className="toolbar-group">
+        <span className="toolbar-label">File</span>
+        <button
+          className="toolbar-btn"
+          onClick={saveProject}
+          title="Save scene as .webcad file"
+        >
+          Save
+        </button>
+        <button
+          className="toolbar-btn"
+          onClick={() => openInputRef.current?.click()}
+          title="Open a .webcad file (replaces current scene)"
+        >
+          Open
+        </button>
+        <input
+          ref={openInputRef}
+          type="file"
+          accept=".webcad"
+          style={{ display: 'none' }}
+          onChange={makeFileHandler(openProject)}
+        />
+      </div>
+
       <div className="toolbar-group">
         <span className="toolbar-label">Add</span>
         {(['box', 'sphere', 'cylinder', 'cone', 'torus'] as const).map((type) => (
@@ -103,19 +142,51 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
         >
           Beer Glass
         </button>
+      </div>
+
+      <div className="toolbar-group">
+        <span className="toolbar-label">Import</span>
         <button
           className="toolbar-btn"
-          onClick={() => fileInputRef.current?.click()}
+          onClick={() => stlInputRef.current?.click()}
           title="Import STL file"
         >
-          Import STL
+          STL
+        </button>
+        <button
+          className="toolbar-btn"
+          onClick={() => objInputRef.current?.click()}
+          title="Import OBJ file"
+        >
+          OBJ
+        </button>
+        <button
+          className="toolbar-btn"
+          onClick={() => mfInputRef.current?.click()}
+          title="Import 3MF file"
+        >
+          3MF
         </button>
         <input
-          ref={fileInputRef}
+          ref={stlInputRef}
           type="file"
           accept=".stl"
           style={{ display: 'none' }}
-          onChange={handleFileChange}
+          onChange={makeFileHandler(importStlFile)}
+        />
+        <input
+          ref={objInputRef}
+          type="file"
+          accept=".obj"
+          style={{ display: 'none' }}
+          onChange={makeFileHandler(importObjFile)}
+        />
+        <input
+          ref={mfInputRef}
+          type="file"
+          accept=".3mf"
+          style={{ display: 'none' }}
+          onChange={makeFileHandler(import3mfFile)}
         />
       </div>
 
@@ -163,6 +234,38 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
           title="Reset workplane to world XZ plane"
         >
           Reset Plane
+        </button>
+      </div>
+
+      <div className="toolbar-group">
+        <span className="toolbar-label">Export ({exportScope})</span>
+        <button
+          className="toolbar-btn"
+          onClick={exportStl}
+          title={exportTitle('STL')}
+        >
+          STL
+        </button>
+        <button
+          className="toolbar-btn"
+          onClick={exportObj}
+          title={exportTitle('OBJ')}
+        >
+          OBJ
+        </button>
+        <button
+          className="toolbar-btn"
+          onClick={() => { void exportGltf(); }}
+          title={exportTitle('glTF/GLB')}
+        >
+          glTF
+        </button>
+        <button
+          className="toolbar-btn"
+          onClick={export3mf}
+          title={exportTitle('3MF')}
+        >
+          3MF
         </button>
       </div>
 

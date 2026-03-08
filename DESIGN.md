@@ -341,15 +341,15 @@ App
 ### Phase 7 — Save/Open, Export, and Remaining Import
 **Goal:** Users can persist their work to disk and get geometry in and out.
 
-- [ ] `.webcad` save: serialize Zustand store + fetch all IndexedDB buffers → base64-embed → download as file *(note: base64 encoding inflates binary mesh size by ~33%; acceptable tradeoff for hobbyist file sizes)*
-- [ ] `.webcad` open: parse file, decode mesh buffers into IndexedDB, load scene graph into store; warn if session has unsaved changes
-- [ ] Export to STL (binary)
-- [ ] Export to OBJ
-- [ ] Export to glTF/GLB
-- [ ] Export to 3MF — use `fflate` for ZIP creation; produce `[Content_Types].xml`, `_rels/.rels`, and `3D/3dmodel.model` (XML); each visible root node becomes an `<object>` with transform baked into vertices; `unit="millimeter"`
-- [ ] Import OBJ
-- [ ] Import 3MF — use `fflate` for ZIP extraction; parse `3D/3dmodel.model` with `DOMParser`; each `<object>` in `<resources>` (type `model`, not `support`) becomes a separate `SceneNode` with the object's `name` attribute as the node name; reuse the same centre-and-lift placement logic as STL import
-- [ ] "Export all" and "Export selection" options
+- [x] `.webcad` save: serialize Zustand store + fetch all IndexedDB buffers → base64-embed → download as file *(note: base64 encoding inflates binary mesh size by ~33%; acceptable tradeoff for hobbyist file sizes)*
+- [x] `.webcad` open: parse file, decode mesh buffers into IndexedDB, load scene graph into store; warn if session has unsaved changes
+- [x] Export to STL (binary)
+- [x] Export to OBJ
+- [x] Export to glTF/GLB
+- [x] Export to 3MF — use `fflate` for ZIP creation; produce `[Content_Types].xml`, `_rels/.rels`, and `3D/3dmodel.model` (XML); each visible root node becomes an `<object>` with transform baked into vertices; `unit="millimeter"`
+- [x] Import OBJ
+- [x] Import 3MF — use `fflate` for ZIP extraction; parse `3D/3dmodel.model` with `DOMParser`; each `<object>` in `<resources>` (type `model`, not `support`) becomes a separate `SceneNode` with the object's `name` attribute as the node name; reuse the same centre-and-lift placement logic as STL import
+- [x] "Export all" and "Export selection" options
 
 ### Phase 7.5 — General-Purpose Groups
 **Goal:** Users can organize objects into named groups that move and transform in unison.

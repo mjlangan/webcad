@@ -550,3 +550,72 @@ describe('updateMaterial', () => {
     expect(useSceneStore.getState().nodes.find((n) => n.id === id)!.material.color).toBe('#222222');
   });
 });
+
+// ── loadScene ─────────────────────────────────────────────────────────────────
+
+describe('loadScene', () => {
+  it('replaces nodes array entirely', () => {
+    addBox();
+    addBox();
+    expect(useSceneStore.getState().nodes.length).toBe(2);
+
+    const newNode = {
+      id: 'test-1',
+      name: 'Loaded Box',
+      visible: true,
+      locked: false,
+      transform: { position: [0, 0, 0] as [number, number, number], rotation: [0, 0, 0] as [number, number, number], scale: [1, 1, 1] as [number, number, number] },
+      geometry: { type: 'box' as const, width: 10, height: 10, depth: 10 },
+      material: { color: '#ff0000', opacity: 1, wireframe: false },
+      parentId: null,
+      childIds: [],
+      csgOperation: null,
+      csgError: null,
+    };
+    const newWorkplane = { origin: [1, 0, 1] as [number, number, number], normal: [0, 1, 0] as [number, number, number], tangentX: [1, 0, 0] as [number, number, number] };
+    useSceneStore.getState().loadScene([newNode], newWorkplane);
+
+    expect(useSceneStore.getState().nodes).toHaveLength(1);
+    expect(useSceneStore.getState().nodes[0].id).toBe('test-1');
+  });
+
+  it('replaces workplane', () => {
+    const newWorkplane = { origin: [5, 0, 5] as [number, number, number], normal: [0, 1, 0] as [number, number, number], tangentX: [1, 0, 0] as [number, number, number] };
+    useSceneStore.getState().loadScene([], newWorkplane);
+    expect(useSceneStore.getState().workplane).toEqual(newWorkplane);
+  });
+
+  it('clears selectedIds', () => {
+    const id = addBox();
+    useSceneStore.getState().selectNode(id);
+    expect(useSceneStore.getState().selectedIds).toHaveLength(1);
+
+    useSceneStore.getState().loadScene([], { origin: [0, 0, 0], normal: [0, 1, 0], tangentX: [1, 0, 0] });
+    expect(useSceneStore.getState().selectedIds).toHaveLength(0);
+  });
+
+  it('resets transform mode to translate', () => {
+    useSceneStore.getState().setTransformMode('rotate');
+    useSceneStore.getState().loadScene([], { origin: [0, 0, 0], normal: [0, 1, 0], tangentX: [1, 0, 0] });
+    expect(useSceneStore.getState().transformMode).toBe('translate');
+  });
+
+  it('resets CSG status to idle', () => {
+    useSceneStore.setState({ csgStatus: 'in_flight', csgSourceIds: ['a', 'b'] });
+    useSceneStore.getState().loadScene([], { origin: [0, 0, 0], normal: [0, 1, 0], tangentX: [1, 0, 0] });
+    expect(useSceneStore.getState().csgStatus).toBe('idle');
+    expect(useSceneStore.getState().csgSourceIds).toHaveLength(0);
+  });
+
+  it('resets workplanePlacementMode to false', () => {
+    useSceneStore.setState({ workplanePlacementMode: true });
+    useSceneStore.getState().loadScene([], { origin: [0, 0, 0], normal: [0, 1, 0], tangentX: [1, 0, 0] });
+    expect(useSceneStore.getState().workplanePlacementMode).toBe(false);
+  });
+
+  it('accepts an empty nodes array', () => {
+    addBox();
+    useSceneStore.getState().loadScene([], { origin: [0, 0, 0], normal: [0, 1, 0], tangentX: [1, 0, 0] });
+    expect(useSceneStore.getState().nodes).toHaveLength(0);
+  });
+});

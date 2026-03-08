@@ -48,6 +48,12 @@ export class UndoStack {
     };
   }
 
+  clear(): void {
+    this.past = [];
+    this.future = [];
+    this.notify();
+  }
+
   private notify(): void {
     this.listeners.forEach((l) => l());
   }
