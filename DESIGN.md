@@ -376,6 +376,8 @@ App
 - [ ] Better empty state / onboarding experience
 - [ ] Performance: LOD or instancing for large scenes
 - [ ] Preferences menu (control schemes, metric/inch units)
+- [ ] Drop to workplane: translate the selected object along the workplane normal until its lowest point touches the workplane surface
+- [ ] Drop to workplane (face align): user clicks a face on the selected object; the object is re-oriented and translated so that chosen face lies flush on the workplane
 
 ---
 
