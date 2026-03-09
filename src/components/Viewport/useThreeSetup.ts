@@ -50,10 +50,6 @@ export function useThreeSetup(
     const grid = new THREE.GridHelper(200, 20, '#444444', '#333333');
     scene.add(grid);
 
-    // Axes helper — 30mm arms
-    const axes = new THREE.AxesHelper(30);
-    scene.add(axes);
-
     // Write setup to ref — downstream hooks' effects run after this one
     setupRef.current = { scene, camera, renderer };
 
