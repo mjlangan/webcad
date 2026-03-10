@@ -1,4 +1,5 @@
 import { useRef, type ChangeEvent, type RefObject } from 'react';
+import { Button, Divider, Space, Tooltip, Typography } from 'antd';
 import { useSceneStore } from '../../store/useSceneStore';
 import type { TransformMode } from '../../store/useSceneStore';
 import type { PrimitiveParams } from '../../types/scene';
@@ -14,7 +15,8 @@ import { SetWorkplaneCommand } from '../../store/commands';
 import { triggerCsg } from '../../lib/triggerCsg';
 import { groupSelected, ungroupSelected } from '../../lib/groupActions';
 import type { CsgOperation } from '../../lib/csgWorker';
-import './Toolbar.css';
+
+const { Text } = Typography;
 
 const CAMERA_PRESETS: CameraPreset[] = [
   'home', 'front', 'back', 'left', 'right', 'top', 'bottom',
@@ -24,10 +26,10 @@ interface ToolbarProps {
   actionsRef: RefObject<ViewportActions | null>;
 }
 
-const TRANSFORM_MODES: { mode: TransformMode; label: string }[] = [
-  { mode: 'translate', label: 'Move' },
-  { mode: 'rotate',    label: 'Rotate' },
-  { mode: 'scale',     label: 'Scale' },
+const TRANSFORM_MODES: { mode: TransformMode; label: string; key: string }[] = [
+  { mode: 'translate', label: 'Move',   key: 'G' },
+  { mode: 'rotate',    label: 'Rotate', key: 'R' },
+  { mode: 'scale',     label: 'Scale',  key: 'S' },
 ];
 
 const BOOLEAN_OPS: { op: CsgOperation; label: string; title: string }[] = [
@@ -35,6 +37,14 @@ const BOOLEAN_OPS: { op: CsgOperation; label: string; title: string }[] = [
   { op: 'subtract',  label: 'Subtract',  title: 'Subtract second object from first (A − B)' },
   { op: 'intersect', label: 'Intersect', title: 'Keep only the overlapping volume (A ∩ B)' },
 ];
+
+const labelStyle: React.CSSProperties = {
+  fontSize: 10,
+  color: '#666',
+  textTransform: 'uppercase',
+  letterSpacing: '0.05em',
+  userSelect: 'none',
+};
 
 export default function Toolbar({ actionsRef }: ToolbarProps) {
   const addNode = useSceneStore((s) => s.addNode);
@@ -105,218 +115,167 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
     };
 
   return (
-    <div className="toolbar">
-      <div className="toolbar-group">
-        <span className="toolbar-label">File</span>
-        <button
-          className="toolbar-btn"
-          onClick={() => { void newProject(); }}
-          title="New scene (clears current scene)"
-        >
-          New
-        </button>
-        <button
-          className="toolbar-btn"
-          onClick={() => { void saveProject(); }}
-          title="Save scene as .webcad file"
-        >
-          Save
-        </button>
-        <button
-          className="toolbar-btn"
-          onClick={() => openInputRef.current?.click()}
-          title="Open a .webcad file (replaces current scene)"
-        >
-          Open
-        </button>
-        <input
-          ref={openInputRef}
-          type="file"
-          accept=".webcad"
-          style={{ display: 'none' }}
-          onChange={makeFileHandler(openProject)}
-        />
-      </div>
+    <div style={{
+      gridArea: 'toolbar',
+      display: 'flex',
+      flexWrap: 'wrap',
+      alignItems: 'center',
+      gap: 2,
+      padding: '4px 8px',
+      background: '#1f1f1f',
+      borderBottom: '1px solid #303030',
+      minHeight: 36,
+    }}>
 
-      <div className="toolbar-group">
-        <span className="toolbar-label">Add</span>
+      {/* File */}
+      <Space size={3} align="center">
+        <Text style={labelStyle}>File</Text>
+        <Tooltip title="New scene (clears current scene)">
+          <Button size="small" onClick={() => { void newProject(); }}>New</Button>
+        </Tooltip>
+        <Tooltip title="Save scene as .webcad file">
+          <Button size="small" onClick={() => { void saveProject(); }}>Save</Button>
+        </Tooltip>
+        <Tooltip title="Open a .webcad file (replaces current scene)">
+          <Button size="small" onClick={() => openInputRef.current?.click()}>Open</Button>
+        </Tooltip>
+        <input ref={openInputRef} type="file" accept=".webcad" style={{ display: 'none' }} onChange={makeFileHandler(openProject)} />
+      </Space>
+
+      <Divider type="vertical" style={{ borderColor: '#404040', height: 18, margin: '0 4px' }} />
+
+      {/* Add */}
+      <Space size={3} align="center">
+        <Text style={labelStyle}>Add</Text>
         {(['box', 'sphere', 'cylinder', 'cone', 'torus'] as const).map((type) => (
-          <button
-            key={type}
-            className="toolbar-btn"
-            onClick={() => handleAddPrimitive(type)}
-            title={`Add ${type}`}
-          >
-            {type.charAt(0).toUpperCase() + type.slice(1)}
-          </button>
+          <Tooltip key={type} title={`Add ${type}`}>
+            <Button size="small" onClick={() => handleAddPrimitive(type)}>
+              {type.charAt(0).toUpperCase() + type.slice(1)}
+            </Button>
+          </Tooltip>
         ))}
-        <button
-          className="toolbar-btn"
-          onClick={() => handleAddPrimitive('beerglass')}
-          title="Add beer glass (Superfest)"
-        >
-          Beer Glass
-        </button>
-      </div>
+        <Tooltip title="Add beer glass (Superfest)">
+          <Button size="small" onClick={() => handleAddPrimitive('beerglass')}>Beer Glass</Button>
+        </Tooltip>
+      </Space>
 
-      <div className="toolbar-group">
-        <span className="toolbar-label">Import</span>
-        <button
-          className="toolbar-btn"
-          onClick={() => stlInputRef.current?.click()}
-          title="Import STL file"
-        >
-          STL
-        </button>
-        <button
-          className="toolbar-btn"
-          onClick={() => objInputRef.current?.click()}
-          title="Import OBJ file"
-        >
-          OBJ
-        </button>
-        <button
-          className="toolbar-btn"
-          onClick={() => mfInputRef.current?.click()}
-          title="Import 3MF file"
-        >
-          3MF
-        </button>
-        <input
-          ref={stlInputRef}
-          type="file"
-          accept=".stl"
-          style={{ display: 'none' }}
-          onChange={makeFileHandler(importStlFile)}
-        />
-        <input
-          ref={objInputRef}
-          type="file"
-          accept=".obj"
-          style={{ display: 'none' }}
-          onChange={makeFileHandler(importObjFile)}
-        />
-        <input
-          ref={mfInputRef}
-          type="file"
-          accept=".3mf"
-          style={{ display: 'none' }}
-          onChange={makeFileHandler(import3mfFile)}
-        />
-      </div>
+      <Divider type="vertical" style={{ borderColor: '#404040', height: 18, margin: '0 4px' }} />
 
-      <div className="toolbar-group">
-        <span className="toolbar-label">Transform</span>
-        {TRANSFORM_MODES.map(({ mode, label }) => (
-          <button
-            key={mode}
-            className={`toolbar-btn${transformMode === mode ? ' toolbar-btn--active' : ''}`}
-            onClick={() => setTransformMode(mode)}
-            title={`${label} (${mode === 'translate' ? 'G' : mode === 'rotate' ? 'R' : 'S'})`}
-          >
-            {label}
-          </button>
+      {/* Import */}
+      <Space size={3} align="center">
+        <Text style={labelStyle}>Import</Text>
+        <Tooltip title="Import STL file">
+          <Button size="small" onClick={() => stlInputRef.current?.click()}>STL</Button>
+        </Tooltip>
+        <Tooltip title="Import OBJ file">
+          <Button size="small" onClick={() => objInputRef.current?.click()}>OBJ</Button>
+        </Tooltip>
+        <Tooltip title="Import 3MF file">
+          <Button size="small" onClick={() => mfInputRef.current?.click()}>3MF</Button>
+        </Tooltip>
+        <input ref={stlInputRef} type="file" accept=".stl" style={{ display: 'none' }} onChange={makeFileHandler(importStlFile)} />
+        <input ref={objInputRef} type="file" accept=".obj" style={{ display: 'none' }} onChange={makeFileHandler(importObjFile)} />
+        <input ref={mfInputRef}  type="file" accept=".3mf" style={{ display: 'none' }} onChange={makeFileHandler(import3mfFile)} />
+      </Space>
+
+      <Divider type="vertical" style={{ borderColor: '#404040', height: 18, margin: '0 4px' }} />
+
+      {/* Transform */}
+      <Space size={3} align="center">
+        <Text style={labelStyle}>Transform</Text>
+        {TRANSFORM_MODES.map(({ mode, label, key }) => (
+          <Tooltip key={mode} title={`${label} (${key})`}>
+            <Button
+              size="small"
+              type={transformMode === mode ? 'primary' : 'default'}
+              onClick={() => setTransformMode(mode)}
+            >
+              {label}
+            </Button>
+          </Tooltip>
         ))}
-      </div>
+      </Space>
 
-      <div className="toolbar-group">
-        <span className="toolbar-label">Boolean</span>
+      <Divider type="vertical" style={{ borderColor: '#404040', height: 18, margin: '0 4px' }} />
+
+      {/* Boolean */}
+      <Space size={3} align="center">
+        <Text style={labelStyle}>Boolean</Text>
         {BOOLEAN_OPS.map(({ op, label, title }) => (
-          <button
-            key={op}
-            className="toolbar-btn"
-            disabled={!booleanEnabled}
-            onClick={() => { void triggerCsg(op); }}
-            title={booleanEnabled ? title : 'Select exactly 2 objects to use boolean operations'}
-          >
-            {label}
-          </button>
+          <Tooltip key={op} title={booleanEnabled ? title : 'Select exactly 2 objects to use boolean operations'}>
+            <Button
+              size="small"
+              disabled={!booleanEnabled}
+              onClick={() => { void triggerCsg(op); }}
+            >
+              {label}
+            </Button>
+          </Tooltip>
         ))}
-      </div>
+      </Space>
 
-      <div className="toolbar-group">
-        <span className="toolbar-label">Group</span>
-        <button
-          className="toolbar-btn"
-          disabled={!groupEnabled}
-          onClick={groupSelected}
-          title={groupEnabled ? 'Group selected objects (Ctrl+G)' : 'Select 2+ root objects to group'}
-        >
-          Group
-        </button>
-        <button
-          className="toolbar-btn"
-          disabled={!ungroupEnabled}
-          onClick={ungroupSelected}
-          title={ungroupEnabled ? 'Ungroup selected group' : 'Select a group node to ungroup'}
-        >
-          Ungroup
-        </button>
-      </div>
+      <Divider type="vertical" style={{ borderColor: '#404040', height: 18, margin: '0 4px' }} />
 
-      <div className="toolbar-group">
-        <span className="toolbar-label">Workplane</span>
-        <button
-          className={`toolbar-btn${workplanePlacementMode ? ' toolbar-btn--active' : ''}`}
-          onClick={() => setWorkplanePlacementMode(!workplanePlacementMode)}
-          title="Set workplane on face (click to activate, Esc to cancel)"
-        >
-          Set Plane
-        </button>
-        <button
-          className="toolbar-btn"
-          onClick={handleResetWorkplane}
-          title="Reset workplane to world XZ plane"
-        >
-          Reset Plane
-        </button>
-      </div>
+      {/* Group */}
+      <Space size={3} align="center">
+        <Text style={labelStyle}>Group</Text>
+        <Tooltip title={groupEnabled ? 'Group selected objects (Ctrl+G)' : 'Select 2+ root objects to group'}>
+          <Button size="small" disabled={!groupEnabled} onClick={groupSelected}>Group</Button>
+        </Tooltip>
+        <Tooltip title={ungroupEnabled ? 'Ungroup selected group' : 'Select a group node to ungroup'}>
+          <Button size="small" disabled={!ungroupEnabled} onClick={ungroupSelected}>Ungroup</Button>
+        </Tooltip>
+      </Space>
 
-      <div className="toolbar-group">
-        <span className="toolbar-label">Export ({exportScope})</span>
-        <button
-          className="toolbar-btn"
-          onClick={exportStl}
-          title={exportTitle('STL')}
-        >
-          STL
-        </button>
-        <button
-          className="toolbar-btn"
-          onClick={exportObj}
-          title={exportTitle('OBJ')}
-        >
-          OBJ
-        </button>
-        <button
-          className="toolbar-btn"
-          onClick={() => { void exportGltf(); }}
-          title={exportTitle('glTF/GLB')}
-        >
-          glTF
-        </button>
-        <button
-          className="toolbar-btn"
-          onClick={export3mf}
-          title={exportTitle('3MF')}
-        >
-          3MF
-        </button>
-      </div>
+      <Divider type="vertical" style={{ borderColor: '#404040', height: 18, margin: '0 4px' }} />
 
-      <div className="toolbar-group toolbar-group--right">
-        <span className="toolbar-label">View</span>
+      {/* Workplane */}
+      <Space size={3} align="center">
+        <Text style={labelStyle}>Workplane</Text>
+        <Tooltip title="Set workplane on face (click to activate, Esc to cancel)">
+          <Button
+            size="small"
+            type={workplanePlacementMode ? 'primary' : 'default'}
+            onClick={() => setWorkplanePlacementMode(!workplanePlacementMode)}
+          >
+            Set Plane
+          </Button>
+        </Tooltip>
+        <Tooltip title="Reset workplane to world XZ plane">
+          <Button size="small" onClick={handleResetWorkplane}>Reset Plane</Button>
+        </Tooltip>
+      </Space>
+
+      <Divider type="vertical" style={{ borderColor: '#404040', height: 18, margin: '0 4px' }} />
+
+      {/* Export */}
+      <Space size={3} align="center">
+        <Text style={labelStyle}>Export ({exportScope})</Text>
+        <Tooltip title={exportTitle('STL')}>
+          <Button size="small" onClick={exportStl}>STL</Button>
+        </Tooltip>
+        <Tooltip title={exportTitle('OBJ')}>
+          <Button size="small" onClick={exportObj}>OBJ</Button>
+        </Tooltip>
+        <Tooltip title={exportTitle('glTF/GLB')}>
+          <Button size="small" onClick={() => { void exportGltf(); }}>glTF</Button>
+        </Tooltip>
+        <Tooltip title={exportTitle('3MF')}>
+          <Button size="small" onClick={export3mf}>3MF</Button>
+        </Tooltip>
+      </Space>
+
+      {/* View — pushed to the right */}
+      <Space size={3} align="center" style={{ marginLeft: 'auto' }}>
+        <Text style={labelStyle}>View</Text>
         {CAMERA_PRESETS.map((preset) => (
-          <button
-            key={preset}
-            className="toolbar-btn"
-            onClick={() => actionsRef.current?.setPreset(preset)}
-            title={`${preset} view`}
-          >
-            {preset.charAt(0).toUpperCase() + preset.slice(1)}
-          </button>
+          <Tooltip key={preset} title={`${preset} view`}>
+            <Button size="small" onClick={() => actionsRef.current?.setPreset(preset)}>
+              {preset.charAt(0).toUpperCase() + preset.slice(1)}
+            </Button>
+          </Tooltip>
         ))}
-      </div>
+      </Space>
     </div>
   );
 }

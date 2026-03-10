@@ -1,9 +1,148 @@
-import { useState, useRef, useEffect, Fragment } from 'react';
+import { useState } from 'react';
+import { Tree, Button, Input, Tooltip, Empty } from 'antd';
+import {
+  EyeOutlined,
+  EyeInvisibleOutlined,
+  WarningOutlined,
+  CloseOutlined,
+  LockOutlined,
+} from '@ant-design/icons';
+import type { DataNode } from 'antd/es/tree';
 import { useSceneStore } from '../../store/useSceneStore';
 import { undoStack } from '../../store/undoStack';
 import { RenameNodeCommand, RemoveNodeCommand } from '../../store/commands';
 import type { SceneNode } from '../../types/scene';
-import './ScenePanel.css';
+
+interface AugmentedDataNode extends DataNode {
+  node: SceneNode;
+  depth: number;
+}
+
+function buildTreeData(
+  nodes: SceneNode[],
+  parentId: string | null,
+  depth: number,
+): AugmentedDataNode[] {
+  return nodes
+    .filter((n) => n.parentId === parentId)
+    .map((n) => ({
+      key: n.id,
+      title: n.name,
+      node: n,
+      depth,
+      isLeaf: n.childIds.length === 0,
+      children: n.childIds.length > 0 ? buildTreeData(nodes, n.id, depth + 1) : undefined,
+    }));
+}
+
+interface NodeTitleProps {
+  nodeData: AugmentedDataNode;
+  nodes: SceneNode[];
+  editingId: string | null;
+  editValue: string;
+  setEditingId: (id: string | null) => void;
+  setEditValue: (v: string) => void;
+  commitRename: () => void;
+  toggleVisible: (id: string) => void;
+}
+
+function NodeTitle({
+  nodeData,
+  nodes,
+  editingId,
+  editValue,
+  setEditingId,
+  setEditValue,
+  commitRename,
+  toggleVisible,
+}: NodeTitleProps) {
+  const { node, depth } = nodeData;
+  const isEditing = editingId === node.id;
+
+  const parentNode = node.parentId ? nodes.find((n) => n.id === node.parentId) : null;
+  const isGroupChild = parentNode?.geometry.type === 'group';
+  const isCsgChild = depth > 0 && !isGroupChild;
+  const isDeletable = !isCsgChild;
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 3, minWidth: 0 }}>
+      {/* Eye toggle — root nodes and group children only */}
+      {!isCsgChild && (
+        <Button
+          type="text"
+          size="small"
+          style={{ padding: '0 2px', height: 18, flexShrink: 0, color: '#666' }}
+          icon={node.visible ? <EyeOutlined /> : <EyeInvisibleOutlined style={{ opacity: 0.4 }} />}
+          onClick={(e) => { e.stopPropagation(); toggleVisible(node.id); }}
+        />
+      )}
+
+      {/* CSG error badge */}
+      {node.csgError && (
+        <Tooltip title={node.csgError}>
+          <WarningOutlined style={{ color: '#faad14', fontSize: 11, flexShrink: 0 }} />
+        </Tooltip>
+      )}
+
+      {/* Name or rename input */}
+      {isEditing ? (
+        <Input
+          size="small"
+          value={editValue}
+          autoFocus
+          style={{ flex: 1, minWidth: 0, height: 20, fontSize: 12 }}
+          onChange={(e) => setEditValue(e.target.value)}
+          onBlur={commitRename}
+          onKeyDown={(e) => {
+            e.stopPropagation();
+            if (e.key === 'Enter') commitRename();
+            if (e.key === 'Escape') setEditingId(null);
+          }}
+          onClick={(e) => e.stopPropagation()}
+        />
+      ) : (
+        <span
+          style={{
+            flex: 1,
+            fontSize: 12,
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            opacity: (!node.visible && !isCsgChild) ? 0.4 : 1,
+            cursor: 'default',
+          }}
+          onDoubleClick={(e) => {
+            e.stopPropagation();
+            setEditingId(node.id);
+            setEditValue(node.name);
+          }}
+        >
+          {node.name}
+        </span>
+      )}
+
+      {/* Delete or lock */}
+      <span style={{ marginLeft: 'auto', flexShrink: 0 }}>
+        {isDeletable ? (
+          <Button
+            type="text"
+            size="small"
+            style={{ padding: '0 2px', height: 18, color: '#555' }}
+            icon={<CloseOutlined style={{ fontSize: 10 }} />}
+            onClick={(e) => {
+              e.stopPropagation();
+              undoStack.push(new RemoveNodeCommand(node.id));
+            }}
+          />
+        ) : (
+          <Tooltip title="Cannot delete: used by a boolean operation — delete the parent first">
+            <LockOutlined style={{ fontSize: 10, opacity: 0.35, padding: '0 4px' }} />
+          </Tooltip>
+        )}
+      </span>
+    </div>
+  );
+}
 
 export default function ScenePanel() {
   const nodes = useSceneStore((s) => s.nodes);
@@ -14,14 +153,9 @@ export default function ScenePanel() {
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
-  // Set of parent IDs that are collapsed (children hidden); default is expanded
-  const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  // Focus input when entering edit mode
-  useEffect(() => {
-    if (editingId) inputRef.current?.focus();
-  }, [editingId]);
+  const [expandedKeys, setExpandedKeys] = useState<string[]>(() =>
+    nodes.filter((n) => n.childIds.length > 0).map((n) => n.id),
+  );
 
   const commitRename = () => {
     if (editingId && editValue.trim()) {
@@ -33,161 +167,60 @@ export default function ScenePanel() {
     setEditingId(null);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') commitRename();
-    if (e.key === 'Escape') setEditingId(null);
-  };
-
-  const handleRowClick = (e: React.MouseEvent, nodeId: string) => {
-    if (e.ctrlKey || e.metaKey || e.shiftKey) {
-      toggleNodeSelection(nodeId);
-    } else {
-      selectNode(nodeId);
-    }
-  };
-
-  const toggleCollapsed = (parentId: string) => {
-    setCollapsedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(parentId)) next.delete(parentId);
-      else next.add(parentId);
-      return next;
-    });
-  };
-
-  const renderRow = (node: SceneNode, depth: number) => {
-    const isSelected = selectedIds.includes(node.id);
-    const hasChildren = node.childIds.length > 0;
-    const isExpanded = !collapsedIds.has(node.id);
-    const hasError = node.csgError !== null;
-    const isChild = depth > 0;
-
-    // Distinguish general-group children (deletable) from CSG children (locked).
-    const parentNode = node.parentId ? nodes.find((n) => n.id === node.parentId) : null;
-    const isGroupChild = parentNode?.geometry.type === 'group';
-    const isCsgChild = isChild && !isGroupChild;
-    const isDeletable = !isChild || isGroupChild;
-
-    let rowClass = 'scene-row';
-    if (isSelected) rowClass += ' scene-row--selected';
-    if (!node.visible && (!isChild || isGroupChild)) rowClass += ' scene-row--hidden';
-    if (isChild) rowClass += ' scene-row--child';
-
-    return (
-      <li key={node.id} className={rowClass} onClick={(e) => handleRowClick(e, node.id)}>
-
-        {/* Tree indent / connector for children — indent scales with depth */}
-        {isChild && (
-          <span
-            className="scene-tree-connector"
-            style={{ paddingLeft: `${depth * 14}px`, paddingRight: '4px' }}
-            aria-hidden="true"
-          >└</span>
-        )}
-
-        {/* Expand/collapse for any CSG node that has children */}
-        {hasChildren && (
-          <button
-            className="scene-row-btn scene-row-expand-btn"
-            title={isExpanded ? 'Collapse' : 'Expand'}
-            onClick={(e) => { e.stopPropagation(); toggleCollapsed(node.id); }}
-          >
-            {isExpanded ? '▾' : '▸'}
-          </button>
-        )}
-
-        {/* Visibility eye — root nodes and group children; CSG children are system-managed */}
-        {!isCsgChild && (
-          <button
-            className="scene-row-btn"
-            title={node.visible ? 'Hide' : 'Show'}
-            onClick={(e) => { e.stopPropagation(); toggleVisible(node.id); }}
-          >
-            {node.visible ? '👁' : '🙈'}
-          </button>
-        )}
-
-        {/* Error badge for failed CSG recomputes */}
-        {hasError && (
-          <span className="scene-row-error-badge" title={node.csgError ?? undefined}>⚠</span>
-        )}
-
-        {/* Name — double-click to rename */}
-        {editingId === node.id ? (
-          <input
-            ref={inputRef}
-            className="scene-rename-input"
-            value={editValue}
-            onChange={(e) => setEditValue(e.target.value)}
-            onBlur={commitRename}
-            onKeyDown={handleKeyDown}
-            onClick={(e) => e.stopPropagation()}
-          />
-        ) : (
-          <span
-            className="scene-row-name"
-            onDoubleClick={(e) => {
-              e.stopPropagation();
-              setEditingId(node.id);
-              setEditValue(node.name);
-            }}
-          >
-            {node.name}
-          </span>
-        )}
-
-        {/* Delete for root nodes and group children; lock indicator for CSG children */}
-        {isDeletable ? (
-          <button
-            className="scene-row-btn scene-row-btn--delete"
-            title="Delete"
-            onClick={(e) => {
-              e.stopPropagation();
-              undoStack.push(new RemoveNodeCommand(node.id));
-            }}
-          >
-            ✕
-          </button>
-        ) : (
-          <span
-            className="scene-row-child-locked"
-            title="Cannot delete: used by a boolean operation — delete the parent first"
-          >
-            🔒
-          </span>
-        )}
-      </li>
-    );
-  };
-
-  const renderSubtree = (node: SceneNode, depth: number) => {
-    const isExpanded = !collapsedIds.has(node.id);
-    const children = node.childIds
-      .map((id) => nodes.find((n) => n.id === id))
-      .filter((n): n is SceneNode => n !== undefined);
-
-    return (
-      <Fragment key={node.id}>
-        {renderRow(node, depth)}
-        {children.length > 0 && isExpanded && children.map((child) =>
-          renderSubtree(child, depth + 1),
-        )}
-      </Fragment>
-    );
-  };
-
-  // Only render root nodes at the top level; their full subtrees are rendered recursively
-  const rootNodes = nodes.filter((n) => n.parentId === null);
+  const treeData = buildTreeData(nodes, null, 0);
 
   return (
-    <div className="scene-panel">
-      <div className="panel-header">Scene</div>
-      <ul className="scene-list">
-        {rootNodes.map((node) => renderSubtree(node, 0))}
-        {rootNodes.length === 0 && (
-          <li className="scene-empty">No objects in scene</li>
+    <div style={{
+      gridArea: 'scene',
+      background: '#181818',
+      borderRight: '1px solid #2a2a2a',
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden',
+    }}>
+      <div style={{ padding: '8px 12px', borderBottom: '1px solid #2a2a2a', fontSize: 12, fontWeight: 600, color: '#aaa', flexShrink: 0 }}>
+        Scene
+      </div>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '4px 0' }}>
+        {treeData.length === 0 ? (
+          <Empty
+            description={<span style={{ fontSize: 12, color: '#444' }}>No objects in scene</span>}
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            style={{ marginTop: 24 }}
+          />
+        ) : (
+          <Tree
+            blockNode
+            multiple
+            selectedKeys={selectedIds}
+            expandedKeys={expandedKeys}
+            onExpand={(keys) => setExpandedKeys(keys as string[])}
+            onSelect={(_, info) => {
+              const nodeId = info.node.key as string;
+              const e = info.nativeEvent as MouseEvent;
+              if (e.ctrlKey || e.metaKey || e.shiftKey) {
+                toggleNodeSelection(nodeId);
+              } else {
+                selectNode(nodeId);
+              }
+            }}
+            treeData={treeData}
+            titleRender={(nodeData) => (
+              <NodeTitle
+                nodeData={nodeData as AugmentedDataNode}
+                nodes={nodes}
+                editingId={editingId}
+                editValue={editValue}
+                setEditingId={setEditingId}
+                setEditValue={setEditValue}
+                commitRename={commitRename}
+                toggleVisible={toggleVisible}
+              />
+            )}
+            style={{ background: 'transparent', fontSize: 12 }}
+          />
         )}
-      </ul>
+      </div>
     </div>
   );
 }
