@@ -21,7 +21,7 @@ The guiding principle is **approachability over completeness**: the tool should 
 | CSG operations | `three-bvh-csg` | GPU-friendly boolean ops built on Three.js geometry |
 | State management | Zustand | Lightweight; avoids Redux boilerplate for scene state |
 | Build tool | Vite | Fast HMR; native ESM |
-| Styling | CSS Modules or Tailwind | TBD based on UI complexity |
+| Styling | Ant Design (antd) | Component library; inline styles for layout, antd tokens for theming |
 
 ---
 
@@ -373,11 +373,69 @@ App
 - [ ] Snap to object vertices/edges
 - [ ] Measurement overlay (distance between two points)
 - [ ] Better empty state / onboarding experience
+  - **Empty state**: when the scene has no nodes, show a centered overlay in the viewport with a short tagline ("Add a shape to get started"), a primary "Add Box" shortcut button, and a "Take the tour →" link
+  - **Tour**: use antd `Tour` component; triggered by the link above or a persistent "?" button in the toolbar corner; each step targets a real DOM element via React ref
+  - **Tour steps**:
+    1. *Welcome* (no target, centered modal card) — name + one-line pitch
+    2. *Add shapes* → toolbar Add section — "Click any shape to drop it into the scene"
+    3. *Viewport navigation* → canvas — "Left-drag orbits · Right-drag pans · Scroll zooms"
+    4. *Transform tools* → toolbar Transform section — "Move (G) · Rotate (R) · Scale (S)"
+    5. *Boolean operations* → toolbar Boolean section — "Select two objects to combine, subtract, or intersect them"
+    6. *Scene tree* → ScenePanel — "All objects live here; rename, hide, group, or delete them"
+    7. *Properties* → PropertiesPanel — "Edit position, rotation, size, and appearance with precise numeric inputs"
+    8. *Camera presets* → toolbar View section — "Jump to any standard view; the camera zooms to fit all objects"
+  - Tour state persisted in `localStorage` (`webcad_tour_seen`); auto-shown once on first empty load, never again unless reset
+  - "Restart tour" option in a future Preferences menu
 - [ ] Performance: LOD or instancing for large scenes
 - [ ] Preferences menu (control schemes, metric/inch units)
 - [ ] Drop to workplane: translate the selected object along the workplane normal until its lowest point touches the workplane surface
 - [ ] Drop to workplane (face align): user clicks a face on the selected object; the object is re-oriented and translated so that chosen face lies flush on the workplane
-- [ ] Adopt a UI component library (e.g. shadcn/ui, Radix UI) and migrate all app controls — buttons, toggles, sliders, dialogs, tooltips — to it for visual consistency and polish
+- [x] Adopt antd as the UI component library; migrate all controls to antd components and inline styles (CSS files removed)
+
+### Phase 9 — Edge Selection, Fillet, and Chamfer
+**Goal:** Users can select individual edges on any mesh and apply fillet (rounded) or chamfer (angled) operations — the primary use case being smoothing the seam after a boolean union.
+
+#### Edge Selection Mode
+
+- A dedicated **Edge Select** toolbar button (or shortcut `E`) enters edge-select mode, suspending normal object selection
+- Edge-select mode is scoped to one object at a time; entering it auto-selects the currently active object, or prompts to click one
+- **Hard edge detection**: pre-compute the dihedral angle between every pair of adjacent triangles; edges where the angle exceeds a configurable threshold (default 30°) are exposed as selectable — this works on all mesh types including imported STL/OBJ and CSG results
+- **Hover highlight**: the nearest hard edge to the cursor is highlighted (orange); the edge segment is rendered as a `LineSegments` overlay on top of the mesh
+- **Click** to select an edge (turns blue/teal); **Shift+click** to multi-select; **click empty space** to deselect all
+- **Escape** or clicking the Edge Select button again exits the mode and clears the selection
+- Selected edge indices are stored in the Zustand store as `{ nodeId: string; edgeIndices: number[] }` and cleared on object deselection or mode exit
+
+#### Fillet / Chamfer Operations
+
+- While in edge-select mode with at least one edge selected, the Properties panel shows a **Fillet** and **Chamfer** action section:
+  - Numeric input for **radius** (fillet) or **distance** (chamfer), with mm formatting
+  - **Preview** button (or live preview after a short debounce): runs the operation in a Web Worker and shows the result mesh overlaid on the original
+  - **Apply** commits the result; **Cancel** discards the preview
+- **Non-destructive**: on commit the original node becomes a hidden child of the result node — the same parent-child model as CSG; editing the radius re-runs the operation automatically (same `useCsgAutoRecompute`-style debounce hook)
+- `SceneNode` is extended with: `filletEdges?: number[]`, `filletRadius?: number`, `chamferEdges?: number[]`, `chamferDistance?: number`
+- Failed operations blank the result and show an error badge, same as CSG
+
+#### Implementation (TBD)
+
+The geometry kernel for edge beveling is not yet decided. Leading options:
+
+| Option | Pros | Cons |
+|---|---|---|
+| `opencascade.js` (WASM) | Proper B-rep fillet/chamfer, handles complex topology | ~30 MB bundle, significant integration work |
+| Custom bevel pass (Three.js) | No extra dependencies | Approximate; breaks down on non-convex or complex edges |
+| Extend `three-bvh-csg` | Already in use, same worker | Not designed for this; would require significant geometry work |
+
+Decision deferred; the UX and data model above are kernel-agnostic. The operation runs in the existing CSG Web Worker regardless of which kernel is chosen.
+
+### Phase 10 — OpenSCAD Integration (Roadmap)
+**Goal:** Power users can write or import OpenSCAD scripts and have the resulting geometry appear as a scene node, bridging the gap between parametric modeling and the direct-modeling workflow.
+
+- [ ] **Script editor**: an in-app code editor panel (e.g. CodeMirror) for writing `.scad` source; syntax highlighting for OpenSCAD
+- [ ] **Execution**: run OpenSCAD in a Web Worker via WebAssembly ([OpenSCAD WASM build](https://github.com/openscad/openscad)); the output is a mesh (OFF or STL) that is loaded as a scene node
+- [ ] **Import `.scad` files**: drag-and-drop or file picker; treated the same as the script editor workflow
+- [ ] **Live recompile**: debounced re-execution on script change; result node updates in place (non-destructive — original script is retained as the node's source)
+- [ ] **Parameters panel**: expose OpenSCAD `parameter` annotations as editable fields in the Properties panel (similar to Customizer in the OpenSCAD desktop app)
+- [ ] **Round-trip**: edited geometry stays as an OpenSCAD node in the scene tree; boolean operations and transforms can be applied on top of it like any other node
 
 ---
 
