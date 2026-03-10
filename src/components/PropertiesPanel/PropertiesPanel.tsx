@@ -1,13 +1,67 @@
 import { useRef } from 'react';
+import { InputNumber, Slider, Switch, ColorPicker, Divider, Typography } from 'antd';
 import { useSceneStore } from '../../store/useSceneStore';
 import { undoStack } from '../../store/undoStack';
 import { TransformCommand, UpdateGeometryCommand, UpdateMaterialCommand } from '../../store/commands';
 import type { ReactNode } from 'react';
 import type { PrimitiveParams, Transform } from '../../types/scene';
-import './PropertiesPanel.css';
+
+const { Text } = Typography;
 
 const RAD_TO_DEG = 180 / Math.PI;
 const DEG_TO_RAD = Math.PI / 180;
+
+const labelStyle: React.CSSProperties = {
+  fontSize: 11,
+  color: '#888',
+  width: 72,
+  flexShrink: 0,
+};
+
+const MM_CONVERSIONS: Record<string, number> = {
+  mm: 1, cm: 10, m: 1000, in: 25.4, '"': 25.4, ft: 304.8, "'": 304.8,
+};
+
+function parseMmValue(input: string): number | null {
+  const s = input.trim().toLowerCase().replace(/\s+/g, '');
+  const match = s.match(/^(-?\d*\.?\d+)(mm|cm|m|in|ft|"|')?$/);
+  if (!match) return null;
+  const num = parseFloat(match[1]);
+  if (isNaN(num)) return null;
+  const factor = MM_CONVERSIONS[match[2] ?? 'mm'];
+  if (factor === undefined) return null;
+  return num * factor;
+}
+
+function formatMm(value: number): string {
+  return parseFloat(value.toFixed(4)).toString() + 'mm';
+}
+
+interface MmInputProps {
+  value: number;
+  step?: number;
+  min?: number;
+  onChange: (v: number) => void;
+}
+
+function MmInput({ value, step = 1, min, onChange }: MmInputProps) {
+  return (
+    <InputNumber
+      size="small"
+      style={{ flex: 1, minWidth: 0 }}
+      value={value}
+      step={step}
+      min={min}
+      formatter={(v, { userTyping, input }) => {
+        if (userTyping) return input;
+        if (v === undefined || v === null) return '';
+        return formatMm(Number(v));
+      }}
+      parser={(v) => parseMmValue(v ?? '') ?? value}
+      onChange={(v) => { if (v !== null) onChange(v as number); }}
+    />
+  );
+}
 
 interface NumFieldProps {
   label: string;
@@ -19,24 +73,42 @@ interface NumFieldProps {
 }
 
 function NumField({ label, value, step = 1, min, unit, onChange }: NumFieldProps) {
+  let input: React.ReactNode;
+  if (unit === 'mm') {
+    input = <MmInput value={value} step={step} min={min} onChange={onChange} />;
+  } else if (unit === 'deg') {
+    input = (
+      <InputNumber
+        size="small"
+        style={{ flex: 1, minWidth: 0 }}
+        value={value}
+        step={step}
+        formatter={(v, { userTyping, input: raw }) => {
+          if (userTyping) return raw;
+          if (v === undefined || v === null) return '';
+          return `${parseFloat(Number(v).toFixed(4))}°`;
+        }}
+        parser={(v) => parseFloat((v ?? '').replace(/°/g, '')) || 0}
+        onChange={(v) => { if (v !== null) onChange(v as number); }}
+      />
+    );
+  } else {
+    input = (
+      <InputNumber
+        size="small"
+        style={{ flex: 1, minWidth: 0 }}
+        value={parseFloat(value.toFixed(4))}
+        step={step}
+        min={min}
+        onChange={(v) => { if (v !== null) onChange(v); }}
+      />
+    );
+  }
   return (
-    <label className="prop-field">
-      <span className="prop-field-label">{label}</span>
-      <div className="prop-field-input-wrap">
-        <input
-          type="number"
-          className={unit ? 'prop-field-input prop-field-input--with-unit' : 'prop-field-input'}
-          value={parseFloat(value.toFixed(4))}
-          step={step}
-          min={min}
-          onChange={(e) => {
-            const v = parseFloat(e.target.value);
-            if (!isNaN(v)) onChange(v);
-          }}
-        />
-        {unit && <span className="prop-field-unit">{unit}</span>}
-      </div>
-    </label>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+      <span style={labelStyle}>{label}</span>
+      {input}
+    </div>
   );
 }
 
@@ -47,8 +119,10 @@ interface SectionProps {
 
 function Section({ title, children }: SectionProps) {
   return (
-    <div className="prop-section">
-      <div className="prop-section-title">{title}</div>
+    <div style={{ marginBottom: 8 }}>
+      <Divider plain style={{ marginTop: 8, marginBottom: 8, fontSize: 11, color: '#666' }}>
+        {title}
+      </Divider>
       {children}
     </div>
   );
@@ -116,7 +190,7 @@ function GeometryFields({
     case 'imported':
       return (
         <Section title="Geometry — Imported">
-          <div className="prop-imported-name">{geometry.originalName}</div>
+          <Text style={{ fontSize: 11, color: '#aaa', wordBreak: 'break-all' }}>{geometry.originalName}</Text>
         </Section>
       );
   }
@@ -129,14 +203,24 @@ export default function PropertiesPanel() {
 
   const node = nodes.find((n) => n.id === selectedIds[0]);
 
-  // Refs for capturing material state before a drag/edit begins
   const materialBeforeRef = useRef(node?.material);
 
   if (!node) {
     return (
-      <div className="props-panel props-panel--empty">
-        <div className="panel-header">Properties</div>
-        <p className="props-empty-msg">Select an object to edit its properties.</p>
+      <div style={{
+        gridArea: 'props',
+        background: '#1a1a1a',
+        borderLeft: '1px solid #2a2a2a',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+      }}>
+        <div style={{ padding: '8px 12px', borderBottom: '1px solid #2a2a2a', fontSize: 12, fontWeight: 600, color: '#aaa' }}>
+          Properties
+        </div>
+        <div style={{ padding: '12px', fontSize: 12, color: '#555' }}>
+          Select an object to edit its properties.
+        </div>
       </div>
     );
   }
@@ -165,8 +249,6 @@ export default function PropertiesPanel() {
     applyTransform({ ...transform, scale: sc });
   };
 
-  // Commit current live material as an undoable command. "before" was captured
-  // at the start of the drag/edit via materialBeforeRef.
   const commitMaterial = () => {
     const after = useSceneStore.getState().nodes.find((n) => n.id === node.id)?.material;
     if (after && materialBeforeRef.current) {
@@ -175,83 +257,101 @@ export default function PropertiesPanel() {
   };
 
   return (
-    <div className="props-panel">
-      <div className="panel-header">Properties</div>
-      {selectedIds.length > 1 ? (
-        <div className="props-node-name">{selectedIds.length} objects selected</div>
-      ) : (
-        <div className="props-node-name">{node.name}</div>
-      )}
+    <div style={{
+      gridArea: 'props',
+      background: '#1a1a1a',
+      borderLeft: '1px solid #2a2a2a',
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden',
+    }}>
+      <div style={{ padding: '8px 12px', borderBottom: '1px solid #2a2a2a', fontSize: 12, fontWeight: 600, color: '#aaa' }}>
+        Properties
+      </div>
+      <div style={{ padding: '0 12px 12px', overflowY: 'auto', flex: 1 }}>
+        <div style={{ fontSize: 12, color: '#ccc', padding: '8px 0 4px' }}>
+          {selectedIds.length > 1 ? `${selectedIds.length} objects selected` : node.name}
+        </div>
 
-      <Section title="Position">
-        <NumField label="X" unit="mm" value={transform.position[0]} onChange={(v) => setPos(0, v)} />
-        <NumField label="Y" unit="mm" value={transform.position[1]} onChange={(v) => setPos(1, v)} />
-        <NumField label="Z" unit="mm" value={transform.position[2]} onChange={(v) => setPos(2, v)} />
-      </Section>
+        <Section title="Position">
+          <NumField label="X" unit="mm" value={transform.position[0]} onChange={(v) => setPos(0, v)} />
+          <NumField label="Y" unit="mm" value={transform.position[1]} onChange={(v) => setPos(1, v)} />
+          <NumField label="Z" unit="mm" value={transform.position[2]} onChange={(v) => setPos(2, v)} />
+        </Section>
 
-      <Section title="Rotation (°)">
-        <NumField label="X" value={transform.rotation[0] * RAD_TO_DEG} step={1} onChange={(v) => setRot(0, v)} />
-        <NumField label="Y" value={transform.rotation[1] * RAD_TO_DEG} step={1} onChange={(v) => setRot(1, v)} />
-        <NumField label="Z" value={transform.rotation[2] * RAD_TO_DEG} step={1} onChange={(v) => setRot(2, v)} />
-      </Section>
+        <Section title="Rotation">
+          <NumField label="X" unit="deg" value={transform.rotation[0] * RAD_TO_DEG} step={1} onChange={(v) => setRot(0, v)} />
+          <NumField label="Y" unit="deg" value={transform.rotation[1] * RAD_TO_DEG} step={1} onChange={(v) => setRot(1, v)} />
+          <NumField label="Z" unit="deg" value={transform.rotation[2] * RAD_TO_DEG} step={1} onChange={(v) => setRot(2, v)} />
+        </Section>
 
-      <Section title="Scale">
-        <NumField label="X" value={transform.scale[0]} step={0.01} min={0.001} onChange={(v) => setScale(0, v)} />
-        <NumField label="Y" value={transform.scale[1]} step={0.01} min={0.001} onChange={(v) => setScale(1, v)} />
-        <NumField label="Z" value={transform.scale[2]} step={0.01} min={0.001} onChange={(v) => setScale(2, v)} />
-      </Section>
+        <Section title="Scale">
+          <NumField label="X" value={transform.scale[0]} step={0.1} min={0.001} onChange={(v) => setScale(0, v)} />
+          <NumField label="Y" value={transform.scale[1]} step={0.1} min={0.001} onChange={(v) => setScale(1, v)} />
+          <NumField label="Z" value={transform.scale[2]} step={0.1} min={0.001} onChange={(v) => setScale(2, v)} />
+        </Section>
 
-      {selectedIds.length === 1 && (
-        <GeometryFields
-          geometry={geometry}
-          onUpdate={(g) => undoStack.push(new UpdateGeometryCommand(node.id, geometry, g))}
-        />
-      )}
-
-      <Section title="Appearance">
-        <label className="prop-field">
-          <span className="prop-field-label">Color</span>
-          <input
-            type="color"
-            className="prop-color-input"
-            value={material.color}
-            onFocus={() => { materialBeforeRef.current = material; }}
-            onChange={(e) => updateMaterial(node.id, { ...material, color: e.target.value })}
-            onBlur={commitMaterial}
+        {selectedIds.length === 1 && (
+          <GeometryFields
+            geometry={geometry}
+            onUpdate={(g) => undoStack.push(new UpdateGeometryCommand(node.id, geometry, g))}
           />
-        </label>
+        )}
 
-        <label className="prop-field">
-          <span className="prop-field-label">Opacity</span>
-          <div className="prop-field-input-wrap">
-            <input
-              type="range"
-              className="prop-range"
-              min={0}
-              max={1}
-              step={0.01}
-              value={material.opacity}
-              onPointerDown={() => { materialBeforeRef.current = material; }}
-              onChange={(e) => updateMaterial(node.id, { ...material, opacity: parseFloat(e.target.value) })}
-              onPointerUp={commitMaterial}
+        <Section title="Appearance">
+          {/* Color */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+            <span style={labelStyle}>Color</span>
+            <ColorPicker
+              size="small"
+              value={material.color}
+              onOpenChange={(open) => {
+                if (open) {
+                  materialBeforeRef.current = material;
+                } else {
+                  commitMaterial();
+                }
+              }}
+              onChange={(color) => updateMaterial(node.id, { ...material, color: color.toHexString() })}
             />
-            <span className="prop-range-value">{Math.round(material.opacity * 100)}%</span>
           </div>
-        </label>
 
-        <label className="prop-field prop-field--checkbox">
-          <span className="prop-field-label">Wireframe</span>
-          <input
-            type="checkbox"
-            className="prop-checkbox"
-            checked={material.wireframe}
-            onChange={(e) => {
-              const after = { ...material, wireframe: e.target.checked };
-              undoStack.push(new UpdateMaterialCommand(node.id, material, after));
-            }}
-          />
-        </label>
-      </Section>
+          {/* Opacity */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+            <span style={labelStyle}>Opacity</span>
+            <div
+              style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 6 }}
+              onPointerDown={() => { materialBeforeRef.current = material; }}
+            >
+              <Slider
+                style={{ flex: 1 }}
+                min={0}
+                max={1}
+                step={0.01}
+                value={material.opacity}
+                onChange={(v) => updateMaterial(node.id, { ...material, opacity: v })}
+                onChangeComplete={commitMaterial}
+              />
+              <span style={{ fontSize: 11, color: '#888', width: 34, textAlign: 'right', flexShrink: 0 }}>
+                {Math.round(material.opacity * 100)}%
+              </span>
+            </div>
+          </div>
+
+          {/* Wireframe */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+            <span style={labelStyle}>Wireframe</span>
+            <Switch
+              size="small"
+              checked={material.wireframe}
+              onChange={(checked) => {
+                const after = { ...material, wireframe: checked };
+                undoStack.push(new UpdateMaterialCommand(node.id, material, after));
+              }}
+            />
+          </div>
+        </Section>
+      </div>
     </div>
   );
 }
