@@ -7,7 +7,7 @@ import CsgOverlay from './components/CsgOverlay/CsgOverlay';
 import type { ViewportActions } from './types/viewport';
 import { useSceneStore } from './store/useSceneStore';
 import { undoStack } from './store/undoStack';
-import { RemoveNodeCommand } from './store/commands';
+import { RemoveNodeCommand, DuplicateNodeCommand } from './store/commands';
 import { useCsgAutoRecompute } from './lib/useCsgAutoRecompute';
 import { groupSelected } from './lib/groupActions';
 import './App.css';
@@ -41,6 +41,18 @@ export default function App() {
         if (e.key === 'g') {
           e.preventDefault();
           groupSelected();
+          return;
+        }
+        if (e.key === 'd') {
+          e.preventDefault();
+          const { selectedIds, nodes } = useSceneStore.getState();
+          for (const id of selectedIds) {
+            const node = nodes.find((n) => n.id === id);
+            if (!node) continue;
+            const parent = node.parentId ? nodes.find((n) => n.id === node.parentId) : null;
+            const isDeletable = node.parentId === null || parent?.geometry.type === 'group';
+            if (isDeletable) undoStack.push(new DuplicateNodeCommand(id));
+          }
           return;
         }
         return;

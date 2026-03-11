@@ -193,6 +193,50 @@ export class CsgAdoptCommand {
   }
 }
 
+export class DuplicateNodeCommand {
+  private readonly sourceId: string;
+  private clonedId: string | null = null;
+
+  constructor(sourceId: string) {
+    this.sourceId = sourceId;
+  }
+
+  execute(): void {
+    const state = useSceneStore.getState();
+    const source = state.nodes.find((n) => n.id === this.sourceId);
+    if (!source) return;
+
+    const id = this.clonedId ?? crypto.randomUUID();
+    this.clonedId = id;
+
+    const clone: SceneNode = {
+      ...source,
+      id,
+      name: `${source.name} (copy)`,
+      transform: {
+        ...source.transform,
+        position: [
+          source.transform.position[0] + 10,
+          source.transform.position[1],
+          source.transform.position[2],
+        ],
+      },
+      // Clone is always a root node — no CSG relationships carried over
+      parentId: null,
+      childIds: [],
+      csgOperation: null,
+      csgError: null,
+    };
+
+    state.restoreNode(clone, state.nodes.length);
+    useSceneStore.getState().selectNode(id);
+  }
+
+  undo(): void {
+    if (this.clonedId) useSceneStore.getState().removeNode(this.clonedId);
+  }
+}
+
 export class SetWorkplaneCommand {
   private readonly before: Workplane;
   private readonly after: Workplane;

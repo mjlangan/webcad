@@ -6,11 +6,12 @@ import {
   WarningOutlined,
   CloseOutlined,
   LockOutlined,
+  CopyOutlined,
 } from '@ant-design/icons';
 import type { DataNode } from 'antd/es/tree';
 import { useSceneStore } from '../../store/useSceneStore';
 import { undoStack } from '../../store/undoStack';
-import { RenameNodeCommand, RemoveNodeCommand } from '../../store/commands';
+import { RenameNodeCommand, RemoveNodeCommand, DuplicateNodeCommand } from '../../store/commands';
 import type { SceneNode } from '../../types/scene';
 
 interface AugmentedDataNode extends DataNode {
@@ -121,19 +122,33 @@ function NodeTitle({
         </span>
       )}
 
-      {/* Delete or lock */}
-      <span style={{ marginLeft: 'auto', flexShrink: 0 }}>
+      {/* Duplicate / Delete or lock */}
+      <span style={{ marginLeft: 'auto', flexShrink: 0, display: 'flex', alignItems: 'center' }}>
         {isDeletable ? (
-          <Button
-            type="text"
-            size="small"
-            style={{ padding: '0 2px', height: 18, color: '#555' }}
-            icon={<CloseOutlined style={{ fontSize: 10 }} />}
-            onClick={(e) => {
-              e.stopPropagation();
-              undoStack.push(new RemoveNodeCommand(node.id));
-            }}
-          />
+          <>
+            <Tooltip title="Duplicate (Ctrl+D)">
+              <Button
+                type="text"
+                size="small"
+                style={{ padding: '0 2px', height: 18, color: '#555' }}
+                icon={<CopyOutlined style={{ fontSize: 10 }} />}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  undoStack.push(new DuplicateNodeCommand(node.id));
+                }}
+              />
+            </Tooltip>
+            <Button
+              type="text"
+              size="small"
+              style={{ padding: '0 2px', height: 18, color: '#555' }}
+              icon={<CloseOutlined style={{ fontSize: 10 }} />}
+              onClick={(e) => {
+                e.stopPropagation();
+                undoStack.push(new RemoveNodeCommand(node.id));
+              }}
+            />
+          </>
         ) : (
           <Tooltip title="Cannot delete: used by a boolean operation — delete the parent first">
             <LockOutlined style={{ fontSize: 10, opacity: 0.35, padding: '0 4px' }} />

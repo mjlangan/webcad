@@ -388,6 +388,7 @@ App
   - "Restart tour" option in a future Preferences menu
 - [ ] Performance: LOD or instancing for large scenes
 - [ ] Preferences menu (control schemes, metric/inch units)
+- [ ] Duplicate selected object(s): button in the scene tree (and keyboard shortcut Ctrl+D) creates a copy of the selected node(s) offset slightly from the original; duplicated node gets the same geometry, material, and transform with a " (copy)" name suffix; fully undoable
 - [ ] Drop to workplane: translate the selected object along the workplane normal until its lowest point touches the workplane surface
 - [ ] Drop to workplane (face align): user clicks a face on the selected object; the object is re-oriented and translated so that chosen face lies flush on the workplane
 - [x] Adopt antd as the UI component library; migrate all controls to antd components and inline styles (CSS files removed)
