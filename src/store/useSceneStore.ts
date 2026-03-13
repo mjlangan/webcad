@@ -57,6 +57,10 @@ interface SceneState {
   faceAlignMode: boolean;
   setFaceAlignMode: (active: boolean) => void;
 
+  // Vertex snap
+  vertexSnapEnabled: boolean;
+  setVertexSnapEnabled: (enabled: boolean) => void;
+
   // CSG
   csgStatus: CsgStatus;
   csgSourceIds: string[];
@@ -125,6 +129,9 @@ export const useSceneStore = create<SceneState>((set, get) => ({
 
   faceAlignMode: false,
   setFaceAlignMode: (active) => set({ faceAlignMode: active }),
+
+  vertexSnapEnabled: false,
+  setVertexSnapEnabled: (enabled) => set({ vertexSnapEnabled: enabled }),
 
   setNodeVisible: (id, visible) =>
     set((state) => ({

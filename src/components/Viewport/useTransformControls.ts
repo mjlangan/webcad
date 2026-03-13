@@ -11,6 +11,9 @@ import type { TransformMode } from '../../store/useSceneStore';
 import { workplaneToThreePlane } from '../../lib/workplaneUtils';
 import { computeWorldMatrix } from '../../lib/worldMatrix';
 
+// Screen-space pixel radius within which vertex snap activates
+const VERTEX_SNAP_PX = 20;
+
 /**
  * Live state exposed to the TransformDeltaOverlay during a drag.
  * Null when no drag is in progress.
@@ -85,8 +88,17 @@ export function useTransformControls(
     const tcHelper = tc.getHelper();
     scene.add(tcHelper);
 
+    // Vertex snap indicator — small yellow sphere shown at the snap target
+    const snapIndicatorGeo = new THREE.SphereGeometry(1, 8, 6);
+    const snapIndicatorMat = new THREE.MeshBasicMaterial({ color: 0xffdd00, depthTest: false });
+    const snapIndicator = new THREE.Mesh(snapIndicatorGeo, snapIndicatorMat);
+    snapIndicator.visible = false;
+    snapIndicator.renderOrder = 999;
+    scene.add(snapIndicator);
+
     // Drag state — populated on drag start, consumed on drag end
     let dragIds: string[] = [];
+    let snapCandidates: THREE.Vector3[] = [];
     let dragBeforeTransforms: Transform[] = [];
     let startPrimary = new THREE.Vector3();
     const startSecondariesPos = new Map<string, THREE.Vector3>();
@@ -121,6 +133,23 @@ export function useTransformControls(
           if (mesh) startSecondariesPos.set(id, mesh.position.clone());
         });
 
+        // Collect vertex snap candidates from all visible non-dragged meshes
+        if (useSceneStore.getState().vertexSnapEnabled) {
+          const draggedSet = new Set(dragIds);
+          snapCandidates = [];
+          const tempV = new THREE.Vector3();
+          scene.updateMatrixWorld();
+          scene.traverse((obj) => {
+            if (!(obj instanceof THREE.Mesh) || !obj.visible) return;
+            if (draggedSet.has(obj.userData.nodeId as string)) return;
+            const positions = obj.geometry.attributes.position;
+            if (!positions) return;
+            for (let i = 0; i < positions.count; i++) {
+              snapCandidates.push(tempV.fromBufferAttribute(positions, i).applyMatrix4(obj.matrixWorld).clone());
+            }
+          });
+        }
+
         // Capture start transform for the drag overlay
         startPos = tc.object.position.clone();
         startEuler = tc.object.rotation.clone();
@@ -140,6 +169,8 @@ export function useTransformControls(
         undoStack.push(new TransformCommand(dragIds, dragBeforeTransforms, afterTransforms));
         dragIds = [];
         dragBeforeTransforms = [];
+        snapCandidates = [];
+        snapIndicator.visible = false;
       }
 
       if (!dragging) {
@@ -165,6 +196,40 @@ export function useTransformControls(
           const dist = plane.distanceToPoint(tc.object.position);
           tc.object.position.addScaledVector(normal, -dist);
         }
+      }
+
+      // Vertex snap: find the nearest candidate vertex within VERTEX_SNAP_PX screen pixels
+      // and override the object position to snap to it.
+      if (transformMode === 'translate' && useSceneStore.getState().vertexSnapEnabled && snapCandidates.length > 0) {
+        const size = renderer.getSize(new THREE.Vector2());
+        const objNDC = tc.object.position.clone().project(camera);
+        const objPxX = (objNDC.x + 1) / 2 * size.x;
+        const objPxY = (1 - objNDC.y) / 2 * size.y;
+
+        let bestDistSq = VERTEX_SNAP_PX * VERTEX_SNAP_PX;
+        let bestVertex: THREE.Vector3 | null = null;
+        const vNDC = new THREE.Vector3();
+        for (const v of snapCandidates) {
+          vNDC.copy(v).project(camera);
+          if (vNDC.z > 1) continue; // behind camera
+          const dx = objPxX - (vNDC.x + 1) / 2 * size.x;
+          const dy = objPxY - (1 - vNDC.y) / 2 * size.y;
+          const dSq = dx * dx + dy * dy;
+          if (dSq < bestDistSq) { bestDistSq = dSq; bestVertex = v; }
+        }
+
+        if (bestVertex) {
+          tc.object.position.copy(bestVertex);
+          snapIndicator.position.copy(bestVertex);
+          // Scale indicator so it appears roughly constant size on screen
+          const dist = camera.position.distanceTo(bestVertex);
+          snapIndicator.scale.setScalar(dist * 0.018);
+          snapIndicator.visible = true;
+        } else {
+          snapIndicator.visible = false;
+        }
+      } else {
+        snapIndicator.visible = false;
       }
 
       // Move secondary selected meshes (multi-select translate)
@@ -272,6 +337,9 @@ export function useTransformControls(
       unsubscribe();
       tc.detach();
       scene.remove(tcHelper);
+      scene.remove(snapIndicator);
+      snapIndicatorGeo.dispose();
+      snapIndicatorMat.dispose();
       tc.dispose();
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps

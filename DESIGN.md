@@ -370,7 +370,7 @@ App
 - [x] Keyboard shortcuts (G=grab/move, R=rotate, S=scale, Del=delete)
 - [x] Keyboard shortcuts (X/Y/Z=constrain axis, F=focus selection)
 - [x] Snap to grid (configurable increment)
-- [ ] Snap to object vertices/edges
+- [x] Snap to object vertices/edges
 - [x] Measurement overlay (distance between two points): M key toggles tool; click two points (on mesh surface or workplane); 3D markers + line drawn in viewport; distance label shown at midpoint in active unit system
 
 - [ ] Performance: LOD or instancing for large scenes

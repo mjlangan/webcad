@@ -66,6 +66,8 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
   const setMeasureMode = useSceneStore((s) => s.setMeasureMode);
   const faceAlignMode = useSceneStore((s) => s.faceAlignMode);
   const setFaceAlignMode = useSceneStore((s) => s.setFaceAlignMode);
+  const vertexSnapEnabled = useSceneStore((s) => s.vertexSnapEnabled);
+  const setVertexSnapEnabled = useSceneStore((s) => s.setVertexSnapEnabled);
 
   // Last non-zero snap value, used when toggling snap back on
   const [snapIncrement, setSnapIncrement] = useState(1);
@@ -269,6 +271,15 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
             }}
             style={{ width: 60 }}
           />
+        </Tooltip>
+        <Tooltip title="Snap to object vertices while translating">
+          <Button
+            size="small"
+            type={vertexSnapEnabled ? 'primary' : 'default'}
+            onClick={() => setVertexSnapEnabled(!vertexSnapEnabled)}
+          >
+            Verts
+          </Button>
         </Tooltip>
       </Space>
 
