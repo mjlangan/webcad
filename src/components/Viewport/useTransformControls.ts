@@ -7,8 +7,21 @@ import { useSceneStore } from '../../store/useSceneStore';
 import { undoStack } from '../../store/undoStack';
 import { TransformCommand } from '../../store/commands';
 import type { Transform } from '../../types/scene';
+import type { TransformMode } from '../../store/useSceneStore';
 import { workplaneToThreePlane } from '../../lib/workplaneUtils';
 import { computeWorldMatrix } from '../../lib/worldMatrix';
+
+/**
+ * Live state exposed to the TransformDeltaOverlay during a drag.
+ * Null when no drag is in progress.
+ */
+export interface DragOverlayState {
+  mode: TransformMode;
+  objectPos: THREE.Vector3;    // current world position of the dragged mesh
+  deltaPos: THREE.Vector3;     // translate: (current - start) in world space
+  deltaEuler: THREE.Euler;     // rotate: delta euler (current - start)
+  scaleRatio: THREE.Vector3;   // scale: current / start per axis
+}
 
 /**
  * Converts a mesh's current world transform into a store Transform for the
@@ -57,8 +70,9 @@ export function useTransformControls(
   threeRef: RefObject<ThreeSetup | null>,
   meshMapRef: RefObject<Map<string, THREE.Mesh>>,
   orbitControlsRef: RefObject<OrbitControls | null>,
-): RefObject<boolean> {
+): { isDraggingRef: RefObject<boolean>; dragOverlayRef: RefObject<DragOverlayState | null> } {
   const isDraggingRef = useRef(false);
+  const dragOverlayRef = useRef<DragOverlayState | null>(null);
 
   useEffect(() => {
     if (!threeRef.current) return;
@@ -76,6 +90,11 @@ export function useTransformControls(
     let dragBeforeTransforms: Transform[] = [];
     let startPrimary = new THREE.Vector3();
     const startSecondariesPos = new Map<string, THREE.Vector3>();
+
+    // Overlay tracking — start values captured at drag begin
+    let startPos = new THREE.Vector3();
+    let startEuler = new THREE.Euler();
+    let startScale = new THREE.Vector3(1, 1, 1);
 
     const onDraggingChanged = (event: { value: unknown }) => {
       const dragging = event.value as boolean;
@@ -101,9 +120,16 @@ export function useTransformControls(
           const mesh = meshMapRef.current.get(id);
           if (mesh) startSecondariesPos.set(id, mesh.position.clone());
         });
+
+        // Capture start transform for the drag overlay
+        startPos = tc.object.position.clone();
+        startEuler = tc.object.rotation.clone();
+        startScale = tc.object.scale.clone();
       }
 
       if (!dragging && tc.object && dragIds.length > 0) {
+        dragOverlayRef.current = null;
+
         const primaryObj = tc.object as THREE.Mesh;
         const afterTransforms: Transform[] = dragIds.map((id, i) => {
           const mesh = i === 0 ? primaryObj : (meshMapRef.current.get(id) ?? null);
@@ -114,6 +140,10 @@ export function useTransformControls(
         undoStack.push(new TransformCommand(dragIds, dragBeforeTransforms, afterTransforms));
         dragIds = [];
         dragBeforeTransforms = [];
+      }
+
+      if (!dragging) {
+        dragOverlayRef.current = null;
       }
     };
 
@@ -174,6 +204,24 @@ export function useTransformControls(
           });
         }
       }
+
+      // Update drag overlay state
+      const cur = tc.object;
+      dragOverlayRef.current = {
+        mode: transformMode,
+        objectPos: cur.position.clone(),
+        deltaPos: cur.position.clone().sub(startPos),
+        deltaEuler: new THREE.Euler(
+          cur.rotation.x - startEuler.x,
+          cur.rotation.y - startEuler.y,
+          cur.rotation.z - startEuler.z,
+        ),
+        scaleRatio: new THREE.Vector3(
+          startScale.x !== 0 ? cur.scale.x / startScale.x : 1,
+          startScale.y !== 0 ? cur.scale.y / startScale.y : 1,
+          startScale.z !== 0 ? cur.scale.z / startScale.z : 1,
+        ),
+      };
     };
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -181,9 +229,16 @@ export function useTransformControls(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     tc.addEventListener('change', onChange as any);
 
-    // Reattach TC and update mode whenever selection or transformMode changes
+    // Reattach TC and update mode/axis-constraint whenever selection or transformMode changes
     const unsubscribe = useSceneStore.subscribe((state) => {
-      const { selectedIds, transformMode } = state;
+      const { selectedIds, transformMode, transformAxisConstraint, gridSnap } = state;
+
+      // Grid snap
+      const snapValue = gridSnap > 0 ? gridSnap : null;
+      tc.setTranslationSnap(snapValue);
+      tc.setRotationSnap(snapValue !== null ? (Math.PI / 180) * gridSnap : null);
+      tc.setScaleSnap(snapValue);
+
       if (selectedIds.length === 0) {
         tc.detach();
         return;
@@ -195,6 +250,17 @@ export function useTransformControls(
         tc.setMode(selectedIds.length > 1 ? 'translate' : transformMode);
       } else {
         tc.detach();
+      }
+
+      // Axis constraint: hide the axes that are not constrained
+      if (transformAxisConstraint === null) {
+        tc.showX = true;
+        tc.showY = true;
+        tc.showZ = true;
+      } else {
+        tc.showX = transformAxisConstraint === 'X';
+        tc.showY = transformAxisConstraint === 'Y';
+        tc.showZ = transformAxisConstraint === 'Z';
       }
     });
 
@@ -210,5 +276,5 @@ export function useTransformControls(
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  return isDraggingRef;
+  return { isDraggingRef, dragOverlayRef };
 }

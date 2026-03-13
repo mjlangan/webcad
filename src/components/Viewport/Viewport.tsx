@@ -10,6 +10,7 @@ import { useBoxSelect } from './useBoxSelect';
 import { useWorkplanePlacement } from './useWorkplanePlacement';
 import { useWorkplaneVisualization } from './useWorkplaneVisualization';
 import { useAxesGizmo } from './useAxesGizmo';
+import TransformDeltaOverlay from './TransformDeltaOverlay';
 import type { ViewportActions } from '../../types/viewport';
 
 interface ViewportProps {
@@ -27,7 +28,7 @@ export default function Viewport({ actionsRef }: ViewportProps) {
   const threeRef = useThreeSetup(canvasRef, onBeforeRenderRef);
   const meshMapRef = useSceneSync(threeRef);
   const orbitControlsRef = useOrbitControls(threeRef, onBeforeRenderRef);
-  const isDraggingRef = useTransformControls(threeRef, meshMapRef, orbitControlsRef);
+  const { isDraggingRef, dragOverlayRef } = useTransformControls(threeRef, meshMapRef, orbitControlsRef);
   useRaycasting(threeRef, meshMapRef, isDraggingRef);
   // Called last so orbitControlsRef is already populated
   useCameraPresets(threeRef, orbitControlsRef, actionsRef, onBeforeRenderRef);
@@ -40,6 +41,7 @@ export default function Viewport({ actionsRef }: ViewportProps) {
     <div className="viewport-wrapper">
       <canvas ref={canvasRef} className="viewport-canvas" />
       <canvas ref={gizmoCanvasRef} className="axes-gizmo" />
+      <TransformDeltaOverlay threeRef={threeRef} dragOverlayRef={dragOverlayRef} />
       {boxRect && (
         <div
           className="box-select-rect"

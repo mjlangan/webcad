@@ -4,6 +4,7 @@ import { DEFAULT_WORKPLANE } from '../types/scene';
 import { workplaneSpawn } from '../lib/workplaneUtils';
 
 export type TransformMode = 'translate' | 'rotate' | 'scale';
+export type AxisConstraint = 'X' | 'Y' | 'Z' | null;
 
 function labelFor(geometry: PrimitiveParams): string {
   switch (geometry.type) {
@@ -35,6 +36,14 @@ interface SceneState {
   // Transform gizmo mode
   transformMode: TransformMode;
   setTransformMode: (mode: TransformMode) => void;
+
+  // Axis constraint (X/Y/Z keyboard lock)
+  transformAxisConstraint: AxisConstraint;
+  setTransformAxisConstraint: (axis: AxisConstraint) => void;
+
+  // Grid snap
+  gridSnap: number; // 0 = off; positive = snap increment in scene units
+  setGridSnap: (value: number) => void;
 
   // Workplane
   setWorkplane: (workplane: Workplane) => void;
@@ -71,6 +80,8 @@ export const useSceneStore = create<SceneState>((set, get) => ({
   nodes: [],
   selectedIds: [],
   transformMode: 'translate',
+  transformAxisConstraint: null,
+  gridSnap: 1,
   workplane: DEFAULT_WORKPLANE,
   workplanePlacementMode: false,
   csgStatus: 'idle',
@@ -78,7 +89,7 @@ export const useSceneStore = create<SceneState>((set, get) => ({
   csgResultId: null,
   csgPendingOperation: null,
 
-  selectNode: (id) => set({ selectedIds: id ? [id] : [] }),
+  selectNode: (id) => set({ selectedIds: id ? [id] : [], transformAxisConstraint: null }),
 
   toggleNodeSelection: (id) =>
     set((state) => ({
@@ -89,9 +100,13 @@ export const useSceneStore = create<SceneState>((set, get) => ({
 
   selectNodes: (ids) => set({ selectedIds: ids }),
 
-  clearSelection: () => set({ selectedIds: [] }),
+  clearSelection: () => set({ selectedIds: [], transformAxisConstraint: null }),
 
-  setTransformMode: (mode) => set({ transformMode: mode }),
+  setTransformMode: (mode) => set({ transformMode: mode, transformAxisConstraint: null }),
+
+  setTransformAxisConstraint: (axis) => set({ transformAxisConstraint: axis }),
+
+  setGridSnap: (value) => set({ gridSnap: value }),
 
   setWorkplane: (workplane) => set({ workplane }),
 

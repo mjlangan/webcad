@@ -6,6 +6,7 @@ import PropertiesPanel from './components/PropertiesPanel/PropertiesPanel';
 import CsgOverlay from './components/CsgOverlay/CsgOverlay';
 import type { ViewportActions } from './types/viewport';
 import { useSceneStore } from './store/useSceneStore';
+import type { AxisConstraint } from './store/useSceneStore';
 import { undoStack } from './store/undoStack';
 import { RemoveNodeCommand, DuplicateNodeCommand } from './store/commands';
 import { useCsgAutoRecompute } from './lib/useCsgAutoRecompute';
@@ -21,6 +22,11 @@ export default function App() {
       // Ignore shortcuts when focus is inside an input / textarea
       const tag = (e.target as HTMLElement).tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+
+      if (e.key === 'f' || e.key === 'F') {
+        actionsRef.current?.focusSelection();
+        return;
+      }
 
       if (e.ctrlKey || e.metaKey) {
         if (e.key === 'z' && !e.shiftKey) {
@@ -71,6 +77,36 @@ export default function App() {
         case 'S':
           useSceneStore.getState().setTransformMode('scale');
           break;
+        case 'x':
+        case 'X': {
+          const { selectedIds, transformAxisConstraint } = useSceneStore.getState();
+          if (selectedIds.length > 0) {
+            useSceneStore.getState().setTransformAxisConstraint(
+              transformAxisConstraint === 'X' ? null : 'X' as AxisConstraint
+            );
+          }
+          break;
+        }
+        case 'y':
+        case 'Y': {
+          const { selectedIds, transformAxisConstraint } = useSceneStore.getState();
+          if (selectedIds.length > 0) {
+            useSceneStore.getState().setTransformAxisConstraint(
+              transformAxisConstraint === 'Y' ? null : 'Y' as AxisConstraint
+            );
+          }
+          break;
+        }
+        case 'z':
+        case 'Z': {
+          const { selectedIds, transformAxisConstraint } = useSceneStore.getState();
+          if (selectedIds.length > 0) {
+            useSceneStore.getState().setTransformAxisConstraint(
+              transformAxisConstraint === 'Z' ? null : 'Z' as AxisConstraint
+            );
+          }
+          break;
+        }
         case 'Delete':
         case 'Backspace': {
           const { selectedIds, nodes } = useSceneStore.getState();

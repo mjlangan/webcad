@@ -1,7 +1,8 @@
 import { useRef, useState, type ChangeEvent, type RefObject } from 'react';
-import { Button, Divider, Modal, Space, Tooltip, Typography, Upload } from 'antd';
+import { Button, Divider, InputNumber, Modal, Space, Tooltip, Typography, Upload } from 'antd';
 import { useSceneStore } from '../../store/useSceneStore';
 import type { TransformMode } from '../../store/useSceneStore';
+import type { AxisConstraint } from '../../store/useSceneStore';
 import type { PrimitiveParams } from '../../types/scene';
 import { DEFAULT_WORKPLANE } from '../../types/scene';
 import type { CameraPreset, ViewportActions } from '../../types/viewport';
@@ -51,11 +52,18 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
   const nodes = useSceneStore((s) => s.nodes);
   const transformMode = useSceneStore((s) => s.transformMode);
   const setTransformMode = useSceneStore((s) => s.setTransformMode);
+  const transformAxisConstraint = useSceneStore((s) => s.transformAxisConstraint);
+  const setTransformAxisConstraint = useSceneStore((s) => s.setTransformAxisConstraint);
+  const gridSnap = useSceneStore((s) => s.gridSnap);
+  const setGridSnap = useSceneStore((s) => s.setGridSnap);
   const workplanePlacementMode = useSceneStore((s) => s.workplanePlacementMode);
   const setWorkplanePlacementMode = useSceneStore((s) => s.setWorkplanePlacementMode);
   const workplane = useSceneStore((s) => s.workplane);
   const selectedIds = useSceneStore((s) => s.selectedIds);
   const csgStatus = useSceneStore((s) => s.csgStatus);
+
+  // Last non-zero snap value, used when toggling snap back on
+  const [snapIncrement, setSnapIncrement] = useState(1);
 
   const openInputRef = useRef<HTMLInputElement>(null);
   const [importOpen, setImportOpen] = useState(false);
@@ -186,6 +194,73 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
             </Button>
           </Tooltip>
         ))}
+      </Space>
+
+      <Divider type="vertical" style={{ borderColor: '#404040', height: 18, margin: '0 4px' }} />
+
+      {/* Axis Constraint */}
+      <Space size={3} align="center">
+        <Text style={labelStyle}>Axis</Text>
+        {(['X', 'Y', 'Z'] as const).map((axis) => (
+          <Tooltip key={axis} title={`Lock to ${axis} axis (${axis})`}>
+            <Button
+              size="small"
+              type={transformAxisConstraint === axis ? 'primary' : 'default'}
+              disabled={selectedIds.length === 0}
+              onClick={() =>
+                setTransformAxisConstraint(transformAxisConstraint === axis ? null : axis as AxisConstraint)
+              }
+              style={
+                transformAxisConstraint === axis
+                  ? undefined
+                  : axis === 'X'
+                  ? { color: '#ff5555' }
+                  : axis === 'Y'
+                  ? { color: '#55ff55' }
+                  : { color: '#5599ff' }
+              }
+            >
+              {axis}
+            </Button>
+          </Tooltip>
+        ))}
+      </Space>
+
+      <Divider type="vertical" style={{ borderColor: '#404040', height: 18, margin: '0 4px' }} />
+
+      {/* Grid Snap */}
+      <Space size={3} align="center">
+        <Text style={labelStyle}>Snap</Text>
+        <Tooltip title={gridSnap > 0 ? `Snap on (${gridSnap} units) — click to disable` : 'Snap off — click to enable'}>
+          <Button
+            size="small"
+            type={gridSnap > 0 ? 'primary' : 'default'}
+            onClick={() => {
+              if (gridSnap > 0) {
+                setGridSnap(0);
+              } else {
+                setGridSnap(snapIncrement);
+              }
+            }}
+          >
+            Grid
+          </Button>
+        </Tooltip>
+        <Tooltip title="Snap increment (scene units)">
+          <InputNumber
+            size="small"
+            min={0.01}
+            max={100}
+            step={0.5}
+            value={snapIncrement}
+            onChange={(v) => {
+              const val = v ?? 1;
+              setSnapIncrement(val);
+              if (gridSnap > 0) setGridSnap(val);
+            }}
+            style={{ width: 60 }}
+          />
+        </Tooltip>
       </Space>
 
       <Divider type="vertical" style={{ borderColor: '#404040', height: 18, margin: '0 4px' }} />
