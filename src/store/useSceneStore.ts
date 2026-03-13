@@ -53,6 +53,10 @@ interface SceneState {
   measureMode: boolean;
   setMeasureMode: (active: boolean) => void;
 
+  // Face align mode
+  faceAlignMode: boolean;
+  setFaceAlignMode: (active: boolean) => void;
+
   // CSG
   csgStatus: CsgStatus;
   csgSourceIds: string[];
@@ -118,6 +122,9 @@ export const useSceneStore = create<SceneState>((set, get) => ({
   setWorkplanePlacementMode: (active) => set({ workplanePlacementMode: active }),
 
   setMeasureMode: (active) => set({ measureMode: active }),
+
+  faceAlignMode: false,
+  setFaceAlignMode: (active) => set({ faceAlignMode: active }),
 
   setNodeVisible: (id, visible) =>
     set((state) => ({

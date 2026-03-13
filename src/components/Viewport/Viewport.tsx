@@ -11,6 +11,7 @@ import { useWorkplanePlacement } from './useWorkplanePlacement';
 import { useWorkplaneVisualization } from './useWorkplaneVisualization';
 import { useAxesGizmo } from './useAxesGizmo';
 import { useMeasurement } from './useMeasurement';
+import { useFaceAlignMode } from './useFaceAlignMode';
 import TransformDeltaOverlay from './TransformDeltaOverlay';
 import MeasurementOverlay from './MeasurementOverlay';
 import type { ViewportActions } from '../../types/viewport';
@@ -39,6 +40,7 @@ export default function Viewport({ actionsRef }: ViewportProps) {
   useWorkplaneVisualization(threeRef);
   useAxesGizmo(gizmoCanvasRef, threeRef);
   const measureOverlayRef = useMeasurement(threeRef, meshMapRef, isDraggingRef);
+  useFaceAlignMode(threeRef, meshMapRef, isDraggingRef);
 
   return (
     <div className="viewport-wrapper">

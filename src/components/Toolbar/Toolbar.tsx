@@ -64,6 +64,8 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
   const csgStatus = useSceneStore((s) => s.csgStatus);
   const measureMode = useSceneStore((s) => s.measureMode);
   const setMeasureMode = useSceneStore((s) => s.setMeasureMode);
+  const faceAlignMode = useSceneStore((s) => s.faceAlignMode);
+  const setFaceAlignMode = useSceneStore((s) => s.setFaceAlignMode);
 
   // Last non-zero snap value, used when toggling snap back on
   const [snapIncrement, setSnapIncrement] = useState(1);
@@ -320,6 +322,16 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
         </Tooltip>
         <Tooltip title={selectedIds.length > 0 ? 'Drop selection to workplane surface' : 'Select objects to drop to workplane'}>
           <Button size="small" disabled={selectedIds.length === 0} onClick={() => actionsRef.current?.dropToWorkplane()}>Drop</Button>
+        </Tooltip>
+        <Tooltip title={selectedIds.length > 0 ? 'Click a face to align it flush with the workplane (Esc to cancel)' : 'Select objects to use face align'}>
+          <Button
+            size="small"
+            type={faceAlignMode ? 'primary' : 'default'}
+            disabled={selectedIds.length === 0}
+            onClick={() => setFaceAlignMode(!faceAlignMode)}
+          >
+            Face Align
+          </Button>
         </Tooltip>
       </Space>
 
