@@ -28,6 +28,12 @@ export default function App() {
         return;
       }
 
+      if (e.key === 'm' || e.key === 'M') {
+        const { measureMode, setMeasureMode } = useSceneStore.getState();
+        setMeasureMode(!measureMode);
+        return;
+      }
+
       if (e.ctrlKey || e.metaKey) {
         if (e.key === 'z' && !e.shiftKey) {
           e.preventDefault();

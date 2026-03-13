@@ -3,4 +3,5 @@ export type CameraPreset = 'home' | 'front' | 'back' | 'left' | 'right' | 'top' 
 export interface ViewportActions {
   setPreset: (preset: CameraPreset) => void;
   focusSelection: () => void;
+  dropToWorkplane: () => void;
 }

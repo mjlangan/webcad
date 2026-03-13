@@ -4,6 +4,9 @@ import type { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import type { ThreeSetup } from './useThreeSetup';
 import type { CameraPreset, ViewportActions } from '../../types/viewport';
 import { useSceneStore } from '../../store/useSceneStore';
+import { undoStack } from '../../store/undoStack';
+import { TransformCommand } from '../../store/commands';
+import type { Transform } from '../../types/scene';
 
 const TRANSITION_MS = 350;
 
@@ -106,6 +109,75 @@ export function useCameraPresets(
           new THREE.Vector3(...direction).normalize(),
           new THREE.Vector3(...targetUp),
         );
+      },
+
+      dropToWorkplane: () => {
+        const three = threeRef.current;
+        if (!three) return;
+
+        const { nodes, selectedIds, workplane } = useSceneStore.getState();
+        // Only root-level nodes
+        const rootIds = selectedIds.filter((id) => {
+          const node = nodes.find((n) => n.id === id);
+          return node?.parentId === null;
+        });
+        if (rootIds.length === 0) return;
+
+        const normal = new THREE.Vector3(...workplane.normal).normalize();
+        const origin = new THREE.Vector3(...workplane.origin);
+        const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(normal, origin);
+
+        // Collect all descendant nodeIds for a given root (to include group children in bounds)
+        function collectIds(nodeId: string): string[] {
+          const result: string[] = [nodeId];
+          const n = nodes.find((x) => x.id === nodeId);
+          if (n) for (const c of n.childIds) result.push(...collectIds(c));
+          return result;
+        }
+
+        const ids: string[] = [];
+        const befores: Transform[] = [];
+        const afters: Transform[] = [];
+
+        // Ensure world matrices are up to date before sampling vertices
+        three.scene.updateMatrixWorld();
+
+        const tempVertex = new THREE.Vector3();
+
+        for (const id of rootIds) {
+          const node = nodes.find((n) => n.id === id);
+          if (!node) continue;
+
+          const descendantIds = new Set(collectIds(id));
+          let minDist = Infinity;
+
+          // Sample every actual mesh vertex in world space — exact for any workplane angle
+          three.scene.traverse((obj) => {
+            if (!(obj instanceof THREE.Mesh)) return;
+            if (!descendantIds.has(obj.userData.nodeId as string)) return;
+            const positions = obj.geometry.attributes.position;
+            if (!positions) return;
+            for (let i = 0; i < positions.count; i++) {
+              tempVertex.fromBufferAttribute(positions, i).applyMatrix4(obj.matrixWorld);
+              const d = plane.distanceToPoint(tempVertex);
+              if (d < minDist) minDist = d;
+            }
+          });
+
+          if (minDist === Infinity) continue;
+
+          const [px, py, pz] = node.transform.position;
+          ids.push(id);
+          befores.push(node.transform);
+          afters.push({
+            ...node.transform,
+            position: [px - normal.x * minDist, py - normal.y * minDist, pz - normal.z * minDist],
+          });
+        }
+
+        if (ids.length > 0) {
+          undoStack.push(new TransformCommand(ids, befores, afters));
+        }
       },
 
       focusSelection: () => {

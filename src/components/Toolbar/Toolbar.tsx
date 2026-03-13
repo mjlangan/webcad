@@ -1,6 +1,7 @@
 import { useRef, useState, type ChangeEvent, type RefObject } from 'react';
 import { Button, Divider, InputNumber, Modal, Space, Tooltip, Typography, Upload } from 'antd';
 import { useSceneStore } from '../../store/useSceneStore';
+import { usePreferencesStore } from '../../store/usePreferencesStore';
 import type { TransformMode } from '../../store/useSceneStore';
 import type { AxisConstraint } from '../../store/useSceneStore';
 import type { PrimitiveParams } from '../../types/scene';
@@ -61,6 +62,8 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
   const workplane = useSceneStore((s) => s.workplane);
   const selectedIds = useSceneStore((s) => s.selectedIds);
   const csgStatus = useSceneStore((s) => s.csgStatus);
+  const measureMode = useSceneStore((s) => s.measureMode);
+  const setMeasureMode = useSceneStore((s) => s.setMeasureMode);
 
   // Last non-zero snap value, used when toggling snap back on
   const [snapIncrement, setSnapIncrement] = useState(1);
@@ -68,6 +71,10 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
   const openInputRef = useRef<HTMLInputElement>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
+  const [prefsOpen, setPrefsOpen] = useState(false);
+
+  const unitSystem = usePreferencesStore((s) => s.unitSystem);
+  const setUnitSystem = usePreferencesStore((s) => s.setUnitSystem);
 
   const booleanEnabled = selectedIds.length === 2 && csgStatus === 'idle';
   const groupEnabled =
@@ -311,10 +318,34 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
         <Tooltip title="Reset workplane to world XZ plane">
           <Button size="small" onClick={handleResetWorkplane}>Reset Plane</Button>
         </Tooltip>
+        <Tooltip title={selectedIds.length > 0 ? 'Drop selection to workplane surface' : 'Select objects to drop to workplane'}>
+          <Button size="small" disabled={selectedIds.length === 0} onClick={() => actionsRef.current?.dropToWorkplane()}>Drop</Button>
+        </Tooltip>
+      </Space>
+
+      <Divider type="vertical" style={{ borderColor: '#404040', height: 18, margin: '0 4px' }} />
+
+      {/* Measure */}
+      <Space size={3} align="center">
+        <Text style={labelStyle}>Measure</Text>
+        <Tooltip title={measureMode ? 'Click two points to measure distance (Esc to exit)' : 'Activate measurement tool (M)'}>
+          <Button
+            size="small"
+            type={measureMode ? 'primary' : 'default'}
+            onClick={() => setMeasureMode(!measureMode)}
+          >
+            Distance
+          </Button>
+        </Tooltip>
       </Space>
 
       {/* View — pushed to the right */}
       <Space size={3} align="center" style={{ marginLeft: 'auto' }}>
+        <Tooltip title="Preferences">
+          <Button size="small" onClick={() => setPrefsOpen(true)}>Prefs</Button>
+        </Tooltip>
+      </Space>
+      <Space size={3} align="center">
         <Text style={labelStyle}>View</Text>
         {CAMERA_PRESETS.map((preset) => (
           <Tooltip key={preset} title={`${preset} view`}>
@@ -361,6 +392,37 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
           <Button block onClick={() => { exportObj(); setExportOpen(false); }}>OBJ — broad compatibility</Button>
           <Button block onClick={() => { void exportGltf(); setExportOpen(false); }}>glTF / GLB — web-native, preserves materials</Button>
           <Button block onClick={() => { export3mf(); setExportOpen(false); }}>3MF — slicers (PrusaSlicer, Bambu, Cura)</Button>
+        </div>
+      </Modal>
+
+      {/* Preferences modal */}
+      <Modal
+        title="Preferences"
+        open={prefsOpen}
+        onCancel={() => setPrefsOpen(false)}
+        footer={null}
+        width={340}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '8px 0' }}>
+          <div>
+            <Text style={{ ...labelStyle, display: 'block', marginBottom: 6 }}>Unit System</Text>
+            <Space>
+              <Button
+                size="small"
+                type={unitSystem === 'mm' ? 'primary' : 'default'}
+                onClick={() => setUnitSystem('mm')}
+              >
+                Millimeters (mm)
+              </Button>
+              <Button
+                size="small"
+                type={unitSystem === 'in' ? 'primary' : 'default'}
+                onClick={() => setUnitSystem('in')}
+              >
+                Inches (in)
+              </Button>
+            </Space>
+          </div>
         </div>
       </Modal>
     </div>

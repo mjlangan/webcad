@@ -10,7 +10,9 @@ import { useBoxSelect } from './useBoxSelect';
 import { useWorkplanePlacement } from './useWorkplanePlacement';
 import { useWorkplaneVisualization } from './useWorkplaneVisualization';
 import { useAxesGizmo } from './useAxesGizmo';
+import { useMeasurement } from './useMeasurement';
 import TransformDeltaOverlay from './TransformDeltaOverlay';
+import MeasurementOverlay from './MeasurementOverlay';
 import type { ViewportActions } from '../../types/viewport';
 
 interface ViewportProps {
@@ -36,12 +38,14 @@ export default function Viewport({ actionsRef }: ViewportProps) {
   useWorkplanePlacement(threeRef, meshMapRef, isDraggingRef);
   useWorkplaneVisualization(threeRef);
   useAxesGizmo(gizmoCanvasRef, threeRef);
+  const measureOverlayRef = useMeasurement(threeRef, meshMapRef, isDraggingRef);
 
   return (
     <div className="viewport-wrapper">
       <canvas ref={canvasRef} className="viewport-canvas" />
       <canvas ref={gizmoCanvasRef} className="axes-gizmo" />
       <TransformDeltaOverlay threeRef={threeRef} dragOverlayRef={dragOverlayRef} />
+      <MeasurementOverlay threeRef={threeRef} measureOverlayRef={measureOverlayRef} />
       {boxRect && (
         <div
           className="box-select-rect"

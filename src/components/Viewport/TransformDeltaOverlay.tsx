@@ -2,6 +2,7 @@ import { useEffect, useState, type RefObject } from 'react';
 import * as THREE from 'three';
 import type { ThreeSetup } from './useThreeSetup';
 import type { DragOverlayState } from './useTransformControls';
+import { usePreferencesStore, toDisplayUnit } from '../../store/usePreferencesStore';
 
 interface LabelInfo {
   x: number;
@@ -54,11 +55,13 @@ function fmt(v: number, digits = 2): string {
   return (v < -0.0005 ? '−' : '+') + s;
 }
 
-function formatValue(overlay: DragOverlayState, axis: 'X' | 'Y' | 'Z'): string {
+function formatValue(overlay: DragOverlayState, axis: 'X' | 'Y' | 'Z', unitSystem: 'mm' | 'in'): string {
   const { mode, deltaPos, deltaEuler, scaleRatio } = overlay;
   if (mode === 'translate') {
-    const v = axis === 'X' ? deltaPos.x : axis === 'Y' ? deltaPos.y : deltaPos.z;
-    return fmt(v) + ' mm';
+    const mm = axis === 'X' ? deltaPos.x : axis === 'Y' ? deltaPos.y : deltaPos.z;
+    const v = toDisplayUnit(mm, unitSystem);
+    const suffix = unitSystem === 'in' ? ' in' : ' mm';
+    return fmt(v, unitSystem === 'in' ? 4 : 2) + suffix;
   }
   if (mode === 'rotate') {
     const rad = axis === 'X' ? deltaEuler.x : axis === 'Y' ? deltaEuler.y : deltaEuler.z;
@@ -92,6 +95,7 @@ interface Props {
 
 export default function TransformDeltaOverlay({ threeRef, dragOverlayRef }: Props) {
   const [labels, setLabels] = useState<LabelInfo[]>([]);
+  const unitSystem = usePreferencesStore((s) => s.unitSystem);
 
   useEffect(() => {
     let rafId: number;
@@ -121,7 +125,7 @@ export default function TransformDeltaOverlay({ threeRef, dragOverlayRef }: Prop
         return {
           x: screen.x + (dx / len) * 10,
           y: screen.y + (dy / len) * 10,
-          text: formatValue(overlay, axis),
+          text: formatValue(overlay, axis, unitSystem),
           axis,
           active: isActive(overlay, axis),
         };
@@ -133,7 +137,7 @@ export default function TransformDeltaOverlay({ threeRef, dragOverlayRef }: Prop
 
     rafId = requestAnimationFrame(update);
     return () => cancelAnimationFrame(rafId);
-  }, [threeRef, dragOverlayRef]);
+  }, [threeRef, dragOverlayRef, unitSystem]);
 
   if (labels.length === 0) return null;
 

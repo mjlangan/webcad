@@ -49,6 +49,10 @@ interface SceneState {
   setWorkplane: (workplane: Workplane) => void;
   setWorkplanePlacementMode: (active: boolean) => void;
 
+  // Measurement
+  measureMode: boolean;
+  setMeasureMode: (active: boolean) => void;
+
   // CSG
   csgStatus: CsgStatus;
   csgSourceIds: string[];
@@ -84,6 +88,7 @@ export const useSceneStore = create<SceneState>((set, get) => ({
   gridSnap: 1,
   workplane: DEFAULT_WORKPLANE,
   workplanePlacementMode: false,
+  measureMode: false,
   csgStatus: 'idle',
   csgSourceIds: [],
   csgResultId: null,
@@ -111,6 +116,8 @@ export const useSceneStore = create<SceneState>((set, get) => ({
   setWorkplane: (workplane) => set({ workplane }),
 
   setWorkplanePlacementMode: (active) => set({ workplanePlacementMode: active }),
+
+  setMeasureMode: (active) => set({ measureMode: active }),
 
   setNodeVisible: (id, visible) =>
     set((state) => ({
