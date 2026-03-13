@@ -372,20 +372,7 @@ App
 - [x] Snap to grid (configurable increment)
 - [ ] Snap to object vertices/edges
 - [ ] Measurement overlay (distance between two points)
-- [ ] Better empty state / onboarding experience
-  - **Empty state**: when the scene has no nodes, show a centered overlay in the viewport with a short tagline ("Add a shape to get started"), a primary "Add Box" shortcut button, and a "Take the tour →" link
-  - **Tour**: use antd `Tour` component; triggered by the link above or a persistent "?" button in the toolbar corner; each step targets a real DOM element via React ref
-  - **Tour steps**:
-    1. *Welcome* (no target, centered modal card) — name + one-line pitch
-    2. *Add shapes* → toolbar Add section — "Click any shape to drop it into the scene"
-    3. *Viewport navigation* → canvas — "Left-drag orbits · Right-drag pans · Scroll zooms"
-    4. *Transform tools* → toolbar Transform section — "Move (G) · Rotate (R) · Scale (S)"
-    5. *Boolean operations* → toolbar Boolean section — "Select two objects to combine, subtract, or intersect them"
-    6. *Scene tree* → ScenePanel — "All objects live here; rename, hide, group, or delete them"
-    7. *Properties* → PropertiesPanel — "Edit position, rotation, size, and appearance with precise numeric inputs"
-    8. *Camera presets* → toolbar View section — "Jump to any standard view; the camera zooms to fit all objects"
-  - Tour state persisted in `localStorage` (`webcad_tour_seen`); auto-shown once on first empty load, never again unless reset
-  - "Restart tour" option in a future Preferences menu
+
 - [ ] Performance: LOD or instancing for large scenes
 - [ ] Preferences menu (control schemes, metric/inch units)
 - [x] Duplicate selected object(s): button in the scene tree (and keyboard shortcut Ctrl+D) creates a copy of the selected node(s) offset slightly from the original; duplicated node gets the same geometry, material, and transform with a " (copy)" name suffix; fully undoable
@@ -437,6 +424,22 @@ Decision deferred; the UX and data model above are kernel-agnostic. The operatio
 - [ ] **Live recompile**: debounced re-execution on script change; result node updates in place (non-destructive — original script is retained as the node's source)
 - [ ] **Parameters panel**: expose OpenSCAD `parameter` annotations as editable fields in the Properties panel (similar to Customizer in the OpenSCAD desktop app)
 - [ ] **Round-trip**: edited geometry stays as an OpenSCAD node in the scene tree; boolean operations and transforms can be applied on top of it like any other node
+
+### Future
+- [ ] Better empty state / onboarding experience
+  - **Empty state**: when the scene has no nodes, show a centered overlay in the viewport with a short tagline ("Add a shape to get started"), a primary "Add Box" shortcut button, and a "Take the tour →" link
+  - **Tour**: use antd `Tour` component; triggered by the link above or a persistent "?" button in the toolbar corner; each step targets a real DOM element via React ref
+  - **Tour steps**:
+    1. *Welcome* (no target, centered modal card) — name + one-line pitch
+    2. *Add shapes* → toolbar Add section — "Click any shape to drop it into the scene"
+    3. *Viewport navigation* → canvas — "Left-drag orbits · Right-drag pans · Scroll zooms"
+    4. *Transform tools* → toolbar Transform section — "Move (G) · Rotate (R) · Scale (S)"
+    5. *Boolean operations* → toolbar Boolean section — "Select two objects to combine, subtract, or intersect them"
+    6. *Scene tree* → ScenePanel — "All objects live here; rename, hide, group, or delete them"
+    7. *Properties* → PropertiesPanel — "Edit position, rotation, size, and appearance with precise numeric inputs"
+    8. *Camera presets* → toolbar View section — "Jump to any standard view; the camera zooms to fit all objects"
+  - Tour state persisted in `localStorage` (`webcad_tour_seen`); auto-shown once on first empty load, never again unless reset
+  - "Restart tour" option in a future Preferences menu
 
 ---
 
