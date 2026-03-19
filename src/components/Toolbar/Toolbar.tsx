@@ -1,5 +1,5 @@
 import { useRef, useState, type ChangeEvent, type RefObject } from 'react';
-import { Button, Divider, InputNumber, Modal, Space, Tooltip, Typography, Upload } from 'antd';
+import { Button, Divider, InputNumber, Modal, Space, Switch, Tooltip, Typography, Upload } from 'antd';
 import { useSceneStore } from '../../store/useSceneStore';
 import { usePreferencesStore } from '../../store/usePreferencesStore';
 import type { TransformMode } from '../../store/useSceneStore';
@@ -17,6 +17,8 @@ import { SetWorkplaneCommand } from '../../store/commands';
 import { triggerCsg } from '../../lib/triggerCsg';
 import { groupSelected, ungroupSelected } from '../../lib/groupActions';
 import type { CsgOperation } from '../../lib/csgWorker';
+import { decomposeWorkplaneOrigin, recomposeWorkplaneOrigin } from '../../lib/workplaneUtils';
+import { parseMmValue, formatMm } from '../../lib/units';
 
 const { Text } = Typography;
 
@@ -71,6 +73,7 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
 
   // Last non-zero snap value, used when toggling snap back on
   const [snapIncrement, setSnapIncrement] = useState(1);
+  const [wpAxisMode, setWpAxisMode] = useState<'global' | 'local'>('global');
 
   const openInputRef = useRef<HTMLInputElement>(null);
   const [importOpen, setImportOpen] = useState(false);
@@ -88,6 +91,14 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
     (id) => nodes.find((n) => n.id === id)?.geometry.type === 'group',
   );
   const exportScope = selectedIds.length > 0 ? 'Selection' : 'All';
+
+  const handleWorkplaneOffset = (axis: 0 | 1 | 2, value: number) => {
+    const current = decomposeWorkplaneOrigin(workplane, wpAxisMode);
+    const updated = [...current] as [number, number, number];
+    updated[axis] = value;
+    const newWorkplane = recomposeWorkplaneOrigin(workplane, updated, wpAxisMode);
+    undoStack.push(new SetWorkplaneCommand(workplane, newWorkplane));
+  };
 
   const handleAddPrimitive = (type: string) => {
     let geometry: PrimitiveParams;
@@ -317,34 +328,69 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
       <Divider type="vertical" style={{ borderColor: '#404040', height: 18, margin: '0 4px' }} />
 
       {/* Workplane */}
-      <Space size={3} align="center">
-        <Text style={labelStyle}>Workplane</Text>
-        <Tooltip title="Set workplane on face (click to activate, Esc to cancel)">
-          <Button
-            size="small"
-            type={workplanePlacementMode ? 'primary' : 'default'}
-            onClick={() => setWorkplanePlacementMode(!workplanePlacementMode)}
-          >
-            Set Plane
-          </Button>
-        </Tooltip>
-        <Tooltip title="Reset workplane to world XZ plane">
-          <Button size="small" onClick={handleResetWorkplane}>Reset Plane</Button>
-        </Tooltip>
-        <Tooltip title={selectedIds.length > 0 ? 'Drop selection to workplane surface' : 'Select objects to drop to workplane'}>
-          <Button size="small" disabled={selectedIds.length === 0} onClick={() => actionsRef.current?.dropToWorkplane()}>Drop</Button>
-        </Tooltip>
-        <Tooltip title={selectedIds.length > 0 ? 'Click a face to align it flush with the workplane (Esc to cancel)' : 'Select objects to use face align'}>
-          <Button
-            size="small"
-            type={faceAlignMode ? 'primary' : 'default'}
-            disabled={selectedIds.length === 0}
-            onClick={() => setFaceAlignMode(!faceAlignMode)}
-          >
-            Face Align
-          </Button>
-        </Tooltip>
-      </Space>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <Space size={3} align="center">
+          <Text style={labelStyle}>Workplane</Text>
+          <Tooltip title="Set workplane on face (click to activate, Esc to cancel)">
+            <Button
+              size="small"
+              type={workplanePlacementMode ? 'primary' : 'default'}
+              onClick={() => setWorkplanePlacementMode(!workplanePlacementMode)}
+            >
+              Set Plane
+            </Button>
+          </Tooltip>
+          <Tooltip title="Reset workplane to world XZ plane">
+            <Button size="small" onClick={handleResetWorkplane}>Reset Plane</Button>
+          </Tooltip>
+          <Tooltip title={selectedIds.length > 0 ? 'Drop selection to workplane surface' : 'Select objects to drop to workplane'}>
+            <Button size="small" disabled={selectedIds.length === 0} onClick={() => actionsRef.current?.dropToWorkplane()}>Drop</Button>
+          </Tooltip>
+          <Tooltip title={selectedIds.length > 0 ? 'Click a face to align it flush with the workplane (Esc to cancel)' : 'Select objects to use face align'}>
+            <Button
+              size="small"
+              type={faceAlignMode ? 'primary' : 'default'}
+              disabled={selectedIds.length === 0}
+              onClick={() => setFaceAlignMode(!faceAlignMode)}
+            >
+              Face Align
+            </Button>
+          </Tooltip>
+        </Space>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+          <Tooltip title={wpAxisMode === 'global' ? 'Switch to local (workplane) axes' : 'Switch to global (world) axes'}>
+            <Switch
+              size="small"
+              checked={wpAxisMode === 'local'}
+              onChange={(checked) => setWpAxisMode(checked ? 'local' : 'global')}
+              checkedChildren="Local"
+              unCheckedChildren="Global"
+              style={{ minWidth: 58 }}
+            />
+          </Tooltip>
+          {(['X', wpAxisMode === 'local' ? 'N' : 'Y', 'Z'] as const).map((label, i) => {
+            const vals = decomposeWorkplaneOrigin(workplane, wpAxisMode);
+            return (
+              <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <span style={{ fontSize: 10, color: '#888', userSelect: 'none' }}>{label}</span>
+                <InputNumber
+                  size="small"
+                  style={{ width: 72 }}
+                  value={vals[i]}
+                  step={1}
+                  formatter={(v, { userTyping, input }) => {
+                    if (userTyping) return input;
+                    if (v === undefined || v === null) return '';
+                    return formatMm(Number(v));
+                  }}
+                  parser={(v) => parseMmValue(v ?? '') ?? vals[i]}
+                  onChange={(v) => { if (v !== null) handleWorkplaneOffset(i as 0 | 1 | 2, v as number); }}
+                />
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
       <Divider type="vertical" style={{ borderColor: '#404040', height: 18, margin: '0 4px' }} />
 

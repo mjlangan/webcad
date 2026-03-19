@@ -95,10 +95,55 @@ export function createWorkplaneFromHit(
   normal: THREE.Vector3,
 ): Workplane {
   const { tangentX } = computeTangentFrame(normal);
-  
+
   return {
     origin: hitPoint.toArray(),
     normal: normal.clone().normalize().toArray(),
     tangentX: tangentX.toArray(),
   };
+}
+
+/**
+ * Decomposes the workplane origin into components along the given axes.
+ * Global mode: returns the raw world-space origin [x, y, z].
+ * Local mode: returns the origin projected onto [tangentX, normal, tangentZ].
+ */
+export function decomposeWorkplaneOrigin(
+  workplane: Workplane,
+  mode: 'global' | 'local',
+): [number, number, number] {
+  const origin = new THREE.Vector3(...workplane.origin);
+  if (mode === 'global') {
+    return origin.toArray() as [number, number, number];
+  }
+  const tx = new THREE.Vector3(...workplane.tangentX);
+  const n = new THREE.Vector3(...workplane.normal);
+  const tz = new THREE.Vector3().crossVectors(n, tx);
+  return [origin.dot(tx), origin.dot(n), origin.dot(tz)];
+}
+
+/**
+ * Returns a new Workplane with its origin moved to the given values in the
+ * specified reference frame, keeping normal and tangentX unchanged.
+ * Global mode: values are the new world-space origin directly.
+ * Local mode: values are components along [tangentX, normal, tangentZ]; the
+ *   new world origin is reconstructed as localX·tangentX + localN·normal + localZ·tangentZ.
+ */
+export function recomposeWorkplaneOrigin(
+  workplane: Workplane,
+  values: [number, number, number],
+  mode: 'global' | 'local',
+): Workplane {
+  let newOrigin: THREE.Vector3;
+  if (mode === 'global') {
+    newOrigin = new THREE.Vector3(...values);
+  } else {
+    const tx = new THREE.Vector3(...workplane.tangentX);
+    const n = new THREE.Vector3(...workplane.normal);
+    const tz = new THREE.Vector3().crossVectors(n, tx);
+    newOrigin = tx.clone().multiplyScalar(values[0])
+      .addScaledVector(n, values[1])
+      .addScaledVector(tz, values[2]);
+  }
+  return { ...workplane, origin: newOrigin.toArray() as [number, number, number] };
 }
