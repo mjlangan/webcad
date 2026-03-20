@@ -71,6 +71,13 @@ interface SceneState {
   setCsgPreview:   (resultId: string) => void;
   clearCsg:        (restoreSources?: boolean) => void;
 
+  // Split
+  splitStatus: 'idle' | 'computing';
+  setSplitStatus: (status: 'idle' | 'computing') => void;
+  // Bulk remove: removes all given IDs atomically; updates external parents' childIds
+  // but does NOT cascade-release children that are also in the removal set.
+  removeNodes: (ids: string[]) => void;
+
   // Mutations
   updateTransform:       (id: string, transform: Transform) => void;
   updateMaterial:        (id: string, material: MaterialProps) => void;
@@ -101,6 +108,7 @@ export const useSceneStore = create<SceneState>((set, get) => ({
   csgSourceIds: [],
   csgResultId: null,
   csgPendingOperation: null,
+  splitStatus: 'idle',
 
   selectNode: (id) => set({ selectedIds: id ? [id] : [], transformAxisConstraint: null }),
 
@@ -163,6 +171,25 @@ export const useSceneStore = create<SceneState>((set, get) => ({
           )
         : state.nodes,
     })),
+
+  setSplitStatus: (status) => set({ splitStatus: status }),
+
+  removeNodes: (ids) =>
+    set((state) => {
+      const idSet = new Set(ids);
+      // Remove the nodes, but don't cascade into children that are also being removed
+      const remaining = state.nodes.filter((n) => !idSet.has(n.id));
+      // Strip removed IDs from any surviving node's childIds
+      const updated = remaining.map((n) =>
+        n.childIds.some((c) => idSet.has(c))
+          ? { ...n, childIds: n.childIds.filter((c) => !idSet.has(c)) }
+          : n,
+      );
+      return {
+        nodes: updated,
+        selectedIds: state.selectedIds.filter((s) => !idSet.has(s)),
+      };
+    }),
 
   updateTransform: (id, transform) =>
     set((state) => ({
@@ -380,5 +407,6 @@ export const useSceneStore = create<SceneState>((set, get) => ({
       csgResultId: null,
       csgPendingOperation: null,
       workplanePlacementMode: false,
+      splitStatus: 'idle',
     }),
 }));

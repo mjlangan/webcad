@@ -358,3 +358,48 @@ export class UngroupCommand {
 
 // Re-export the decompose helper so groupActions can use it without importing THREE directly
 export { decomposeMatrix };
+
+export class SplitCommand {
+  private readonly originalNodes: SceneNode[];
+  private readonly originalIndices: number[];
+  private readonly resultNodes: SceneNode[];
+
+  constructor(
+    originalNodes: SceneNode[],
+    originalIndices: number[],
+    resultNodes: SceneNode[],
+  ) {
+    this.originalNodes = originalNodes;
+    this.originalIndices = originalIndices;
+    this.resultNodes = resultNodes;
+  }
+
+  execute(): void {
+    // Redo: remove originals, restore results
+    const state = useSceneStore.getState();
+    const originalIds = this.originalNodes.map((n) => n.id);
+    state.removeNodes(originalIds);
+    // Restore result nodes in order (parents before children)
+    for (const node of this.resultNodes) {
+      state.restoreNode(node, state.nodes.length);
+    }
+    useSceneStore.getState().selectNodes(
+      this.resultNodes.filter((n) => n.parentId === null).map((n) => n.id),
+    );
+  }
+
+  undo(): void {
+    const state = useSceneStore.getState();
+    const resultIds = this.resultNodes.map((n) => n.id);
+    state.removeNodes(resultIds);
+    // Restore original nodes in original order
+    for (let i = 0; i < this.originalNodes.length; i++) {
+      const node = this.originalNodes[i];
+      const idx = this.originalIndices[i];
+      state.restoreNode(node, Math.min(idx, state.nodes.length));
+    }
+    useSceneStore.getState().selectNodes(
+      this.originalNodes.filter((n) => n.parentId === null).map((n) => n.id),
+    );
+  }
+}

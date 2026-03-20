@@ -1,5 +1,5 @@
 import { useRef, useState, type ChangeEvent, type RefObject } from 'react';
-import { Button, Divider, InputNumber, Modal, Space, Switch, Tooltip, Typography, Upload } from 'antd';
+import { Button, Divider, InputNumber, Modal, Space, Switch, Tooltip, Typography, Upload, message } from 'antd';
 import { useSceneStore } from '../../store/useSceneStore';
 import { usePreferencesStore } from '../../store/usePreferencesStore';
 import type { TransformMode } from '../../store/useSceneStore';
@@ -15,6 +15,7 @@ import { exportStl, exportObj, exportGltf, export3mf } from '../../lib/exportSce
 import { undoStack } from '../../store/undoStack';
 import { SetWorkplaneCommand } from '../../store/commands';
 import { triggerCsg } from '../../lib/triggerCsg';
+import { triggerSplit } from '../../lib/triggerSplit';
 import { groupSelected, ungroupSelected } from '../../lib/groupActions';
 import type { CsgOperation } from '../../lib/csgWorker';
 import { decomposeWorkplaneOrigin, recomposeWorkplaneOrigin } from '../../lib/workplaneUtils';
@@ -70,10 +71,13 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
   const setFaceAlignMode = useSceneStore((s) => s.setFaceAlignMode);
   const vertexSnapEnabled = useSceneStore((s) => s.vertexSnapEnabled);
   const setVertexSnapEnabled = useSceneStore((s) => s.setVertexSnapEnabled);
+  const splitStatus = useSceneStore((s) => s.splitStatus);
 
   // Last non-zero snap value, used when toggling snap back on
   const [snapIncrement, setSnapIncrement] = useState(1);
   const [wpAxisMode, setWpAxisMode] = useState<'global' | 'local'>('global');
+
+  const [messageApi, messageContextHolder] = message.useMessage();
 
   const openInputRef = useRef<HTMLInputElement>(null);
   const [importOpen, setImportOpen] = useState(false);
@@ -159,6 +163,7 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
       borderBottom: '1px solid #303030',
       minHeight: 36,
     }}>
+      {messageContextHolder}
 
       {/* File */}
       <Space size={3} align="center">
@@ -354,6 +359,24 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
               onClick={() => setFaceAlignMode(!faceAlignMode)}
             >
               Face Align
+            </Button>
+          </Tooltip>
+          <Tooltip title={
+            selectedIds.length > 0
+              ? 'Split selected objects along the workplane'
+              : 'Select objects to split along the workplane'
+          }>
+            <Button
+              size="small"
+              disabled={selectedIds.length === 0 || splitStatus !== 'idle'}
+              onClick={async () => {
+                const result = await triggerSplit();
+                if (result?.error) {
+                  void messageApi.error(result.error);
+                }
+              }}
+            >
+              {splitStatus === 'computing' ? 'Splitting…' : 'Split'}
             </Button>
           </Tooltip>
         </Space>
