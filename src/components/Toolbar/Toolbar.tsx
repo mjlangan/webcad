@@ -180,6 +180,9 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
         <input data-testid="toolbar-open-file-input" ref={openInputRef} type="file" accept=".webcad" style={{ display: 'none' }} onChange={makeFileHandler(openProject)} />
         <Button data-testid="toolbar-import" size="small" onClick={() => setImportOpen(true)}>Import</Button>
         <Button data-testid="toolbar-export" size="small" onClick={() => setExportOpen(true)}>Export</Button>
+        <Tooltip title="Preferences">
+          <Button data-testid="toolbar-prefs" size="small" onClick={() => setPrefsOpen(true)}>Prefs</Button>
+        </Tooltip>
       </Space>
 
       <Divider type="vertical" style={{ borderColor: '#404040', height: 18, margin: '0 4px' }} />
@@ -439,11 +442,6 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
 
       {/* View — pushed to the right */}
       <Space size={3} align="center" style={{ marginLeft: 'auto' }}>
-        <Tooltip title="Preferences">
-          <Button data-testid="toolbar-prefs" size="small" onClick={() => setPrefsOpen(true)}>Prefs</Button>
-        </Tooltip>
-      </Space>
-      <Space size={3} align="center">
         <Text style={labelStyle}>View</Text>
         {CAMERA_PRESETS.map((preset) => (
           <Tooltip key={preset} title={`${preset} view`}>
