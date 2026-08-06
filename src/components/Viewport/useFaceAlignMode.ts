@@ -52,6 +52,7 @@ export function useFaceAlignMode(
     const ghostPlane = new THREE.Mesh(ghostGeometry, ghostMaterial);
     ghostPlane.visible = false;
     ghostPlane.renderOrder = 999;
+    ghostPlane.userData.isHelper = true;
     scene.add(ghostPlane);
 
     const updatePointer = (e: PointerEvent) => {

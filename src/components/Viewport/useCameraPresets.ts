@@ -28,9 +28,18 @@ function easeOut(t: number): number {
   return 1 - (1 - t) ** 3;
 }
 
+// Like Object3D.traverseVisible, but skips an entire subtree once it hits an
+// object tagged userData.isHelper (gizmos, snap indicators, etc.) — those are
+// screen-space-scaled and must never factor into scene/selection framing.
+function traverseVisibleSkippingHelpers(obj: THREE.Object3D, callback: (obj: THREE.Object3D) => void) {
+  if (!obj.visible || obj.userData.isHelper) return;
+  callback(obj);
+  for (const child of obj.children) traverseVisibleSkippingHelpers(child, callback);
+}
+
 function sceneBoundingSphere(three: ThreeSetup): THREE.Sphere {
   const box = new THREE.Box3();
-  three.scene.traverseVisible((obj) => {
+  traverseVisibleSkippingHelpers(three.scene, (obj) => {
     if (obj instanceof THREE.Mesh) box.expandByObject(obj);
   });
   if (box.isEmpty()) return new THREE.Sphere(new THREE.Vector3(0, 0, 0), 50);
@@ -41,7 +50,7 @@ function sceneBoundingSphere(three: ThreeSetup): THREE.Sphere {
 
 function selectionBoundingSphere(three: ThreeSetup, nodeIds: Set<string>): THREE.Sphere | null {
   const box = new THREE.Box3();
-  three.scene.traverseVisible((obj) => {
+  traverseVisibleSkippingHelpers(three.scene, (obj) => {
     if (obj instanceof THREE.Mesh && nodeIds.has(obj.userData.nodeId as string)) {
       box.expandByObject(obj);
     }

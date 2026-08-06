@@ -15,6 +15,7 @@ function makeMarker(): THREE.Mesh {
   const mat = new THREE.MeshBasicMaterial({ color: 0xffcc00, depthTest: false });
   const mesh = new THREE.Mesh(geo, mat);
   mesh.renderOrder = 999;
+  mesh.userData.isHelper = true;
   return mesh;
 }
 
@@ -26,6 +27,7 @@ function makeLine(): THREE.Line {
   const mat = new THREE.LineBasicMaterial({ color: 0xffcc00, depthTest: false, linewidth: 2 });
   const line = new THREE.Line(geo, mat);
   line.renderOrder = 999;
+  line.userData.isHelper = true;
   return line;
 }
 

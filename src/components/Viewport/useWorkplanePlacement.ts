@@ -40,6 +40,7 @@ export function useWorkplanePlacement(
     });
     const ghostPlane = new THREE.Mesh(ghostGeometry, ghostMaterial);
     ghostPlane.visible = false;
+    ghostPlane.userData.isHelper = true;
     scene.add(ghostPlane);
     ghostPlaneRef.current = ghostPlane;
 

@@ -142,6 +142,7 @@ export function useTransformControls(
     // In Three.js r162+, TransformControls extends Controls (not Object3D).
     // Add the visual helper to the scene; the controls object itself is not an Object3D.
     const tcHelper = tc.getHelper();
+    tcHelper.userData.isHelper = true;
     scene.add(tcHelper);
 
     // Vertex snap indicator — small yellow sphere shown at the snap target
@@ -150,6 +151,7 @@ export function useTransformControls(
     const snapIndicator = new THREE.Mesh(snapIndicatorGeo, snapIndicatorMat);
     snapIndicator.visible = false;
     snapIndicator.renderOrder = 999;
+    snapIndicator.userData.isHelper = true;
     scene.add(snapIndicator);
 
     // Rotation snap markers — radial tick marks spaced every 15° just outside
@@ -160,6 +162,7 @@ export function useTransformControls(
     const rotateMarkMatNormal = new THREE.MeshBasicMaterial({ color: 0xffffff, opacity: 0.45, transparent: true, depthTest: false });
     const rotateMarkMatActive = new THREE.MeshBasicMaterial({ color: 0xffdd00, depthTest: false });
     const rotateMarkGroup = new THREE.Group();
+    rotateMarkGroup.userData.isHelper = true;
     const rotateMarkMeshes: THREE.Mesh[] = [];
     for (let i = 0; i < ROTATE_MARK_COUNT; i++) {
       const mark = new THREE.Mesh(rotateMarkGeo, rotateMarkMatNormal);
