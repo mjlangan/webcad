@@ -178,6 +178,8 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
           <Button data-testid="toolbar-file-open" size="small" onClick={() => openInputRef.current?.click()}>Open</Button>
         </Tooltip>
         <input data-testid="toolbar-open-file-input" ref={openInputRef} type="file" accept=".webcad" style={{ display: 'none' }} onChange={makeFileHandler(openProject)} />
+        <Button data-testid="toolbar-import" size="small" onClick={() => setImportOpen(true)}>Import</Button>
+        <Button data-testid="toolbar-export" size="small" onClick={() => setExportOpen(true)}>Export</Button>
       </Space>
 
       <Divider type="vertical" style={{ borderColor: '#404040', height: 18, margin: '0 4px' }} />
@@ -195,14 +197,6 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
         <Tooltip title="Add beer glass (Superfest)">
           <Button data-testid="toolbar-add-beerglass" size="small" onClick={() => handleAddPrimitive('beerglass')}>Beer Glass</Button>
         </Tooltip>
-      </Space>
-
-      <Divider type="vertical" style={{ borderColor: '#404040', height: 18, margin: '0 4px' }} />
-
-      {/* Import / Export */}
-      <Space size={3} align="center">
-        <Button data-testid="toolbar-import" size="small" onClick={() => setImportOpen(true)}>Import</Button>
-        <Button data-testid="toolbar-export" size="small" onClick={() => setExportOpen(true)}>Export</Button>
       </Space>
 
       <Divider type="vertical" style={{ borderColor: '#404040', height: 18, margin: '0 4px' }} />
