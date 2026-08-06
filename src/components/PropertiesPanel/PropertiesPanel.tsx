@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { createContext, useContext, useRef } from 'react';
 import { InputNumber, Slider, Switch, ColorPicker, Divider, Typography } from 'antd';
 import { useSceneStore } from '../../store/useSceneStore';
 import { undoStack } from '../../store/undoStack';
@@ -18,6 +18,14 @@ const labelStyle: React.CSSProperties = {
   width: 72,
   flexShrink: 0,
 };
+
+// Lets NumField derive a stable data-testid (`prop-<section>-<label>`) from its
+// enclosing Section without threading a prop through every call site.
+const SectionContext = createContext('section');
+
+function slugify(s: string): string {
+  return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+}
 
 interface MmInputProps {
   value: number;
@@ -55,6 +63,7 @@ interface NumFieldProps {
 }
 
 function NumField({ label, value, step = 1, min, unit, onChange }: NumFieldProps) {
+  const sectionSlug = useContext(SectionContext);
   let input: React.ReactNode;
   if (unit === 'mm') {
     input = <MmInput value={value} step={step} min={min} onChange={onChange} />;
@@ -87,7 +96,10 @@ function NumField({ label, value, step = 1, min, unit, onChange }: NumFieldProps
     );
   }
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+    <div
+      style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}
+      data-testid={`prop-${sectionSlug}-${slugify(label)}`}
+    >
       <span style={labelStyle}>{label}</span>
       {input}
     </div>
@@ -100,12 +112,13 @@ interface SectionProps {
 }
 
 function Section({ title, children }: SectionProps) {
+  const slug = slugify(title);
   return (
-    <div style={{ marginBottom: 8 }}>
+    <div style={{ marginBottom: 8 }} data-testid={`section-${slug}`}>
       <Divider plain style={{ marginTop: 8, marginBottom: 8, fontSize: 11, color: '#666' }}>
         {title}
       </Divider>
-      {children}
+      <SectionContext.Provider value={slug}>{children}</SectionContext.Provider>
     </div>
   );
 }

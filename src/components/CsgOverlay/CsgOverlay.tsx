@@ -19,7 +19,7 @@ export default function CsgOverlay() {
       zIndex: 10,
     }}>
       {csgStatus === 'in_flight' && (
-        <div style={{
+        <div data-testid="csg-computing" style={{
           pointerEvents: 'all',
           display: 'flex',
           alignItems: 'center',
@@ -32,7 +32,7 @@ export default function CsgOverlay() {
         }}>
           <Spin size="small" />
           <span style={{ fontSize: 13, color: '#ccc' }}>Computing…</span>
-          <Button size="small" onClick={cancelCsg}>Cancel</Button>
+          <Button data-testid="csg-cancel" size="small" onClick={cancelCsg}>Cancel</Button>
         </div>
       )}
     </div>

@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "savedAt": "2026-01-01T00:00:00.000Z",
+  "data": {
+    "nodes": [
+      {
+        "id": "fixture-box-1",
+        "name": "Fixture Box",
+        "visible": true,
+        "locked": false,
+        "transform": { "position": [0, 10, 0], "rotation": [0, 0, 0], "scale": [1, 1, 1] },
+        "geometry": { "type": "box", "width": 20, "height": 20, "depth": 20 },
+        "material": { "color": "#4488ff", "opacity": 1, "wireframe": false },
+        "parentId": null,
+        "childIds": [],
+        "csgOperation": null,
+        "csgError": null
+      }
+    ],
+    "workplane": { "origin": [0, 0, 0], "normal": [0, 1, 0], "tangentX": [1, 0, 0] },
+    "meshes": {}
+  }
+}

@@ -3,6 +3,9 @@ import { createRoot } from 'react-dom/client'
 import { ConfigProvider, theme } from 'antd'
 import './index.css'
 import App from './App.tsx'
+import { installE2EBridge } from './lib/e2eBridge'
+
+installE2EBridge()
 
 const darkMq = window.matchMedia('(prefers-color-scheme: dark)')
 

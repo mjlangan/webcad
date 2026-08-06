@@ -10,6 +10,7 @@ import type { Transform } from '../../types/scene';
 import type { TransformMode } from '../../store/useSceneStore';
 import { workplaneToThreePlane } from '../../lib/workplaneUtils';
 import { computeWorldMatrix } from '../../lib/worldMatrix';
+import { worldToPagePx } from '../../lib/screenProjection';
 
 // Screen-space pixel radius within which vertex snap activates
 const VERTEX_SNAP_PX = 20;
@@ -307,8 +308,18 @@ export function useTransformControls(
             ROTATE_MARK_SNAP_PX_MIN,
             ROTATE_MARK_SNAP_PX_MAX,
           );
+
+          if (import.meta.env.VITE_E2E && window.__E2E__) {
+            window.__E2E__.rotateMarkers = rotateMarkPositions.map((pos, i) => ({
+              angleDeg: THREE.MathUtils.radToDeg(rotateMarkAngles[i]),
+              ...worldToPagePx(pos, camera, renderer.domElement),
+            }));
+          }
         } else {
           rotateMarkMeshes.forEach((mark) => { mark.visible = false; });
+          if (import.meta.env.VITE_E2E && window.__E2E__) {
+            window.__E2E__.rotateMarkers = null;
+          }
         }
       }
 
@@ -335,6 +346,9 @@ export function useTransformControls(
         rotateMarkAngles = [];
         rotateMarkPositions = [];
         rotateMarkMeshes.forEach((mark) => { mark.visible = false; mark.material = rotateMarkMatNormal; });
+        if (import.meta.env.VITE_E2E && window.__E2E__) {
+          window.__E2E__.rotateMarkers = null;
+        }
       }
     };
 

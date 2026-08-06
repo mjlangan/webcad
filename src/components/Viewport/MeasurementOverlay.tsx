@@ -3,22 +3,11 @@ import * as THREE from 'three';
 import type { ThreeSetup } from './useThreeSetup';
 import type { MeasureOverlayState } from './useMeasurement';
 import { usePreferencesStore, formatUnit } from '../../store/usePreferencesStore';
+import { worldToCanvasPx } from '../../lib/screenProjection';
 
 interface Props {
   threeRef: RefObject<ThreeSetup | null>;
   measureOverlayRef: RefObject<MeasureOverlayState | null>;
-}
-
-function worldToCanvas(
-  worldPos: THREE.Vector3,
-  camera: THREE.PerspectiveCamera,
-  canvas: HTMLCanvasElement,
-): { x: number; y: number } {
-  const ndc = worldPos.clone().project(camera);
-  return {
-    x: (ndc.x + 1) / 2 * canvas.clientWidth,
-    y: (-ndc.y + 1) / 2 * canvas.clientHeight,
-  };
 }
 
 export default function MeasurementOverlay({ threeRef, measureOverlayRef }: Props) {
@@ -40,7 +29,7 @@ export default function MeasurementOverlay({ threeRef, measureOverlayRef }: Prop
 
       const { camera, renderer } = three;
       const canvas = renderer.domElement;
-      const screen = worldToCanvas(overlay.midpoint, camera as THREE.PerspectiveCamera, canvas);
+      const screen = worldToCanvasPx(overlay.midpoint, camera as THREE.PerspectiveCamera, canvas);
       setLabel({ x: screen.x, y: screen.y, text: formatUnit(overlay.distance, unitSystem) });
       rafId = requestAnimationFrame(update);
     }
@@ -54,6 +43,7 @@ export default function MeasurementOverlay({ threeRef, measureOverlayRef }: Prop
   return (
     <div style={{ position: 'absolute', inset: 0, pointerEvents: 'none', overflow: 'hidden' }}>
       <div
+        data-testid="measure-label"
         style={{
           position: 'absolute',
           left: label.x,

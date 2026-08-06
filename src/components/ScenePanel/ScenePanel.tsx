@@ -66,7 +66,7 @@ function NodeTitle({
   const isDeletable = !isCsgChild;
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 3, minWidth: 0 }}>
+    <div data-testid={`scene-node-${node.id}`} style={{ display: 'flex', alignItems: 'center', gap: 3, minWidth: 0 }}>
       {/* Eye toggle — root nodes and group children only */}
       {!isCsgChild && (
         <Button

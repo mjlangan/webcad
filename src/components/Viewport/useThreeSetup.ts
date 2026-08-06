@@ -52,6 +52,9 @@ export function useThreeSetup(
 
     // Write setup to ref — downstream hooks' effects run after this one
     setupRef.current = { scene, camera, renderer };
+    if (import.meta.env.VITE_E2E && window.__E2E__) {
+      window.__E2E__.three = { scene, camera, renderer };
+    }
 
     // Resize — arrow function so TypeScript preserves canvas narrowing in closure
     const updateSize = () => {
@@ -94,6 +97,9 @@ export function useThreeSetup(
       // The raw GL context handle will be garbage collected after dispose().
       renderer.dispose();
       setupRef.current = null;
+      if (import.meta.env.VITE_E2E && window.__E2E__) {
+        window.__E2E__.three = null;
+      }
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 

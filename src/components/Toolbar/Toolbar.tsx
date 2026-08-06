@@ -169,15 +169,15 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
       <Space size={3} align="center">
         <Text style={labelStyle}>File</Text>
         <Tooltip title="New scene (clears current scene)">
-          <Button size="small" onClick={() => { void newProject(); }}>New</Button>
+          <Button data-testid="toolbar-file-new" size="small" onClick={() => { void newProject(); }}>New</Button>
         </Tooltip>
         <Tooltip title="Save scene as .webcad file">
-          <Button size="small" onClick={() => { void saveProject(); }}>Save</Button>
+          <Button data-testid="toolbar-file-save" size="small" onClick={() => { void saveProject(); }}>Save</Button>
         </Tooltip>
         <Tooltip title="Open a .webcad file (replaces current scene)">
-          <Button size="small" onClick={() => openInputRef.current?.click()}>Open</Button>
+          <Button data-testid="toolbar-file-open" size="small" onClick={() => openInputRef.current?.click()}>Open</Button>
         </Tooltip>
-        <input ref={openInputRef} type="file" accept=".webcad" style={{ display: 'none' }} onChange={makeFileHandler(openProject)} />
+        <input data-testid="toolbar-open-file-input" ref={openInputRef} type="file" accept=".webcad" style={{ display: 'none' }} onChange={makeFileHandler(openProject)} />
       </Space>
 
       <Divider type="vertical" style={{ borderColor: '#404040', height: 18, margin: '0 4px' }} />
@@ -187,13 +187,13 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
         <Text style={labelStyle}>Add</Text>
         {(['box', 'sphere', 'cylinder', 'cone', 'torus'] as const).map((type) => (
           <Tooltip key={type} title={`Add ${type}`}>
-            <Button size="small" onClick={() => handleAddPrimitive(type)}>
+            <Button data-testid={`toolbar-add-${type}`} size="small" onClick={() => handleAddPrimitive(type)}>
               {type.charAt(0).toUpperCase() + type.slice(1)}
             </Button>
           </Tooltip>
         ))}
         <Tooltip title="Add beer glass (Superfest)">
-          <Button size="small" onClick={() => handleAddPrimitive('beerglass')}>Beer Glass</Button>
+          <Button data-testid="toolbar-add-beerglass" size="small" onClick={() => handleAddPrimitive('beerglass')}>Beer Glass</Button>
         </Tooltip>
       </Space>
 
@@ -201,8 +201,8 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
 
       {/* Import / Export */}
       <Space size={3} align="center">
-        <Button size="small" onClick={() => setImportOpen(true)}>Import</Button>
-        <Button size="small" onClick={() => setExportOpen(true)}>Export</Button>
+        <Button data-testid="toolbar-import" size="small" onClick={() => setImportOpen(true)}>Import</Button>
+        <Button data-testid="toolbar-export" size="small" onClick={() => setExportOpen(true)}>Export</Button>
       </Space>
 
       <Divider type="vertical" style={{ borderColor: '#404040', height: 18, margin: '0 4px' }} />
@@ -213,6 +213,7 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
         {TRANSFORM_MODES.map(({ mode, label, key }) => (
           <Tooltip key={mode} title={`${label} (${key})`}>
             <Button
+              data-testid={`toolbar-transform-${mode}`}
               size="small"
               type={transformMode === mode ? 'primary' : 'default'}
               onClick={() => setTransformMode(mode)}
@@ -231,6 +232,7 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
         {(['X', 'Y', 'Z'] as const).map((axis) => (
           <Tooltip key={axis} title={`Lock to ${axis} axis (${axis})`}>
             <Button
+              data-testid={`toolbar-axis-${axis.toLowerCase()}`}
               size="small"
               type={transformAxisConstraint === axis ? 'primary' : 'default'}
               disabled={selectedIds.length === 0}
@@ -260,6 +262,7 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
         <Text style={labelStyle}>Snap</Text>
         <Tooltip title={gridSnap > 0 ? `Snap on (${gridSnap} units) — click to disable` : 'Snap off — click to enable'}>
           <Button
+            data-testid="toolbar-snap-grid"
             size="small"
             type={gridSnap > 0 ? 'primary' : 'default'}
             onClick={() => {
@@ -275,6 +278,7 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
         </Tooltip>
         <Tooltip title="Snap increment (scene units)">
           <InputNumber
+            data-testid="toolbar-snap-increment"
             size="small"
             min={0.01}
             max={100}
@@ -290,6 +294,7 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
         </Tooltip>
         <Tooltip title="Snap to object vertices while translating">
           <Button
+            data-testid="toolbar-snap-verts"
             size="small"
             type={vertexSnapEnabled ? 'primary' : 'default'}
             onClick={() => setVertexSnapEnabled(!vertexSnapEnabled)}
@@ -307,6 +312,7 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
         {BOOLEAN_OPS.map(({ op, label, title }) => (
           <Tooltip key={op} title={booleanEnabled ? title : 'Select exactly 2 objects to use boolean operations'}>
             <Button
+              data-testid={`toolbar-boolean-${op}`}
               size="small"
               disabled={!booleanEnabled}
               onClick={() => { void triggerCsg(op); }}
@@ -323,10 +329,10 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
       <Space size={3} align="center">
         <Text style={labelStyle}>Group</Text>
         <Tooltip title={groupEnabled ? 'Group selected objects (Ctrl+G)' : 'Select 2+ root objects to group'}>
-          <Button size="small" disabled={!groupEnabled} onClick={groupSelected}>Group</Button>
+          <Button data-testid="toolbar-group" size="small" disabled={!groupEnabled} onClick={groupSelected}>Group</Button>
         </Tooltip>
         <Tooltip title={ungroupEnabled ? 'Ungroup selected group' : 'Select a group node to ungroup'}>
-          <Button size="small" disabled={!ungroupEnabled} onClick={ungroupSelected}>Ungroup</Button>
+          <Button data-testid="toolbar-ungroup" size="small" disabled={!ungroupEnabled} onClick={ungroupSelected}>Ungroup</Button>
         </Tooltip>
       </Space>
 
@@ -338,6 +344,7 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
           <Text style={labelStyle}>Workplane</Text>
           <Tooltip title="Set workplane on face (click to activate, Esc to cancel)">
             <Button
+              data-testid="toolbar-workplane-set-plane"
               size="small"
               type={workplanePlacementMode ? 'primary' : 'default'}
               onClick={() => setWorkplanePlacementMode(!workplanePlacementMode)}
@@ -346,13 +353,14 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
             </Button>
           </Tooltip>
           <Tooltip title="Reset workplane to world XZ plane">
-            <Button size="small" onClick={handleResetWorkplane}>Reset Plane</Button>
+            <Button data-testid="toolbar-workplane-reset-plane" size="small" onClick={handleResetWorkplane}>Reset Plane</Button>
           </Tooltip>
           <Tooltip title={selectedIds.length > 0 ? 'Drop selection to workplane surface' : 'Select objects to drop to workplane'}>
-            <Button size="small" disabled={selectedIds.length === 0} onClick={() => actionsRef.current?.dropToWorkplane()}>Drop</Button>
+            <Button data-testid="toolbar-workplane-drop" size="small" disabled={selectedIds.length === 0} onClick={() => actionsRef.current?.dropToWorkplane()}>Drop</Button>
           </Tooltip>
           <Tooltip title={selectedIds.length > 0 ? 'Click a face to align it flush with the workplane (Esc to cancel)' : 'Select objects to use face align'}>
             <Button
+              data-testid="toolbar-workplane-face-align"
               size="small"
               type={faceAlignMode ? 'primary' : 'default'}
               disabled={selectedIds.length === 0}
@@ -367,6 +375,7 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
               : 'Select objects to split along the workplane'
           }>
             <Button
+              data-testid="toolbar-workplane-split"
               size="small"
               disabled={selectedIds.length === 0 || splitStatus !== 'idle'}
               onClick={async () => {
@@ -383,6 +392,7 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
           <Tooltip title={wpAxisMode === 'global' ? 'Switch to local (workplane) axes' : 'Switch to global (world) axes'}>
             <Switch
+              data-testid="toolbar-workplane-axis-mode"
               size="small"
               checked={wpAxisMode === 'local'}
               onChange={(checked) => setWpAxisMode(checked ? 'local' : 'global')}
@@ -397,6 +407,7 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
               <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <span style={{ fontSize: 10, color: '#888', userSelect: 'none' }}>{label}</span>
                 <InputNumber
+                  data-testid={`toolbar-workplane-offset-${i}`}
                   size="small"
                   style={{ width: 72 }}
                   value={vals[i]}
@@ -422,6 +433,7 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
         <Text style={labelStyle}>Measure</Text>
         <Tooltip title={measureMode ? 'Click two points to measure distance (Esc to exit)' : 'Activate measurement tool (M)'}>
           <Button
+            data-testid="toolbar-measure-distance"
             size="small"
             type={measureMode ? 'primary' : 'default'}
             onClick={() => setMeasureMode(!measureMode)}
@@ -434,14 +446,14 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
       {/* View — pushed to the right */}
       <Space size={3} align="center" style={{ marginLeft: 'auto' }}>
         <Tooltip title="Preferences">
-          <Button size="small" onClick={() => setPrefsOpen(true)}>Prefs</Button>
+          <Button data-testid="toolbar-prefs" size="small" onClick={() => setPrefsOpen(true)}>Prefs</Button>
         </Tooltip>
       </Space>
       <Space size={3} align="center">
         <Text style={labelStyle}>View</Text>
         {CAMERA_PRESETS.map((preset) => (
           <Tooltip key={preset} title={`${preset} view`}>
-            <Button size="small" onClick={() => actionsRef.current?.setPreset(preset)}>
+            <Button data-testid={`toolbar-view-${preset}`} size="small" onClick={() => actionsRef.current?.setPreset(preset)}>
               {preset.charAt(0).toUpperCase() + preset.slice(1)}
             </Button>
           </Tooltip>
@@ -457,6 +469,7 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
         width={480}
       >
         <Upload.Dragger
+          data-testid="toolbar-import-dragger"
           accept=".stl,.obj,.3mf"
           multiple={false}
           showUploadList={false}
@@ -480,10 +493,10 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
         width={420}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <Button block onClick={() => { exportStl(); setExportOpen(false); }}>STL — 3D printing, universal mesh</Button>
-          <Button block onClick={() => { exportObj(); setExportOpen(false); }}>OBJ — broad compatibility</Button>
-          <Button block onClick={() => { void exportGltf(); setExportOpen(false); }}>glTF / GLB — web-native, preserves materials</Button>
-          <Button block onClick={() => { export3mf(); setExportOpen(false); }}>3MF — slicers (PrusaSlicer, Bambu, Cura)</Button>
+          <Button data-testid="toolbar-export-stl" block onClick={() => { exportStl(); setExportOpen(false); }}>STL — 3D printing, universal mesh</Button>
+          <Button data-testid="toolbar-export-obj" block onClick={() => { exportObj(); setExportOpen(false); }}>OBJ — broad compatibility</Button>
+          <Button data-testid="toolbar-export-gltf" block onClick={() => { void exportGltf(); setExportOpen(false); }}>glTF / GLB — web-native, preserves materials</Button>
+          <Button data-testid="toolbar-export-3mf" block onClick={() => { export3mf(); setExportOpen(false); }}>3MF — slicers (PrusaSlicer, Bambu, Cura)</Button>
         </div>
       </Modal>
 
@@ -500,6 +513,7 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
             <Text style={{ ...labelStyle, display: 'block', marginBottom: 6 }}>Unit System</Text>
             <Space>
               <Button
+                data-testid="toolbar-prefs-unit-mm"
                 size="small"
                 type={unitSystem === 'mm' ? 'primary' : 'default'}
                 onClick={() => setUnitSystem('mm')}
@@ -507,6 +521,7 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
                 Millimeters (mm)
               </Button>
               <Button
+                data-testid="toolbar-prefs-unit-in"
                 size="small"
                 type={unitSystem === 'in' ? 'primary' : 'default'}
                 onClick={() => setUnitSystem('in')}
