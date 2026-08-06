@@ -186,9 +186,8 @@ export default function ScenePanel() {
 
   return (
     <div style={{
-      gridArea: 'scene',
+      height: '100%',
       background: '#181818',
-      borderRight: '1px solid #2a2a2a',
       display: 'flex',
       flexDirection: 'column',
       overflow: 'hidden',

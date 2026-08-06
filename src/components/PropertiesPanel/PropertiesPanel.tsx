@@ -203,9 +203,8 @@ export default function PropertiesPanel() {
   if (!node) {
     return (
       <div style={{
-        gridArea: 'props',
+        height: '100%',
         background: '#1a1a1a',
-        borderLeft: '1px solid #2a2a2a',
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
@@ -253,9 +252,8 @@ export default function PropertiesPanel() {
 
   return (
     <div style={{
-      gridArea: 'props',
+      height: '100%',
       background: '#1a1a1a',
-      borderLeft: '1px solid #2a2a2a',
       display: 'flex',
       flexDirection: 'column',
       overflow: 'hidden',

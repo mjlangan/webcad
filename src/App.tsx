@@ -1,8 +1,7 @@
 import { useRef, useEffect } from 'react';
 import Viewport from './components/Viewport/Viewport';
 import Toolbar from './components/Toolbar/Toolbar';
-import ScenePanel from './components/ScenePanel/ScenePanel';
-import PropertiesPanel from './components/PropertiesPanel/PropertiesPanel';
+import Sidebar from './components/Sidebar/Sidebar';
 import CsgOverlay from './components/CsgOverlay/CsgOverlay';
 import type { ViewportActions } from './types/viewport';
 import { useSceneStore } from './store/useSceneStore';
@@ -141,12 +140,11 @@ export default function App() {
   return (
     <div className="app-shell">
       <Toolbar actionsRef={actionsRef} />
-      <ScenePanel />
+      <Sidebar />
       <div className="app-viewport">
         <Viewport actionsRef={actionsRef} />
         <CsgOverlay />
       </div>
-      <PropertiesPanel />
     </div>
   );
 }

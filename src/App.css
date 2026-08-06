@@ -17,10 +17,10 @@ body,
   height: 100%;
   display: grid;
   grid-template-rows: auto 1fr;
-  grid-template-columns: 220px 1fr 260px;
+  grid-template-columns: 260px 1fr;
   grid-template-areas:
-    "toolbar toolbar toolbar"
-    "scene viewport props";
+    "toolbar toolbar"
+    "scene viewport";
 }
 
 .app-viewport {
