@@ -6,10 +6,13 @@ import { setNumField, setToolbarNumber } from './helpers/properties';
 
 test('Set Plane on a face updates the workplane origin/normal, then Reset Plane restores default', async ({ page }) => {
   await gotoReady(page);
-  await addPrimitive(page, 'box'); // 20mm box at the origin, centered in X/Z — +X face is at x=10
+  // 20mm box at the origin, centered in X/Z, bottom-aligned in Y (spans y:[0,20]) —
+  // the +X face center is at (10, 10, 0), not (10, 0, 0) which sits on the shared
+  // edge with the bottom face and can miss the raycast depending on exact pixel rounding.
+  await addPrimitive(page, 'box');
 
   await page.getByTestId('toolbar-workplane-set-plane').click();
-  const facePoint = await worldToPage(page, 10, 0, 0);
+  const facePoint = await worldToPage(page, 10, 10, 0);
   await page.mouse.click(facePoint.x, facePoint.y);
 
   const workplane = await page.evaluate(() => window.__E2E__!.store.getState().workplane);

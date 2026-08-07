@@ -3,6 +3,7 @@ import Viewport from './components/Viewport/Viewport';
 import Toolbar from './components/Toolbar/Toolbar';
 import Sidebar from './components/Sidebar/Sidebar';
 import CsgOverlay from './components/CsgOverlay/CsgOverlay';
+import ShapeLibrary from './components/ShapeLibrary/ShapeLibrary';
 import type { ViewportActions } from './types/viewport';
 import { useSceneStore } from './store/useSceneStore';
 import type { AxisConstraint } from './store/useSceneStore';
@@ -144,6 +145,7 @@ export default function App() {
       <div className="app-viewport">
         <Viewport actionsRef={actionsRef} />
         <CsgOverlay />
+        <ShapeLibrary />
       </div>
     </div>
   );

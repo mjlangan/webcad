@@ -4,7 +4,11 @@ export type PrimitiveType = 'box' | 'sphere' | 'cylinder' | 'cone' | 'torus' | '
 
 /** Clicks the toolbar "Add <type>" button and returns the new node's id. Adding auto-selects it. */
 export async function addPrimitive(page: Page, type: PrimitiveType): Promise<string> {
-  await page.getByTestId(`toolbar-add-${type}`).click();
+  const addButton = page.getByTestId(`toolbar-add-${type}`);
+  if (!(await addButton.isVisible())) {
+    await page.getByTestId('shape-library-handle').click();
+  }
+  await addButton.click();
   return page.evaluate(() => {
     const { nodes } = window.__E2E__!.store.getState();
     return nodes[nodes.length - 1].id;

@@ -4,7 +4,6 @@ import { useSceneStore } from '../../store/useSceneStore';
 import { usePreferencesStore } from '../../store/usePreferencesStore';
 import type { TransformMode } from '../../store/useSceneStore';
 import type { AxisConstraint } from '../../store/useSceneStore';
-import type { PrimitiveParams } from '../../types/scene';
 import { DEFAULT_WORKPLANE } from '../../types/scene';
 import type { CameraPreset, ViewportActions } from '../../types/viewport';
 import { importStlFile } from '../../lib/stlImport';
@@ -52,7 +51,6 @@ const labelStyle: React.CSSProperties = {
 };
 
 export default function Toolbar({ actionsRef }: ToolbarProps) {
-  const addNode = useSceneStore((s) => s.addNode);
   const nodes = useSceneStore((s) => s.nodes);
   const transformMode = useSceneStore((s) => s.transformMode);
   const setTransformMode = useSceneStore((s) => s.setTransformMode);
@@ -102,33 +100,6 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
     updated[axis] = value;
     const newWorkplane = recomposeWorkplaneOrigin(workplane, updated, wpAxisMode);
     undoStack.push(new SetWorkplaneCommand(workplane, newWorkplane));
-  };
-
-  const handleAddPrimitive = (type: string) => {
-    let geometry: PrimitiveParams;
-    switch (type) {
-      case 'box':
-        geometry = { type: 'box', width: 20, height: 20, depth: 20 };
-        break;
-      case 'sphere':
-        geometry = { type: 'sphere', radius: 10, widthSegments: 32, heightSegments: 16 };
-        break;
-      case 'cylinder':
-        geometry = { type: 'cylinder', radiusTop: 10, radiusBottom: 10, height: 20, radialSegments: 32 };
-        break;
-      case 'cone':
-        geometry = { type: 'cone', radius: 10, height: 20, radialSegments: 32 };
-        break;
-      case 'torus':
-        geometry = { type: 'torus', radius: 10, tube: 4, radialSegments: 16, tubularSegments: 64 };
-        break;
-      case 'beerglass':
-        geometry = { type: 'beerglass', radiusUpper: 37.5, radiusLower: 34.2, height: 165, radialSegments: 32 };
-        break;
-      default:
-        return;
-    }
-    addNode(geometry);
   };
 
   const handleResetWorkplane = () => {
@@ -182,23 +153,6 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
         <Button data-testid="toolbar-export" size="small" onClick={() => setExportOpen(true)}>Export</Button>
         <Tooltip title="Preferences">
           <Button data-testid="toolbar-prefs" size="small" onClick={() => setPrefsOpen(true)}>Prefs</Button>
-        </Tooltip>
-      </Space>
-
-      <Divider type="vertical" style={{ borderColor: '#404040', height: 18, margin: '0 4px' }} />
-
-      {/* Add */}
-      <Space size={3} align="center">
-        <Text style={labelStyle}>Add</Text>
-        {(['box', 'sphere', 'cylinder', 'cone', 'torus'] as const).map((type) => (
-          <Tooltip key={type} title={`Add ${type}`}>
-            <Button data-testid={`toolbar-add-${type}`} size="small" onClick={() => handleAddPrimitive(type)}>
-              {type.charAt(0).toUpperCase() + type.slice(1)}
-            </Button>
-          </Tooltip>
-        ))}
-        <Tooltip title="Add beer glass (Superfest)">
-          <Button data-testid="toolbar-add-beerglass" size="small" onClick={() => handleAddPrimitive('beerglass')}>Beer Glass</Button>
         </Tooltip>
       </Space>
 
