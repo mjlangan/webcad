@@ -15,6 +15,13 @@ import { worldToPagePx } from '../../lib/screenProjection';
 // Screen-space pixel radius within which vertex snap activates
 const VERTEX_SNAP_PX = 20;
 
+// Uniform damping applied to the scale gizmo's raw drag-distance ratio, so the
+// same drag produces a smaller scale change than TransformControls' default
+// 1:1 mapping. 1 = raw/undamped; lower = less sensitive. Applied symmetrically
+// around the drag-start scale, so growing and shrinking stay linear and equally
+// sensitive. Could be exposed as a user preference later.
+const SCALE_SENSITIVITY = 0.5;
+
 // Rotation snap markers: radial tick marks (like sun-rays) placed just
 // outside the active rotation ring every this many degrees. Rotation is
 // otherwise free; snapping only kicks in when the mouse is hovering near a
@@ -373,6 +380,21 @@ export function useTransformControls(
           const dist = plane.distanceToPoint(tc.object.position);
           tc.object.position.addScaledVector(normal, -dist);
         }
+      }
+
+      // Scale sensitivity: TransformControls maps drag distance straight to
+      // scale (a 1:1 ratio), which reads as too twitchy. Damp the change from
+      // the drag-start scale by a constant factor, applied the same way
+      // whether growing or shrinking, so the mapping stays linear and
+      // symmetric — just less sensitive overall.
+      if (transformMode === 'scale') {
+        const dampen = (start: number, current: number): number =>
+          start + (current - start) * SCALE_SENSITIVITY;
+        tc.object.scale.set(
+          dampen(startScale.x, tc.object.scale.x),
+          dampen(startScale.y, tc.object.scale.y),
+          dampen(startScale.z, tc.object.scale.z),
+        );
       }
 
       // Rotation snap: rotation is free by default. Markers are placed every
