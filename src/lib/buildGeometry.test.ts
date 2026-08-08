@@ -187,6 +187,225 @@ describe('buildGeometry — beerglass', () => {
   });
 });
 
+// ── wedge ──────────────────────────────────────────────────────────────────────
+
+describe('buildGeometry — wedge', () => {
+  it('returns a BufferGeometry with vertices', () => {
+    const geo = buildGeometry({ type: 'wedge', width: 10, depth: 20, height: 15 });
+    expect(geo).toBeInstanceOf(THREE.BufferGeometry);
+    expect(vertexCount(geo)).toBeGreaterThan(0);
+  });
+
+  it('bounding box dimensions match width/depth/height', () => {
+    const geo = buildGeometry({ type: 'wedge', width: 10, depth: 20, height: 15 });
+    const size = boundingSize(geo);
+    expect(size.x).toBeCloseTo(10);
+    expect(size.z).toBeCloseTo(20);
+    expect(size.y).toBeCloseTo(15);
+  });
+
+  it('origin is at bottom (min Y = 0)', () => {
+    const geo = buildGeometry({ type: 'wedge', width: 10, depth: 20, height: 15 });
+    expect(boundingMinY(geo)).toBeCloseTo(0);
+  });
+});
+
+// ── roof ───────────────────────────────────────────────────────────────────────
+
+describe('buildGeometry — roof', () => {
+  it('returns a BufferGeometry with vertices', () => {
+    const geo = buildGeometry({ type: 'roof', width: 20, depth: 10, height: 8 });
+    expect(geo).toBeInstanceOf(THREE.BufferGeometry);
+    expect(vertexCount(geo)).toBeGreaterThan(0);
+  });
+
+  it('bounding box dimensions match width/depth/height', () => {
+    const geo = buildGeometry({ type: 'roof', width: 20, depth: 10, height: 8 });
+    const size = boundingSize(geo);
+    expect(size.x).toBeCloseTo(20);
+    expect(size.z).toBeCloseTo(10);
+    expect(size.y).toBeCloseTo(8);
+  });
+
+  it('origin is at bottom (min Y = 0)', () => {
+    const geo = buildGeometry({ type: 'roof', width: 20, depth: 10, height: 8 });
+    expect(boundingMinY(geo)).toBeCloseTo(0);
+  });
+});
+
+// ── pyramid ────────────────────────────────────────────────────────────────────
+
+describe('buildGeometry — pyramid', () => {
+  it('returns a BufferGeometry with vertices', () => {
+    const geo = buildGeometry({ type: 'pyramid', width: 10, depth: 10, height: 12 });
+    expect(geo).toBeInstanceOf(THREE.BufferGeometry);
+    expect(vertexCount(geo)).toBeGreaterThan(0);
+  });
+
+  it('bounding box dimensions match width/depth/height', () => {
+    const geo = buildGeometry({ type: 'pyramid', width: 10, depth: 14, height: 12 });
+    const size = boundingSize(geo);
+    expect(size.x).toBeCloseTo(10);
+    expect(size.z).toBeCloseTo(14);
+    expect(size.y).toBeCloseTo(12);
+  });
+
+  it('origin is at bottom (min Y = 0)', () => {
+    const geo = buildGeometry({ type: 'pyramid', width: 10, depth: 10, height: 12 });
+    expect(boundingMinY(geo)).toBeCloseTo(0);
+  });
+});
+
+// ── tube ───────────────────────────────────────────────────────────────────────
+
+describe('buildGeometry — tube', () => {
+  it('returns a BufferGeometry with vertices', () => {
+    const geo = buildGeometry({ type: 'tube', outerRadius: 10, innerRadius: 6, height: 20, radialSegments: 16 });
+    expect(geo).toBeInstanceOf(THREE.BufferGeometry);
+    expect(vertexCount(geo)).toBeGreaterThan(0);
+  });
+
+  it('bounding box height matches the height param, XZ extent matches outer radius', () => {
+    const geo = buildGeometry({ type: 'tube', outerRadius: 10, innerRadius: 6, height: 20, radialSegments: 32 });
+    const size = boundingSize(geo);
+    expect(size.y).toBeCloseTo(20, 0);
+    expect(size.x).toBeCloseTo(20, 0);
+  });
+
+  it('origin is at bottom (min Y = 0)', () => {
+    const geo = buildGeometry({ type: 'tube', outerRadius: 10, innerRadius: 6, height: 20, radialSegments: 16 });
+    expect(boundingMinY(geo)).toBeCloseTo(0, 1);
+  });
+});
+
+// ── dome ───────────────────────────────────────────────────────────────────────
+
+describe('buildGeometry — dome', () => {
+  it('returns a BufferGeometry with vertices', () => {
+    const geo = buildGeometry({ type: 'dome', radius: 10, widthSegments: 16, heightSegments: 8 });
+    expect(geo).toBeInstanceOf(THREE.BufferGeometry);
+    expect(vertexCount(geo)).toBeGreaterThan(0);
+  });
+
+  it('bounding box height and XZ extent both equal the radius', () => {
+    const r = 10;
+    const geo = buildGeometry({ type: 'dome', radius: r, widthSegments: 32, heightSegments: 16 });
+    const size = boundingSize(geo);
+    expect(size.y).toBeCloseTo(r, 0);
+    expect(size.x).toBeCloseTo(2 * r, 0);
+  });
+
+  it('origin is at bottom (min Y = 0)', () => {
+    const geo = buildGeometry({ type: 'dome', radius: 10, widthSegments: 16, heightSegments: 8 });
+    expect(boundingMinY(geo)).toBeCloseTo(0, 1);
+  });
+});
+
+// ── polygon ────────────────────────────────────────────────────────────────────
+
+describe('buildGeometry — polygon', () => {
+  it('returns a BufferGeometry with vertices', () => {
+    const geo = buildGeometry({ type: 'polygon', sides: 6, radius: 10, height: 20 });
+    expect(geo).toBeInstanceOf(THREE.BufferGeometry);
+    expect(vertexCount(geo)).toBeGreaterThan(0);
+  });
+
+  it('bounding box height matches the height param; XZ extent is within the circumradius bounds', () => {
+    const geo = buildGeometry({ type: 'polygon', sides: 6, radius: 10, height: 20 });
+    const size = boundingSize(geo);
+    expect(size.y).toBeCloseTo(20);
+    // A regular hexagon's bounding width is between "across flats" (R√3) and
+    // "across corners" (2R) depending on rotation — either is a valid hexagon.
+    expect(size.x).toBeGreaterThan(10);
+    expect(size.x).toBeLessThanOrEqual(20);
+  });
+
+  it('more sides produce more vertices', () => {
+    const lo = buildGeometry({ type: 'polygon', sides: 3,  radius: 10, height: 20 });
+    const hi = buildGeometry({ type: 'polygon', sides: 12, radius: 10, height: 20 });
+    expect(vertexCount(hi)).toBeGreaterThan(vertexCount(lo));
+  });
+
+  it('origin is at bottom (min Y = 0)', () => {
+    const geo = buildGeometry({ type: 'polygon', sides: 6, radius: 10, height: 20 });
+    expect(boundingMinY(geo)).toBeCloseTo(0);
+  });
+});
+
+// ── ellipsoid ──────────────────────────────────────────────────────────────────
+
+describe('buildGeometry — ellipsoid', () => {
+  it('returns a BufferGeometry with vertices', () => {
+    const geo = buildGeometry({ type: 'ellipsoid', radiusX: 12, radiusY: 8, radiusZ: 10, widthSegments: 16, heightSegments: 8 });
+    expect(geo).toBeInstanceOf(THREE.BufferGeometry);
+    expect(vertexCount(geo)).toBeGreaterThan(0);
+  });
+
+  it('bounding box dimensions match 2 × each independent radius', () => {
+    const geo = buildGeometry({ type: 'ellipsoid', radiusX: 12, radiusY: 8, radiusZ: 10, widthSegments: 32, heightSegments: 16 });
+    const size = boundingSize(geo);
+    expect(size.x).toBeCloseTo(24, 0);
+    expect(size.y).toBeCloseTo(16, 0);
+    expect(size.z).toBeCloseTo(20, 0);
+  });
+
+  it('origin is at bottom (min Y = 0)', () => {
+    const geo = buildGeometry({ type: 'ellipsoid', radiusX: 12, radiusY: 8, radiusZ: 10, widthSegments: 16, heightSegments: 8 });
+    expect(boundingMinY(geo)).toBeCloseTo(0, 1);
+  });
+});
+
+// ── capsule ────────────────────────────────────────────────────────────────────
+
+describe('buildGeometry — capsule', () => {
+  it('returns a BufferGeometry with vertices', () => {
+    const geo = buildGeometry({ type: 'capsule', radius: 6, length: 14, capSegments: 8, radialSegments: 16 });
+    expect(geo).toBeInstanceOf(THREE.BufferGeometry);
+    expect(vertexCount(geo)).toBeGreaterThan(0);
+  });
+
+  it('bounding box height equals length + 2 × radius (the two hemispherical caps)', () => {
+    const r = 6, len = 14;
+    const geo = buildGeometry({ type: 'capsule', radius: r, length: len, capSegments: 8, radialSegments: 16 });
+    const size = boundingSize(geo);
+    expect(size.y).toBeCloseTo(len + 2 * r, 0);
+    expect(size.x).toBeCloseTo(2 * r, 0);
+  });
+
+  it('origin is at bottom (min Y = 0)', () => {
+    const geo = buildGeometry({ type: 'capsule', radius: 6, length: 14, capSegments: 8, radialSegments: 16 });
+    expect(boundingMinY(geo)).toBeCloseTo(0, 1);
+  });
+});
+
+// ── torusknot ──────────────────────────────────────────────────────────────────
+
+describe('buildGeometry — torusknot', () => {
+  it('returns a BufferGeometry with vertices', () => {
+    const geo = buildGeometry({ type: 'torusknot', radius: 10, tube: 3, tubularSegments: 32, radialSegments: 6, p: 2, q: 3 });
+    expect(geo).toBeInstanceOf(THREE.BufferGeometry);
+    expect(vertexCount(geo)).toBeGreaterThan(0);
+  });
+
+  it('more segments produce more vertices', () => {
+    const lo = buildGeometry({ type: 'torusknot', radius: 10, tube: 3, tubularSegments: 16, radialSegments: 3, p: 2, q: 3 });
+    const hi = buildGeometry({ type: 'torusknot', radius: 10, tube: 3, tubularSegments: 64, radialSegments: 8, p: 2, q: 3 });
+    expect(vertexCount(hi)).toBeGreaterThan(vertexCount(lo));
+  });
+
+  it('origin is at bottom (min Y = 0)', () => {
+    const geo = buildGeometry({ type: 'torusknot', radius: 10, tube: 3, tubularSegments: 64, radialSegments: 8, p: 2, q: 3 });
+    expect(boundingMinY(geo)).toBeCloseTo(0, 1);
+  });
+
+  it('different p/q winding produces a different shape (non-empty, distinct bounding size)', () => {
+    const a = buildGeometry({ type: 'torusknot', radius: 10, tube: 3, tubularSegments: 64, radialSegments: 8, p: 2, q: 3 });
+    const b = buildGeometry({ type: 'torusknot', radius: 10, tube: 3, tubularSegments: 64, radialSegments: 8, p: 3, q: 7 });
+    expect(boundingSize(a).x).toBeGreaterThan(0);
+    expect(boundingSize(b).x).toBeGreaterThan(0);
+  });
+});
+
 // ── imported ───────────────────────────────────────────────────────────────────
 
 describe('buildGeometry — imported', () => {

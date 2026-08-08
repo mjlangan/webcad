@@ -43,6 +43,76 @@ export interface BeerGlassParams {
   radialSegments: number;
 }
 
+export interface WedgeParams {
+  type: 'wedge';
+  width: number;
+  depth: number;
+  height: number;
+}
+
+export interface RoofParams {
+  type: 'roof';
+  width: number;
+  depth: number;
+  height: number;
+}
+
+export interface PyramidParams {
+  type: 'pyramid';
+  width: number;
+  depth: number;
+  height: number;
+}
+
+export interface TubeParams {
+  type: 'tube';
+  outerRadius: number;
+  innerRadius: number;
+  height: number;
+  radialSegments: number;
+}
+
+export interface DomeParams {
+  type: 'dome';
+  radius: number;
+  widthSegments: number;
+  heightSegments: number;
+}
+
+export interface PolygonParams {
+  type: 'polygon';
+  sides: number;
+  radius: number;
+  height: number;
+}
+
+export interface EllipsoidParams {
+  type: 'ellipsoid';
+  radiusX: number;
+  radiusY: number;
+  radiusZ: number;
+  widthSegments: number;
+  heightSegments: number;
+}
+
+export interface CapsuleParams {
+  type: 'capsule';
+  radius: number;
+  length: number;
+  capSegments: number;
+  radialSegments: number;
+}
+
+export interface TorusKnotParams {
+  type: 'torusknot';
+  radius: number;
+  tube: number;
+  tubularSegments: number;
+  radialSegments: number;
+  p: number;
+  q: number;
+}
+
 export interface ImportedMeshParams {
   type: 'imported';
   meshId: string;
@@ -60,6 +130,15 @@ export type PrimitiveParams =
   | ConeParams
   | TorusParams
   | BeerGlassParams
+  | WedgeParams
+  | RoofParams
+  | PyramidParams
+  | TubeParams
+  | DomeParams
+  | PolygonParams
+  | EllipsoidParams
+  | CapsuleParams
+  | TorusKnotParams
   | ImportedMeshParams
   | GroupParams;
 

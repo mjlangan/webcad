@@ -3,8 +3,24 @@ import { Button, Drawer, Tooltip } from 'antd';
 import { useSceneStore } from '../../store/useSceneStore';
 import type { PrimitiveParams } from '../../types/scene';
 
-const PRIMITIVE_TYPES = ['box', 'sphere', 'cylinder', 'cone', 'torus'] as const;
+const PRIMITIVE_TYPES = [
+  'box', 'sphere', 'cylinder', 'cone', 'torus',
+  'wedge', 'roof', 'pyramid', 'tube', 'dome',
+  'polygon', 'ellipsoid', 'capsule',
+  'torusknot',
+] as const;
 const DRAWER_WIDTH = 200;
+
+// Overrides for types whose display name isn't just a capitalized single word.
+const PRIMITIVE_LABELS: Partial<Record<string, string>> = {
+  beerglass: 'Beer Glass',
+  polygon: 'Polygon Prism',
+  torusknot: 'Torus Knot',
+};
+
+function labelForType(type: string): string {
+  return PRIMITIVE_LABELS[type] ?? (type.charAt(0).toUpperCase() + type.slice(1));
+}
 
 function buildPrimitiveGeometry(type: string): PrimitiveParams | null {
   switch (type) {
@@ -13,13 +29,31 @@ function buildPrimitiveGeometry(type: string): PrimitiveParams | null {
     case 'sphere':
       return { type: 'sphere', radius: 10, widthSegments: 32, heightSegments: 16 };
     case 'cylinder':
-      return { type: 'cylinder', radiusTop: 10, radiusBottom: 10, height: 20, radialSegments: 32 };
+      return { type: 'cylinder', radiusTop: 10, radiusBottom: 10, height: 20, radialSegments: 64 };
     case 'cone':
       return { type: 'cone', radius: 10, height: 20, radialSegments: 32 };
     case 'torus':
       return { type: 'torus', radius: 10, tube: 4, radialSegments: 16, tubularSegments: 64 };
     case 'beerglass':
       return { type: 'beerglass', radiusUpper: 37.5, radiusLower: 34.2, height: 165, radialSegments: 32 };
+    case 'wedge':
+      return { type: 'wedge', width: 20, depth: 20, height: 20 };
+    case 'roof':
+      return { type: 'roof', width: 20, depth: 20, height: 10 };
+    case 'pyramid':
+      return { type: 'pyramid', width: 20, depth: 20, height: 20 };
+    case 'tube':
+      return { type: 'tube', outerRadius: 10, innerRadius: 6, height: 20, radialSegments: 32 };
+    case 'dome':
+      return { type: 'dome', radius: 10, widthSegments: 32, heightSegments: 16 };
+    case 'polygon':
+      return { type: 'polygon', sides: 6, radius: 10, height: 20 };
+    case 'ellipsoid':
+      return { type: 'ellipsoid', radiusX: 12, radiusY: 8, radiusZ: 10, widthSegments: 32, heightSegments: 16 };
+    case 'capsule':
+      return { type: 'capsule', radius: 6, length: 14, capSegments: 8, radialSegments: 16 };
+    case 'torusknot':
+      return { type: 'torusknot', radius: 10, tube: 3, tubularSegments: 64, radialSegments: 8, p: 2, q: 3 };
     default:
       return null;
   }
@@ -82,9 +116,9 @@ export default function ShapeLibrary() {
       >
         <div data-testid="shape-library-list" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {PRIMITIVE_TYPES.map((type) => (
-            <Tooltip key={type} title={`Add ${type}`} placement="left">
+            <Tooltip key={type} title={`Add ${labelForType(type)}`} placement="left">
               <Button data-testid={`toolbar-add-${type}`} block onClick={() => handleAdd(type)}>
-                {type.charAt(0).toUpperCase() + type.slice(1)}
+                {labelForType(type)}
               </Button>
             </Tooltip>
           ))}

@@ -9,6 +9,15 @@ const CASES: { type: PrimitiveType; sectionTestId: string; checkTestId: string; 
   { type: 'cone',     sectionTestId: 'section-geometry-cone',     checkTestId: 'prop-geometry-cone-radius',   expected: 10 },
   { type: 'torus',    sectionTestId: 'section-geometry-torus',    checkTestId: 'prop-geometry-torus-radius',  expected: 10 },
   { type: 'beerglass', sectionTestId: 'section-geometry-beer-glass', checkTestId: 'prop-geometry-beer-glass-r-rim', expected: 37.5 },
+  { type: 'wedge',    sectionTestId: 'section-geometry-wedge',    checkTestId: 'prop-geometry-wedge-w',    expected: 20 },
+  { type: 'roof',     sectionTestId: 'section-geometry-roof',     checkTestId: 'prop-geometry-roof-w',     expected: 20 },
+  { type: 'pyramid',  sectionTestId: 'section-geometry-pyramid',  checkTestId: 'prop-geometry-pyramid-w',  expected: 20 },
+  { type: 'tube',     sectionTestId: 'section-geometry-tube',     checkTestId: 'prop-geometry-tube-r-outer', expected: 10 },
+  { type: 'dome',     sectionTestId: 'section-geometry-dome',     checkTestId: 'prop-geometry-dome-radius', expected: 10 },
+  { type: 'polygon',   sectionTestId: 'section-geometry-polygon-prism', checkTestId: 'prop-geometry-polygon-prism-sides', expected: 6 },
+  { type: 'ellipsoid', sectionTestId: 'section-geometry-ellipsoid',     checkTestId: 'prop-geometry-ellipsoid-r-x',       expected: 12 },
+  { type: 'capsule',   sectionTestId: 'section-geometry-capsule',       checkTestId: 'prop-geometry-capsule-radius',      expected: 6 },
+  { type: 'torusknot', sectionTestId: 'section-geometry-torus-knot',    checkTestId: 'prop-geometry-torus-knot-radius',   expected: 10 },
 ];
 
 for (const { type, sectionTestId, checkTestId, expected } of CASES) {

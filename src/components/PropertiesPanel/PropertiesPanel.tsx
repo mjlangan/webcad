@@ -182,6 +182,85 @@ function GeometryFields({
           <NumField label="Segments"           value={geometry.radialSegments} step={1} min={3} onChange={(v) => onUpdate({ ...geometry, radialSegments: Math.max(3, Math.round(v)) })} />
         </Section>
       );
+    case 'wedge':
+      return (
+        <Section title="Geometry — Wedge">
+          <NumField label="W" unit="mm" value={geometry.width}  onChange={(v) => onUpdate({ ...geometry, width:  v })} />
+          <NumField label="D" unit="mm" value={geometry.depth}  onChange={(v) => onUpdate({ ...geometry, depth:  v })} />
+          <NumField label="H" unit="mm" value={geometry.height} onChange={(v) => onUpdate({ ...geometry, height: v })} />
+        </Section>
+      );
+    case 'roof':
+      return (
+        <Section title="Geometry — Roof">
+          <NumField label="W" unit="mm" value={geometry.width}  onChange={(v) => onUpdate({ ...geometry, width:  v })} />
+          <NumField label="D" unit="mm" value={geometry.depth}  onChange={(v) => onUpdate({ ...geometry, depth:  v })} />
+          <NumField label="H" unit="mm" value={geometry.height} onChange={(v) => onUpdate({ ...geometry, height: v })} />
+        </Section>
+      );
+    case 'pyramid':
+      return (
+        <Section title="Geometry — Pyramid">
+          <NumField label="W" unit="mm" value={geometry.width}  onChange={(v) => onUpdate({ ...geometry, width:  v })} />
+          <NumField label="D" unit="mm" value={geometry.depth}  onChange={(v) => onUpdate({ ...geometry, depth:  v })} />
+          <NumField label="H" unit="mm" value={geometry.height} onChange={(v) => onUpdate({ ...geometry, height: v })} />
+        </Section>
+      );
+    case 'tube':
+      return (
+        <Section title="Geometry — Tube">
+          <NumField label="R Outer" unit="mm" value={geometry.outerRadius} min={0.1} onChange={(v) => onUpdate({ ...geometry, outerRadius: v })} />
+          <NumField label="R Inner" unit="mm" value={geometry.innerRadius} min={0}   onChange={(v) => onUpdate({ ...geometry, innerRadius: v })} />
+          <NumField label="Height"  unit="mm" value={geometry.height}                onChange={(v) => onUpdate({ ...geometry, height:      v })} />
+          <NumField label="Segments"          value={geometry.radialSegments} step={1} min={3} onChange={(v) => onUpdate({ ...geometry, radialSegments: Math.max(3, Math.round(v)) })} />
+        </Section>
+      );
+    case 'dome':
+      return (
+        <Section title="Geometry — Dome">
+          <NumField label="Radius"     unit="mm" value={geometry.radius}         onChange={(v) => onUpdate({ ...geometry, radius:         v })} />
+          <NumField label="Width Seg"            value={geometry.widthSegments}  step={1} min={3} onChange={(v) => onUpdate({ ...geometry, widthSegments:  Math.max(3,  Math.round(v)) })} />
+          <NumField label="Height Seg"           value={geometry.heightSegments} step={1} min={1} onChange={(v) => onUpdate({ ...geometry, heightSegments: Math.max(1,  Math.round(v)) })} />
+        </Section>
+      );
+    case 'polygon':
+      return (
+        <Section title="Geometry — Polygon Prism">
+          <NumField label="Sides"   value={geometry.sides} step={1} min={3} onChange={(v) => onUpdate({ ...geometry, sides: Math.max(3, Math.round(v)) })} />
+          <NumField label="Radius" unit="mm" value={geometry.radius} onChange={(v) => onUpdate({ ...geometry, radius: v })} />
+          <NumField label="Height" unit="mm" value={geometry.height} onChange={(v) => onUpdate({ ...geometry, height: v })} />
+        </Section>
+      );
+    case 'ellipsoid':
+      return (
+        <Section title="Geometry — Ellipsoid">
+          <NumField label="R X"        unit="mm" value={geometry.radiusX}       onChange={(v) => onUpdate({ ...geometry, radiusX:       v })} />
+          <NumField label="R Y"        unit="mm" value={geometry.radiusY}       onChange={(v) => onUpdate({ ...geometry, radiusY:       v })} />
+          <NumField label="R Z"        unit="mm" value={geometry.radiusZ}       onChange={(v) => onUpdate({ ...geometry, radiusZ:       v })} />
+          <NumField label="Width Seg"            value={geometry.widthSegments}  step={1} min={3} onChange={(v) => onUpdate({ ...geometry, widthSegments:  Math.max(3, Math.round(v)) })} />
+          <NumField label="Height Seg"           value={geometry.heightSegments} step={1} min={2} onChange={(v) => onUpdate({ ...geometry, heightSegments: Math.max(2, Math.round(v)) })} />
+        </Section>
+      );
+    case 'capsule':
+      return (
+        <Section title="Geometry — Capsule">
+          <NumField label="Radius" unit="mm" value={geometry.radius} min={0.1} onChange={(v) => onUpdate({ ...geometry, radius: v })} />
+          <NumField label="Length" unit="mm" value={geometry.length} min={0}  onChange={(v) => onUpdate({ ...geometry, length: v })} />
+          <NumField label="Cap Seg"          value={geometry.capSegments}    step={1} min={1} onChange={(v) => onUpdate({ ...geometry, capSegments:    Math.max(1, Math.round(v)) })} />
+          <NumField label="Rad Seg"          value={geometry.radialSegments} step={1} min={3} onChange={(v) => onUpdate({ ...geometry, radialSegments: Math.max(3, Math.round(v)) })} />
+        </Section>
+      );
+    case 'torusknot':
+      return (
+        <Section title="Geometry — Torus Knot">
+          <NumField label="Radius"   unit="mm" value={geometry.radius}          onChange={(v) => onUpdate({ ...geometry, radius:          v })} />
+          <NumField label="Tube"     unit="mm" value={geometry.tube}            onChange={(v) => onUpdate({ ...geometry, tube:            v })} />
+          <NumField label="Tube Seg"           value={geometry.tubularSegments} step={1} min={3} onChange={(v) => onUpdate({ ...geometry, tubularSegments: Math.max(3, Math.round(v)) })} />
+          <NumField label="Rad Seg"            value={geometry.radialSegments}  step={1} min={3} onChange={(v) => onUpdate({ ...geometry, radialSegments:  Math.max(3, Math.round(v)) })} />
+          <NumField label="P"                  value={geometry.p} step={1} min={1} onChange={(v) => onUpdate({ ...geometry, p: Math.max(1, Math.round(v)) })} />
+          <NumField label="Q"                  value={geometry.q} step={1} min={1} onChange={(v) => onUpdate({ ...geometry, q: Math.max(1, Math.round(v)) })} />
+        </Section>
+      );
     case 'imported':
       return (
         <Section title="Geometry — Imported">

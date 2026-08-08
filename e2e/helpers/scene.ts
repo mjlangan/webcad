@@ -1,6 +1,9 @@
 import type { Page } from '@playwright/test';
 
-export type PrimitiveType = 'box' | 'sphere' | 'cylinder' | 'cone' | 'torus' | 'beerglass';
+export type PrimitiveType =
+  | 'box' | 'sphere' | 'cylinder' | 'cone' | 'torus' | 'beerglass'
+  | 'wedge' | 'roof' | 'pyramid' | 'tube' | 'dome'
+  | 'polygon' | 'ellipsoid' | 'capsule' | 'torusknot';
 
 /** Clicks the toolbar "Add <type>" button and returns the new node's id. Adding auto-selects it. */
 export async function addPrimitive(page: Page, type: PrimitiveType): Promise<string> {

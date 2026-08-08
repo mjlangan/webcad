@@ -14,6 +14,15 @@ function labelFor(geometry: PrimitiveParams): string {
     case 'cone':       return 'Cone';
     case 'torus':      return 'Torus';
     case 'beerglass':  return 'Beer Glass';
+    case 'wedge':      return 'Wedge';
+    case 'roof':       return 'Roof';
+    case 'pyramid':    return 'Pyramid';
+    case 'tube':       return 'Tube';
+    case 'dome':       return 'Dome';
+    case 'polygon':    return 'Polygon Prism';
+    case 'ellipsoid':  return 'Ellipsoid';
+    case 'capsule':    return 'Capsule';
+    case 'torusknot':  return 'Torus Knot';
     case 'imported':   return geometry.originalName;
     case 'group':      return 'Group';
   }

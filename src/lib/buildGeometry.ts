@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
+import { ConvexGeometry } from 'three/examples/jsm/geometries/ConvexGeometry.js';
 import type { PrimitiveParams } from '../types/scene';
 import { meshGeometryMap } from './meshGeometryMap';
 
@@ -81,6 +82,112 @@ export function buildGeometry(params: PrimitiveParams): THREE.BufferGeometry {
       topCap.rotateX(-Math.PI / 2);
       topCap.translate(0, h, 0);
       return mergeGeometries([lathe, topCap]) ?? new THREE.BufferGeometry();
+    }
+    case 'wedge': {
+      const { width: w, depth: d, height: h } = params;
+      const points = [
+        new THREE.Vector3(-w / 2, 0, -d / 2),
+        new THREE.Vector3(w / 2, 0, -d / 2),
+        new THREE.Vector3(-w / 2, 0, d / 2),
+        new THREE.Vector3(w / 2, 0, d / 2),
+        new THREE.Vector3(-w / 2, h, -d / 2),
+        new THREE.Vector3(w / 2, h, -d / 2),
+      ];
+      return new ConvexGeometry(points);
+    }
+    case 'roof': {
+      const { width: w, depth: d, height: h } = params;
+      const points = [
+        new THREE.Vector3(-w / 2, 0, -d / 2),
+        new THREE.Vector3(w / 2, 0, -d / 2),
+        new THREE.Vector3(-w / 2, 0, d / 2),
+        new THREE.Vector3(w / 2, 0, d / 2),
+        new THREE.Vector3(-w / 2, h, 0),
+        new THREE.Vector3(w / 2, h, 0),
+      ];
+      return new ConvexGeometry(points);
+    }
+    case 'pyramid': {
+      const { width: w, depth: d, height: h } = params;
+      const points = [
+        new THREE.Vector3(-w / 2, 0, -d / 2),
+        new THREE.Vector3(w / 2, 0, -d / 2),
+        new THREE.Vector3(-w / 2, 0, d / 2),
+        new THREE.Vector3(w / 2, 0, d / 2),
+        new THREE.Vector3(0, h, 0),
+      ];
+      return new ConvexGeometry(points);
+    }
+    case 'tube': {
+      const outerShape = new THREE.Shape();
+      outerShape.absarc(0, 0, params.outerRadius, 0, Math.PI * 2, false);
+      const innerHole = new THREE.Path();
+      innerHole.absarc(0, 0, params.innerRadius, 0, Math.PI * 2, true);
+      outerShape.holes.push(innerHole);
+      const geo = new THREE.ExtrudeGeometry(outerShape, {
+        depth: params.height,
+        bevelEnabled: false,
+        curveSegments: params.radialSegments,
+      });
+      // Extrusion runs along +Z by default; rotate it onto +Y (up), bottom-aligned at y=0.
+      geo.rotateX(-Math.PI / 2);
+      return geo;
+    }
+    case 'dome': {
+      // thetaLength = PI/2 keeps only the upper half (pole at y=radius down to the
+      // equator at y=0) — already bottom-aligned, no translate needed.
+      const shell = new THREE.SphereGeometry(
+        params.radius,
+        params.widthSegments,
+        params.heightSegments,
+        0, Math.PI * 2,
+        0, Math.PI / 2,
+      );
+      const cap = new THREE.CircleGeometry(params.radius, params.widthSegments);
+      cap.rotateX(Math.PI / 2); // face the cap downward to close the open equator
+      return mergeGeometries([shell, cap]) ?? new THREE.BufferGeometry();
+    }
+    case 'polygon': {
+      const geo = new THREE.CylinderGeometry(
+        params.radius,
+        params.radius,
+        params.height,
+        params.sides,
+      );
+      geo.translate(0, params.height / 2, 0);
+      return geo;
+    }
+    case 'ellipsoid': {
+      const geo = new THREE.SphereGeometry(1, params.widthSegments, params.heightSegments);
+      geo.scale(params.radiusX, params.radiusY, params.radiusZ);
+      geo.translate(0, params.radiusY, 0);
+      return geo;
+    }
+    case 'capsule': {
+      const geo = new THREE.CapsuleGeometry(
+        params.radius,
+        params.length,
+        params.capSegments,
+        params.radialSegments,
+      );
+      geo.translate(0, params.radius + params.length / 2, 0);
+      return geo;
+    }
+    case 'torusknot': {
+      const geo = new THREE.TorusKnotGeometry(
+        params.radius,
+        params.tube,
+        params.tubularSegments,
+        params.radialSegments,
+        params.p,
+        params.q,
+      );
+      // Unlike the other shapes, a torus knot's vertical extent isn't a clean
+      // function of its params (depends on the p/q winding), so bottom-align
+      // by measuring the actual bounding box instead of a formula.
+      geo.computeBoundingBox();
+      geo.translate(0, -geo.boundingBox!.min.y, 0);
+      return geo;
     }
     case 'imported': {
       const geo = meshGeometryMap.get(params.meshId);

@@ -36,9 +36,12 @@ The guiding principle is **approachability over completeness**: the tool should 
 - Selection highlight on hover and click
 
 ### Primitives
-- Box, Sphere, Cylinder, Cone, Torus
-- Placed at world origin by default
-- Editable parameters (radius, width, height, segments, etc.)
+- Basic: Box, Sphere, Cylinder, Cone, Torus
+- Extended: Wedge, Roof, Pyramid, Tube, Dome, Polygon Prism, Ellipsoid, Capsule, Torus Knot
+- Novelty: Beer Glass (Superfest profile)
+- Presented in a scrollable right-side "Shape Library" drawer, toggled by a docked edge handle
+- Placed at the active workplane origin by default (see Reference Planes)
+- Editable parameters (radius, width, height, segments, etc.) in the Properties panel
 
 ### Transform Tools
 - Move (translate along axis or plane)
@@ -379,6 +382,20 @@ App
 - [x] Drop to workplane: translate the selected object along the workplane normal until its lowest point touches the workplane surface; Drop button in Workplane toolbar section; fully undoable
 - [x] Drop to workplane (face align): user clicks a face on the selected object; the object is re-oriented and translated so that chosen face lies flush on the workplane
 - [x] Adopt antd as the UI component library; migrate all controls to antd components and inline styles (CSS files removed)
+
+### Phase 8.5 — Extended Primitive Library ✅
+**Goal:** Round out the primitive set with the shapes most common CAD/3D-print tools offer, beyond the original five.
+
+- [x] 9 new primitives added in three priority-ordered batches: Wedge, Roof, Tube, Pyramid, Dome (high priority — present in nearly every basic-shapes CAD/print tool); Polygon Prism, Ellipsoid, Capsule (medium — convenience shapes, each technically achievable today via an existing primitive + transform, but not discoverably); Torus Knot (low priority/novelty)
+- [x] Wedge, Roof, Pyramid built via `ConvexGeometry` (`three/examples/jsm/geometries/ConvexGeometry.js`) from 5–6 explicit corner points — guarantees a closed, manifold hull with no custom face/index bookkeeping
+- [x] Tube built from a `THREE.Shape` outer circle with a `THREE.Path` inner circle pushed to `.holes`, extruded via `THREE.ExtrudeGeometry`
+- [x] Dome built as a hemisphere (`SphereGeometry` with `thetaLength = π/2`) with its open equator capped by a `CircleGeometry`, merged via `mergeGeometries` — the same two-piece technique the Beer Glass primitive already used for its rim
+- [x] Polygon Prism is `CylinderGeometry` with a friendlier "sides" control (Cylinder already supported this via radial segments, just not discoverably)
+- [x] Ellipsoid is a unit `SphereGeometry` with a non-uniform `geo.scale(rx, ry, rz)` baked into the geometry itself, independent of the node's own transform scale
+- [x] Capsule and Torus Knot use three.js's built-in `CapsuleGeometry` / `TorusKnotGeometry` directly
+- [x] All shapes bottom-aligned (sit flush on the workplane at y=0) — most via an analytic `translate()`, Torus Knot via `computeBoundingBox()` since its vertical extent isn't a clean function of its `p`/`q` winding params
+- [x] Every shape wired through the existing pattern end-to-end: `PrimitiveParams` union (`types/scene.ts`), `buildGeometry` case, `labelFor` naming (`useSceneStore.ts`), Shape Library button + defaults, Properties panel editor section, e2e `primitives.spec.ts` case, and `buildGeometry.test.ts` unit coverage
+- [x] Verified manifold/CSG-safe: each new shape spot-checked with a boolean union against a Box, confirming no `csgError` — the real test that a shape is a properly closed solid, not just an open shell
 
 ### Phase 9 — Edge Selection, Fillet, and Chamfer
 **Goal:** Users can select individual edges on any mesh and apply fillet (rounded) or chamfer (angled) operations — the primary use case being smoothing the seam after a boolean union.
