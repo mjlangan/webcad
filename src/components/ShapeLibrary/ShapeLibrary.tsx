@@ -27,15 +27,15 @@ function buildPrimitiveGeometry(type: string): PrimitiveParams | null {
     case 'box':
       return { type: 'box', width: 20, height: 20, depth: 20 };
     case 'sphere':
-      return { type: 'sphere', radius: 10, widthSegments: 32, heightSegments: 16 };
+      return { type: 'sphere', radius: 10, widthSegments: 64, heightSegments: 32 };
     case 'cylinder':
       return { type: 'cylinder', radiusTop: 10, radiusBottom: 10, height: 20, radialSegments: 64 };
     case 'cone':
-      return { type: 'cone', radius: 10, height: 20, radialSegments: 32 };
+      return { type: 'cone', radius: 10, height: 20, radialSegments: 64 };
     case 'torus':
-      return { type: 'torus', radius: 10, tube: 4, radialSegments: 16, tubularSegments: 64 };
+      return { type: 'torus', radius: 10, tube: 4, radialSegments: 64, tubularSegments: 64 };
     case 'beerglass':
-      return { type: 'beerglass', radiusUpper: 37.5, radiusLower: 34.2, height: 165, radialSegments: 32 };
+      return { type: 'beerglass', radiusUpper: 37.5, radiusLower: 34.2, height: 165, radialSegments: 64 };
     case 'wedge':
       return { type: 'wedge', width: 20, depth: 20, height: 20 };
     case 'roof':
@@ -43,17 +43,17 @@ function buildPrimitiveGeometry(type: string): PrimitiveParams | null {
     case 'pyramid':
       return { type: 'pyramid', width: 20, depth: 20, height: 20 };
     case 'tube':
-      return { type: 'tube', outerRadius: 10, innerRadius: 6, height: 20, radialSegments: 32 };
+      return { type: 'tube', outerRadius: 10, innerRadius: 6, height: 20, radialSegments: 64 };
     case 'dome':
-      return { type: 'dome', radius: 10, widthSegments: 32, heightSegments: 16 };
+      return { type: 'dome', radius: 10, widthSegments: 64, heightSegments: 32 };
     case 'polygon':
       return { type: 'polygon', sides: 6, radius: 10, height: 20 };
     case 'ellipsoid':
-      return { type: 'ellipsoid', radiusX: 12, radiusY: 8, radiusZ: 10, widthSegments: 32, heightSegments: 16 };
+      return { type: 'ellipsoid', radiusX: 12, radiusY: 8, radiusZ: 10, widthSegments: 64, heightSegments: 32 };
     case 'capsule':
-      return { type: 'capsule', radius: 6, length: 14, capSegments: 8, radialSegments: 16 };
+      return { type: 'capsule', radius: 6, length: 14, capSegments: 32, radialSegments: 64 };
     case 'torusknot':
-      return { type: 'torusknot', radius: 10, tube: 3, tubularSegments: 64, radialSegments: 8, p: 2, q: 3 };
+      return { type: 'torusknot', radius: 10, tube: 3, tubularSegments: 64, radialSegments: 64, p: 2, q: 3 };
     default:
       return null;
   }
