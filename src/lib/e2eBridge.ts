@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import type { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { useSceneStore } from '../store/useSceneStore';
 import { worldToPagePx } from './screenProjection';
 
@@ -17,6 +18,11 @@ export interface E2ERotateMarker {
 export interface E2EBridge {
   store: typeof useSceneStore;
   three: E2EThreeSetup | null;
+  /** The live OrbitControls instance. Its `target` must be kept in sync with
+   *  any manual camera repositioning — its per-frame `update()` call (wired
+   *  into the render loop) re-derives the camera's look direction from this
+   *  target every frame, silently overriding a one-off `camera.lookAt()`. */
+  controls: OrbitControls | null;
   /** Populated only while a rotate-mode gizmo drag is in progress; null otherwise. */
   rotateMarkers: E2ERotateMarker[] | null;
   /** World point (plain numbers so it's JSON-serializable across page.evaluate) -> page px, or null if not ready. */
@@ -42,6 +48,7 @@ export function installE2EBridge(): void {
   window.__E2E__ = {
     store: useSceneStore,
     three: null,
+    controls: null,
     rotateMarkers: null,
     worldToPagePx: (x, y, z) => {
       const three = window.__E2E__?.three;

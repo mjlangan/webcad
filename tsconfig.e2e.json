@@ -11,5 +11,5 @@
     "noUnusedParameters": true,
     "noEmit": true
   },
-  "include": ["e2e", "playwright.config.ts", "src/lib/e2eBridge.ts"]
+  "include": ["e2e", "scripts", "playwright.config.ts", "src/lib/e2eBridge.ts"]
 }

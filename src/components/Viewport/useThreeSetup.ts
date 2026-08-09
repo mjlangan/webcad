@@ -18,7 +18,7 @@ export function useThreeSetup(
     if (!canvas) return;
 
     // Renderer — setSize(w, h, false) prevents Three.js injecting inline styles
-    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;

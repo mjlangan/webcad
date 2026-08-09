@@ -9,7 +9,8 @@ export default defineConfig({
   test: {
     environment: 'node',
     // Vitest's default include glob would otherwise also pick up e2e/**/*.spec.ts
-    // (Playwright specs, run separately via `npm run test:e2e`).
-    exclude: [...defaultExclude, 'e2e/**'],
+    // and scripts/**/*.spec.ts (Playwright specs, run separately via
+    // `npm run test:e2e` / `npm run generate:thumbnails`).
+    exclude: [...defaultExclude, 'e2e/**', 'scripts/**'],
   },
 })

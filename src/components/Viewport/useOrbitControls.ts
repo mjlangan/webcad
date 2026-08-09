@@ -44,6 +44,9 @@ export function useOrbitControls(
 
     controlsRef.current = controls;
     onBeforeRenderRef.current = () => controls.update();
+    if (import.meta.env.VITE_E2E && window.__E2E__) {
+      window.__E2E__.controls = controls;
+    }
 
     return () => {
       window.removeEventListener('keydown', onKeyDown);
@@ -51,6 +54,9 @@ export function useOrbitControls(
       controls.dispose();
       controlsRef.current = null;
       onBeforeRenderRef.current = null;
+      if (import.meta.env.VITE_E2E && window.__E2E__) {
+        window.__E2E__.controls = null;
+      }
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 

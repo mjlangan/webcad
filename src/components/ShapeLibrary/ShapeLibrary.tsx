@@ -1,15 +1,33 @@
 import { useState } from 'react';
-import { Button, Drawer, Tooltip } from 'antd';
+import { Drawer, Tooltip } from 'antd';
 import { useSceneStore } from '../../store/useSceneStore';
 import type { PrimitiveParams } from '../../types/scene';
 
 const PRIMITIVE_TYPES = [
   'box', 'sphere', 'cylinder', 'cone', 'torus',
   'wedge', 'roof', 'pyramid', 'tube', 'dome',
-  'polygon', 'ellipsoid', 'capsule',
-  'torusknot',
+  'polygon', 'ellipsoid', 'capsule', 'torusknot',
+  'beerglass',
 ] as const;
-const DRAWER_WIDTH = 200;
+
+// Single knob controlling tile size — the tile grid below is a flex-wrap
+// container (not a fixed-column CSS grid), so it stays responsive: however
+// many TILE_SIZE-wide tiles fit the drawer's current width is how many show
+// per row.
+const TILE_SIZE = 90;
+const DRAWER_WIDTH = 2 * TILE_SIZE + 40;
+
+// Rendered thumbnails (scripts/generate-shape-thumbnails.spec.ts), keyed by
+// type. Regenerate via `npm run generate:thumbnails` whenever a shape's
+// default params or geometry construction changes.
+const THUMBNAILS = import.meta.glob('../../assets/shapeThumbnails/*.png', { eager: true }) as Record<
+  string,
+  { default: string }
+>;
+function thumbnailFor(type: string): string | undefined {
+  const entry = Object.entries(THUMBNAILS).find(([path]) => path.endsWith(`/${type}.png`));
+  return entry?.[1].default;
+}
 
 // Overrides for types whose display name isn't just a capitalized single word.
 const PRIMITIVE_LABELS: Partial<Record<string, string>> = {
@@ -59,12 +77,13 @@ function buildPrimitiveGeometry(type: string): PrimitiveParams | null {
   }
 }
 
-/** Right-side pop-out drawer listing every addable primitive as a scrollable button list,
- *  plus a docked edge handle that stays visible (and slides with the drawer) so it can be
- *  reopened at any time. Rendered inside `.app-viewport` (a positioned container that
- *  already excludes the toolbar row) with `getContainer={false}` / `position: absolute` so
- *  it's confined to the viewport area and never overlaps — or intercepts clicks on — the
- *  toolbar above it. */
+/** Right-side pop-out drawer showing every addable primitive as a scrollable,
+ *  responsive tile grid (rendered thumbnail + label per tile), plus a docked
+ *  edge handle that stays visible (and slides with the drawer) so it can be
+ *  reopened at any time. Rendered inside `.app-viewport` (a positioned
+ *  container that already excludes the toolbar row) with `getContainer={false}`
+ *  / `position: absolute` so it's confined to the viewport area and never
+ *  overlaps — or intercepts clicks on — the toolbar above it. */
 export default function ShapeLibrary() {
   const [open, setOpen] = useState(false);
   const addNode = useSceneStore((s) => s.addNode);
@@ -87,20 +106,24 @@ export default function ShapeLibrary() {
         }}
       >
         <Tooltip title={open ? 'Close shape library' : 'Open shape library'} placement="left">
-          <Button
+          <button
             data-testid="shape-library-handle"
-            type={open ? 'primary' : 'default'}
             onClick={() => setOpen((v) => !v)}
             style={{
               writingMode: 'vertical-rl',
               height: 92,
               padding: '10px 6px',
-              borderTopRightRadius: 0,
-              borderBottomRightRadius: 0,
+              cursor: 'pointer',
+              border: '1px solid #424242',
+              borderRight: 'none',
+              borderRadius: '3px 0 0 3px',
+              background: open ? '#4488ff' : '#1f1f1f',
+              color: '#fff',
+              fontSize: 14,
             }}
           >
             Shapes
-          </Button>
+          </button>
         </Tooltip>
       </div>
 
@@ -114,19 +137,41 @@ export default function ShapeLibrary() {
         width={DRAWER_WIDTH}
         styles={{ body: { padding: 8, overflowY: 'auto' } }}
       >
-        <div data-testid="shape-library-list" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div
+          data-testid="shape-library-list"
+          style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'flex-start' }}
+        >
           {PRIMITIVE_TYPES.map((type) => (
-            <Tooltip key={type} title={`Add ${labelForType(type)}`} placement="left">
-              <Button data-testid={`toolbar-add-${type}`} block onClick={() => handleAdd(type)}>
-                {labelForType(type)}
-              </Button>
+            <Tooltip key={type} title={`Add ${labelForType(type)}`} placement="top">
+              <button
+                data-testid={`toolbar-add-${type}`}
+                onClick={() => handleAdd(type)}
+                style={{
+                  width: TILE_SIZE,
+                  height: TILE_SIZE,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'flex-end',
+                  gap: 2,
+                  padding: '4px 4px 6px',
+                  cursor: 'pointer',
+                  border: '1px solid #303030',
+                  borderRadius: 4,
+                  background: '#1a1a1a',
+                }}
+              >
+                <img
+                  src={thumbnailFor(type)}
+                  alt=""
+                  style={{ flex: 1, minHeight: 0, width: '100%', objectFit: 'contain' }}
+                />
+                <span style={{ fontSize: 11, color: '#ccc', textAlign: 'center', lineHeight: 1.2 }}>
+                  {labelForType(type)}
+                </span>
+              </button>
             </Tooltip>
           ))}
-          <Tooltip title="Add beer glass (Superfest)" placement="left">
-            <Button data-testid="toolbar-add-beerglass" block onClick={() => handleAdd('beerglass')}>
-              Beer Glass
-            </Button>
-          </Tooltip>
         </div>
       </Drawer>
     </>
