@@ -119,10 +119,14 @@ export function buildGeometry(params: PrimitiveParams): THREE.BufferGeometry {
       return new ConvexGeometry(points);
     }
     case 'tube': {
+      // Guard against a hole as big as (or bigger than) the tube itself — e.g. from
+      // a scene file saved before this constraint existed — which would otherwise
+      // hand ExtrudeGeometry a self-intersecting shape.
+      const innerRadius = Math.min(params.innerRadius, params.outerRadius - 0.01);
       const outerShape = new THREE.Shape();
       outerShape.absarc(0, 0, params.outerRadius, 0, Math.PI * 2, false);
       const innerHole = new THREE.Path();
-      innerHole.absarc(0, 0, params.innerRadius, 0, Math.PI * 2, true);
+      innerHole.absarc(0, 0, innerRadius, 0, Math.PI * 2, true);
       outerShape.holes.push(innerHole);
       const geo = new THREE.ExtrudeGeometry(outerShape, {
         depth: params.height,

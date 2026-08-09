@@ -276,6 +276,15 @@ describe('buildGeometry — tube', () => {
     const geo = buildGeometry({ type: 'tube', outerRadius: 10, innerRadius: 6, height: 20, radialSegments: 16 });
     expect(boundingMinY(geo)).toBeCloseTo(0, 1);
   });
+
+  it('an inner radius larger than the outer radius (e.g. from an old scene file) is clamped, not left to blow out the silhouette', () => {
+    // Unclamped, ExtrudeGeometry lets the (larger) hole path dominate the outer
+    // boundary, so the bounding box balloons out to the inner radius instead of
+    // staying bounded by the outer one — a self-intersecting, broken shape.
+    const geo = buildGeometry({ type: 'tube', outerRadius: 10, innerRadius: 15, height: 20, radialSegments: 16 });
+    const size = boundingSize(geo);
+    expect(size.x).toBeCloseTo(20, 0); // stays bounded by outerRadius (2×10), not 2×15
+  });
 });
 
 // ── dome ───────────────────────────────────────────────────────────────────────
