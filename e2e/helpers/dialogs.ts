@@ -16,3 +16,33 @@ export async function stubOutFileSystemAccessApi(page: Page): Promise<void> {
     delete window.showSaveFilePicker;
   });
 }
+
+/**
+ * Stubs showSaveFilePicker with a fake handle whose createWritable().write()
+ * captures the written text on window.__e2eSavedContent, so saveProject()'s
+ * File System Access API path (rather than the prompt+Blob download fallback)
+ * can be exercised and asserted on without driving a real native OS picker.
+ * Must be called before gotoReady().
+ */
+export async function mockFileSystemAccessApiSave(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    // @ts-expect-error test-only override — not in this lib target
+    window.showSaveFilePicker = async () => ({
+      createWritable: async () => ({
+        write: async (data: string) => {
+          // @ts-expect-error test-only global, read back via getMockedSavedContent
+          window.__e2eSavedContent = data;
+        },
+        close: async () => {},
+      }),
+    });
+  });
+}
+
+/** Reads back the content captured by mockFileSystemAccessApiSave. */
+export function getMockedSavedContent(page: Page): Promise<string | undefined> {
+  return page.evaluate(() => {
+    // @ts-expect-error test-only global set by mockFileSystemAccessApiSave
+    return window.__e2eSavedContent as string | undefined;
+  });
+}
