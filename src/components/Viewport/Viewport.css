@@ -20,7 +20,7 @@
 .axes-gizmo {
   position: absolute;
   top: 12px;
-  right: 12px;
+  left: 12px;
   width: 80px;
   height: 80px;
   pointer-events: none;
