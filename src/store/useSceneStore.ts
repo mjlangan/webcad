@@ -108,7 +108,7 @@ export const useSceneStore = create<SceneState>((set, get) => ({
   selectedIds: [],
   transformMode: 'translate',
   transformAxisConstraint: null,
-  gridSnap: 1,
+  gridSnap: 0,
   workplane: DEFAULT_WORKPLANE,
   workplanePlacementMode: false,
   measureMode: false,
