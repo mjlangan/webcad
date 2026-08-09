@@ -1,6 +1,7 @@
 import { useEffect, type RefObject } from 'react';
 import * as THREE from 'three';
 import type { ThreeSetup } from './useThreeSetup';
+import { disposeMaterial } from './disposeMaterial';
 
 const SIZE = 80; // CSS pixels
 const LABEL_OFFSET = 0.38;
@@ -73,12 +74,12 @@ export function useAxesGizmo(
 
     return () => {
       cancelAnimationFrame(frameId);
-      (arrowX.line.material as THREE.Material).dispose();
-      (arrowX.cone.material as THREE.Material).dispose();
-      (arrowY.line.material as THREE.Material).dispose();
-      (arrowY.cone.material as THREE.Material).dispose();
-      (arrowZ.line.material as THREE.Material).dispose();
-      (arrowZ.cone.material as THREE.Material).dispose();
+      disposeMaterial(arrowX.line.material);
+      disposeMaterial(arrowX.cone.material);
+      disposeMaterial(arrowY.line.material);
+      disposeMaterial(arrowY.cone.material);
+      disposeMaterial(arrowZ.line.material);
+      disposeMaterial(arrowZ.cone.material);
       labelX.material.dispose();
       labelY.material.dispose();
       labelZ.material.dispose();

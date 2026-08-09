@@ -1,5 +1,6 @@
 import { useEffect, useRef, type RefObject } from 'react';
 import * as THREE from 'three';
+import { disposeMaterial } from './disposeMaterial';
 
 export interface ThreeSetup {
   scene: THREE.Scene;
@@ -86,8 +87,7 @@ export function useThreeSetup(
       scene.traverse((obj) => {
         if (obj instanceof THREE.Mesh) {
           obj.geometry.dispose();
-          const mats = Array.isArray(obj.material) ? obj.material : [obj.material];
-          mats.forEach((m: THREE.Material) => m.dispose());
+          disposeMaterial(obj.material);
         }
       });
       // dispose() releases GPU resources (buffers, programs, textures).

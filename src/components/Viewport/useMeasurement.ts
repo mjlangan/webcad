@@ -2,6 +2,7 @@ import { useEffect, useRef, type RefObject } from 'react';
 import * as THREE from 'three';
 import type { ThreeSetup } from './useThreeSetup';
 import { useSceneStore } from '../../store/useSceneStore';
+import { disposeMaterial } from './disposeMaterial';
 
 export interface MeasureOverlayState {
   pointA: THREE.Vector3;
@@ -162,9 +163,9 @@ export function useMeasurement(
       markerA.geometry.dispose();
       markerB.geometry.dispose();
       line.geometry.dispose();
-      (markerA.material as THREE.Material).dispose();
-      (markerB.material as THREE.Material).dispose();
-      (line.material as THREE.Material).dispose();
+      disposeMaterial(markerA.material);
+      disposeMaterial(markerB.material);
+      disposeMaterial(line.material);
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 

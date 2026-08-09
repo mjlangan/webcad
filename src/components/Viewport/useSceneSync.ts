@@ -4,6 +4,7 @@ import type { ThreeSetup } from './useThreeSetup';
 import { useSceneStore } from '../../store/useSceneStore';
 import { buildGeometry } from '../../lib/buildGeometry';
 import { computeWorldMatrix } from '../../lib/worldMatrix';
+import { disposeMaterial } from './disposeMaterial';
 
 const SELECTED_COLOR = new THREE.Color('#ff8822');
 const SELECTED_EMISSIVE = new THREE.Color('#331100');
@@ -104,7 +105,7 @@ export function useSceneSync(
         if (!seen.has(id)) {
           scene.remove(mesh);
           if (mesh.userData.ownedGeometry as boolean) mesh.geometry.dispose();
-          (mesh.material as THREE.Material).dispose();
+          disposeMaterial(mesh.material);
           meshMap.delete(id);
         }
       });
