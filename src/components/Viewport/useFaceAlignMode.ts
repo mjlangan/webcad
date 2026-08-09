@@ -7,6 +7,7 @@ import { TransformCommand } from '../../store/commands';
 import { collectDescendantIds } from '../../lib/worldMatrix';
 import { minSignedDistanceToPlane } from './sceneSampling';
 import type { Transform } from '../../types/scene';
+import { disposeMaterial } from './disposeMaterial';
 
 /**
  * Face-align mode: user clicks a face on the selected object and the object is
@@ -238,7 +239,7 @@ export function useFaceAlignMode(
       window.removeEventListener('keydown', onKeyDown);
       scene.remove(ghostPlane);
       ghostGeometry.dispose();
-      ghostMaterial.dispose();
+      disposeMaterial(ghostMaterial);
       clearHoverHighlight();
       canvas.style.cursor = '';
     };

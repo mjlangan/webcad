@@ -5,6 +5,7 @@ import { useSceneStore } from '../../store/useSceneStore';
 import { undoStack } from '../../store/undoStack';
 import { SetWorkplaneCommand } from '../../store/commands';
 import { createWorkplaneFromHit } from '../../lib/workplaneUtils';
+import { disposeMaterial } from './disposeMaterial';
 
 /**
  * Manages workplane placement mode:
@@ -154,7 +155,7 @@ export function useWorkplanePlacement(
       window.removeEventListener('keydown', onKeyDown);
       scene.remove(ghostPlane);
       ghostGeometry.dispose();
-      ghostMaterial.dispose();
+      disposeMaterial(ghostMaterial);
       clearHoverHighlight();
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps

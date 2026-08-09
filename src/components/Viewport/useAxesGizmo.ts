@@ -80,9 +80,9 @@ export function useAxesGizmo(
       disposeMaterial(arrowY.cone.material);
       disposeMaterial(arrowZ.line.material);
       disposeMaterial(arrowZ.cone.material);
-      labelX.material.dispose();
-      labelY.material.dispose();
-      labelZ.material.dispose();
+      disposeMaterial(labelX.material);
+      disposeMaterial(labelY.material);
+      disposeMaterial(labelZ.material);
       texX.dispose();
       texY.dispose();
       texZ.dispose();
