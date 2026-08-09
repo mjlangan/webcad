@@ -160,7 +160,6 @@ export interface SceneNode {
   id: string;
   name: string;
   visible: boolean;
-  locked: boolean;
   transform: Transform;
   geometry: PrimitiveParams;
   material: MaterialProps;

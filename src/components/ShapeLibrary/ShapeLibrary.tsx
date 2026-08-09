@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Drawer, Tooltip } from 'antd';
-import { useSceneStore } from '../../store/useSceneStore';
+import { undoStack } from '../../store/undoStack';
+import { AddNodeCommand } from '../../store/commands';
 import type { PrimitiveParams } from '../../types/scene';
 
 const PRIMITIVE_TYPES = [
@@ -86,11 +87,10 @@ function buildPrimitiveGeometry(type: string): PrimitiveParams | null {
  *  overlaps — or intercepts clicks on — the toolbar above it. */
 export default function ShapeLibrary() {
   const [open, setOpen] = useState(false);
-  const addNode = useSceneStore((s) => s.addNode);
 
   const handleAdd = (type: string) => {
     const geometry = buildPrimitiveGeometry(type);
-    if (geometry) addNode(geometry);
+    if (geometry) undoStack.push(new AddNodeCommand(geometry));
   };
 
   return (

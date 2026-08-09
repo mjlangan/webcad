@@ -2,8 +2,7 @@ import * as THREE from 'three';
 import { STLLoader } from 'three/addons/loaders/STLLoader.js';
 import { Evaluator, Brush, ADDITION, SUBTRACTION, INTERSECTION } from 'three-bvh-csg';
 import { geometryToStl } from '../lib/geometryToStl';
-
-type CsgOperation = 'union' | 'subtract' | 'intersect';
+import type { CsgOperation } from '../types/scene';
 
 interface CsgOperationMessage {
   type: 'CSG_OPERATION';

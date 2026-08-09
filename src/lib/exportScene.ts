@@ -3,36 +3,34 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import { OBJExporter } from 'three/addons/exporters/OBJExporter.js';
 import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
 import { strToU8, zipSync } from 'fflate';
-import { buildGeometry } from './buildGeometry';
+import { buildWorldGeometry as buildWorldGeometryBase } from './worldMatrix';
 import { geometryToStl } from './geometryToStl';
 import { triggerDownload } from './sceneFile';
 import { useSceneStore } from '../store/useSceneStore';
 import type { SceneNode } from '../types/scene';
 
-/** Returns the set of nodes to export: selection if non-empty, else all visible root nodes. */
-function getExportNodes(): SceneNode[] {
+/** Returns the set of nodes to export (selection if non-empty, else all
+ *  visible root nodes) alongside the full scene node list, which callers
+ *  need to resolve world transforms through parent chains. */
+function getExportNodes(): { exportNodes: SceneNode[]; allNodes: SceneNode[] } {
   const { nodes, selectedIds } = useSceneStore.getState();
-  if (selectedIds.length > 0) {
-    return nodes.filter((n) => selectedIds.includes(n.id) && n.visible);
-  }
-  return nodes.filter((n) => n.parentId === null && n.visible);
+  const exportNodes =
+    selectedIds.length > 0
+      ? nodes.filter((n) => selectedIds.includes(n.id) && n.visible)
+      : nodes.filter((n) => n.parentId === null && n.visible);
+  return { exportNodes, allNodes: nodes };
 }
 
-/** Returns a world-space geometry with the node's transform baked in. */
-export function buildWorldGeometry(node: SceneNode): THREE.BufferGeometry {
-  const geo = buildGeometry(node.geometry).clone();
-  const matrix = new THREE.Matrix4().compose(
-    new THREE.Vector3(...node.transform.position),
-    new THREE.Quaternion().setFromEuler(new THREE.Euler(...node.transform.rotation)),
-    new THREE.Vector3(...node.transform.scale),
-  );
-  geo.applyMatrix4(matrix);
+/** Returns a world-space geometry (full ancestor-chain transform baked in),
+ *  non-indexed for exporters that expect flat triangle lists. */
+export function buildWorldGeometry(node: SceneNode, nodes: SceneNode[]): THREE.BufferGeometry {
+  const geo = buildWorldGeometryBase(node, nodes);
   return geo.index ? geo.toNonIndexed() : geo;
 }
 
 /** Returns a THREE.Mesh with world-space geometry and a standard material. */
-function buildExportMesh(node: SceneNode): THREE.Mesh {
-  const geo = buildWorldGeometry(node);
+function buildExportMesh(node: SceneNode, nodes: SceneNode[]): THREE.Mesh {
+  const geo = buildWorldGeometry(node, nodes);
   geo.computeVertexNormals();
   const mat = new THREE.MeshStandardMaterial({
     color: node.material.color,
@@ -49,13 +47,13 @@ function buildExportMesh(node: SceneNode): THREE.Mesh {
 // ---------------------------------------------------------------------------
 
 export function exportStl(): void {
-  const nodes = getExportNodes();
-  if (nodes.length === 0) {
+  const { exportNodes, allNodes } = getExportNodes();
+  if (exportNodes.length === 0) {
     window.alert('Nothing to export.');
     return;
   }
 
-  const geos = nodes.map(buildWorldGeometry);
+  const geos = exportNodes.map((node) => buildWorldGeometry(node, allNodes));
   const merged = mergeGeometries(geos, false);
   geos.forEach((g) => g.dispose());
 
@@ -74,15 +72,15 @@ export function exportStl(): void {
 // ---------------------------------------------------------------------------
 
 export function exportObj(): void {
-  const nodes = getExportNodes();
-  if (nodes.length === 0) {
+  const { exportNodes, allNodes } = getExportNodes();
+  if (exportNodes.length === 0) {
     window.alert('Nothing to export.');
     return;
   }
 
   const group = new THREE.Group();
-  for (const node of nodes) {
-    group.add(buildExportMesh(node));
+  for (const node of exportNodes) {
+    group.add(buildExportMesh(node, allNodes));
   }
 
   const exporter = new OBJExporter();
@@ -101,15 +99,15 @@ export function exportObj(): void {
 // ---------------------------------------------------------------------------
 
 export async function exportGltf(): Promise<void> {
-  const nodes = getExportNodes();
-  if (nodes.length === 0) {
+  const { exportNodes, allNodes } = getExportNodes();
+  if (exportNodes.length === 0) {
     window.alert('Nothing to export.');
     return;
   }
 
   const group = new THREE.Group();
-  for (const node of nodes) {
-    group.add(buildExportMesh(node));
+  for (const node of exportNodes) {
+    group.add(buildExportMesh(node, allNodes));
   }
 
   const exporter = new GLTFExporter();
@@ -129,8 +127,8 @@ export async function exportGltf(): Promise<void> {
 // 3MF
 // ---------------------------------------------------------------------------
 
-export function buildObjectXml(node: SceneNode, objectId: number): string {
-  const geo = buildWorldGeometry(node);
+export function buildObjectXml(node: SceneNode, objectId: number, nodes: SceneNode[]): string {
+  const geo = buildWorldGeometry(node, nodes);
   const pos = geo.getAttribute('position') as THREE.BufferAttribute;
   const triangleCount = pos.count / 3;
 
@@ -161,8 +159,8 @@ export function buildObjectXml(node: SceneNode, objectId: number): string {
 }
 
 export function export3mf(): void {
-  const nodes = getExportNodes();
-  if (nodes.length === 0) {
+  const { exportNodes, allNodes } = getExportNodes();
+  if (exportNodes.length === 0) {
     window.alert('Nothing to export.');
     return;
   }
@@ -170,9 +168,9 @@ export function export3mf(): void {
   const resourceObjects: string[] = [];
   const buildItems: string[] = [];
 
-  nodes.forEach((node, i) => {
+  exportNodes.forEach((node, i) => {
     const id = i + 1;
-    resourceObjects.push(buildObjectXml(node, id));
+    resourceObjects.push(buildObjectXml(node, id, allNodes));
     buildItems.push(`    <item objectid="${id}"/>`);
   });
 

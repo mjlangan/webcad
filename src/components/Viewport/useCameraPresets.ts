@@ -6,6 +6,8 @@ import type { CameraPreset, ViewportActions } from '../../types/viewport';
 import { useSceneStore } from '../../store/useSceneStore';
 import { undoStack } from '../../store/undoStack';
 import { TransformCommand } from '../../store/commands';
+import { collectDescendantIds } from '../../lib/worldMatrix';
+import { minSignedDistanceToPlane } from './sceneSampling';
 import type { Transform } from '../../types/scene';
 
 const TRANSITION_MS = 350;
@@ -136,14 +138,6 @@ export function useCameraPresets(
         const origin = new THREE.Vector3(...workplane.origin);
         const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(normal, origin);
 
-        // Collect all descendant nodeIds for a given root (to include group children in bounds)
-        function collectIds(nodeId: string): string[] {
-          const result: string[] = [nodeId];
-          const n = nodes.find((x) => x.id === nodeId);
-          if (n) for (const c of n.childIds) result.push(...collectIds(c));
-          return result;
-        }
-
         const ids: string[] = [];
         const befores: Transform[] = [];
         const afters: Transform[] = [];
@@ -151,27 +145,13 @@ export function useCameraPresets(
         // Ensure world matrices are up to date before sampling vertices
         three.scene.updateMatrixWorld();
 
-        const tempVertex = new THREE.Vector3();
-
         for (const id of rootIds) {
           const node = nodes.find((n) => n.id === id);
           if (!node) continue;
 
-          const descendantIds = new Set(collectIds(id));
-          let minDist = Infinity;
-
           // Sample every actual mesh vertex in world space — exact for any workplane angle
-          three.scene.traverse((obj) => {
-            if (!(obj instanceof THREE.Mesh)) return;
-            if (!descendantIds.has(obj.userData.nodeId as string)) return;
-            const positions = obj.geometry.attributes.position;
-            if (!positions) return;
-            for (let i = 0; i < positions.count; i++) {
-              tempVertex.fromBufferAttribute(positions, i).applyMatrix4(obj.matrixWorld);
-              const d = plane.distanceToPoint(tempVertex);
-              if (d < minDist) minDist = d;
-            }
-          });
+          const descendantIds = new Set(collectDescendantIds(id, nodes));
+          const minDist = minSignedDistanceToPlane(three.scene, descendantIds, plane);
 
           if (minDist === Infinity) continue;
 

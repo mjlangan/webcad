@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { buildGeometry } from './buildGeometry';
 import type { SceneNode } from '../types/scene';
 
 /**
@@ -28,4 +29,20 @@ export function computeWorldMatrix(nodeId: string, nodes: SceneNode[]): THREE.Ma
   }
 
   return local;
+}
+
+/** Returns a world-space geometry with the node's full ancestor-chain
+ *  transform baked in. */
+export function buildWorldGeometry(node: SceneNode, nodes: SceneNode[]): THREE.BufferGeometry {
+  const geo = buildGeometry(node.geometry).clone();
+  geo.applyMatrix4(computeWorldMatrix(node.id, nodes));
+  return geo;
+}
+
+/** Collects nodeId plus every descendant nodeId (depth-first). */
+export function collectDescendantIds(nodeId: string, nodes: SceneNode[]): string[] {
+  const result: string[] = [nodeId];
+  const node = nodes.find((n) => n.id === nodeId);
+  if (node) for (const childId of node.childIds) result.push(...collectDescendantIds(childId, nodes));
+  return result;
 }

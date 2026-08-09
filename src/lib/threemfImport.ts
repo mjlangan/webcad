@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 import { unzipSync } from 'fflate';
-import { meshGeometryMap } from './meshGeometryMap';
-import { useSceneStore } from '../store/useSceneStore';
+import { normalizeImportedGeometry, addImportedMeshNode } from './meshImport';
 
 export interface ParsedMeshDef {
   name: string;
@@ -77,16 +76,9 @@ export function import3mfFile(file: File): void {
       return;
     }
 
-    const { addNode } = useSceneStore.getState();
-
     for (const { name, geometry } of meshDefs) {
-      geometry.center();
-      geometry.computeBoundingBox();
-      const yOffset = geometry.boundingBox?.max.y ?? 0;
-
-      const meshId = crypto.randomUUID();
-      meshGeometryMap.set(meshId, geometry);
-      addNode({ type: 'imported', meshId, originalName: name }, yOffset);
+      const yOffset = normalizeImportedGeometry(geometry);
+      addImportedMeshNode(geometry, name, yOffset);
     }
   };
 

@@ -3,22 +3,51 @@ import { STLLoader } from 'three/addons/loaders/STLLoader.js';
 import { useSceneStore } from '../store/useSceneStore';
 import { undoStack } from '../store/undoStack';
 import { SplitCommand } from '../store/commands';
-import { buildGeometry } from './buildGeometry';
 import { geometryToStl } from './geometryToStl';
 import { meshGeometryMap } from './meshGeometryMap';
-import { computeWorldMatrix } from './worldMatrix';
+import { buildWorldGeometry } from './worldMatrix';
 import { runSplit } from './splitWorker';
-import type { SceneNode, Workplane, ImportedMeshParams } from '../types/scene';
+import type { SceneNode, Workplane, ImportedMeshParams, MaterialProps } from '../types/scene';
 
 const stlLoader = new STLLoader();
 
 // ── helpers ─────────────────────────────────────────────────────────────────
 
-function buildWorldGeometry(node: SceneNode, nodes: SceneNode[]): THREE.BufferGeometry {
-  const geo = buildGeometry(node.geometry).clone();
-  const matrix = computeWorldMatrix(node.id, nodes);
-  geo.applyMatrix4(matrix);
-  return geo;
+interface WrapGroupOptions {
+  name: string;
+  material: MaterialProps;
+  /** Skip wrapping when there's exactly one non-group top-level child —
+   *  just rename/un-parent it instead. */
+  skipWrapSingleChild?: boolean;
+}
+
+/** Wraps the top-level nodes of `children` (nodes whose parentId doesn't
+ *  point to another node in the same list) under a new group node. */
+function wrapTopLevelInGroup(children: SceneNode[], opts: WrapGroupOptions): SceneNode[] {
+  const topLevel = children.filter((n) => !children.some((m) => m.id === n.parentId));
+  if (topLevel.length === 0) return [];
+  if (opts.skipWrapSingleChild && topLevel.length === 1 && topLevel[0].geometry.type !== 'group') {
+    return children.map((n) =>
+      n.id === topLevel[0].id ? { ...n, name: opts.name, parentId: null } : n,
+    );
+  }
+  const groupId = crypto.randomUUID();
+  const groupNode: SceneNode = {
+    id: groupId,
+    name: opts.name,
+    visible: true,
+    transform: { position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] },
+    geometry: { type: 'group' },
+    material: opts.material,
+    parentId: null,
+    childIds: topLevel.map((n) => n.id),
+    csgOperation: null,
+    csgError: null,
+  };
+  const updatedChildren = children.map((n) =>
+    topLevel.some((t) => t.id === n.id) ? { ...n, parentId: groupId } : n,
+  );
+  return [groupNode, ...updatedChildren];
 }
 
 /** Returns +1 if above plane, -1 if below, 0 if straddles. */
@@ -120,48 +149,13 @@ async function splitNodeRecursive(
     const side2Children = childResults.flatMap((r) => r.nodes2);
     const intersects = childResults.some((r) => r.intersects);
 
-    function makeGroupFromChildren(
-      children: SceneNode[],
-      suffix: string,
-    ): SceneNode[] {
-      // Children here are the top-level results from each child split.
-      // Their parentId needs to be set to the new group's ID.
-      const topLevel = children.filter((n) => {
-        // A node is "top-level" in this list if its parentId doesn't point
-        // to another node in the same list.
-        const parentInList = children.some((m) => m.id === n.parentId);
-        return !parentInList;
-      });
-      if (topLevel.length === 0) return [];
-      if (topLevel.length === 1 && topLevel[0].geometry.type !== 'group') {
-        // Single non-group child: no wrapping needed, just rename
-        return children.map((n) =>
-          n.id === topLevel[0].id ? { ...n, name: `${node.name} ${suffix}`, parentId: null } : n,
-        );
-      }
-      const groupId = crypto.randomUUID();
-      const groupNode: SceneNode = {
-        id: groupId,
-        name: `${node.name} ${suffix}`,
-        visible: true,
-        locked: false,
-        transform: { position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] },
-        geometry: { type: 'group' },
-        material: node.material,
-        parentId: null,
-        childIds: topLevel.map((n) => n.id),
-        csgOperation: null,
-        csgError: null,
-      };
-      const updatedChildren = children.map((n) =>
-        topLevel.some((t) => t.id === n.id) ? { ...n, parentId: groupId } : n,
-      );
-      return [groupNode, ...updatedChildren];
-    }
-
     return {
-      nodes1: side1Children.length > 0 ? makeGroupFromChildren(side1Children, '1') : [],
-      nodes2: side2Children.length > 0 ? makeGroupFromChildren(side2Children, '2') : [],
+      nodes1: side1Children.length > 0
+        ? wrapTopLevelInGroup(side1Children, { name: `${node.name} 1`, material: node.material, skipWrapSingleChild: true })
+        : [],
+      nodes2: side2Children.length > 0
+        ? wrapTopLevelInGroup(side2Children, { name: `${node.name} 2`, material: node.material, skipWrapSingleChild: true })
+        : [],
       intersects,
     };
   }
@@ -282,48 +276,16 @@ export async function triggerSplit(): Promise<{ error: string } | void> {
 
     // If multiple roots: wrap top-level results in groups named after the selection
     if (selectedRoots.length > 1) {
-      function wrapInGroup(sideNodes: SceneNode[], suffix: string): SceneNode[] {
-        const topLevel = sideNodes.filter((n) => !sideNodes.some((m) => m.id === n.parentId));
-        if (topLevel.length === 0) return [];
-        const groupId = crypto.randomUUID();
-        const groupNode: SceneNode = {
-          id: groupId,
-          name: `Split ${suffix}`,
-          visible: true,
-          locked: false,
-          transform: { position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] },
-          geometry: { type: 'group' },
-          material: { color: '#4488ff', opacity: 1, wireframe: false },
-          parentId: null,
-          childIds: topLevel.map((n) => n.id),
-          csgOperation: null,
-          csgError: null,
-        };
-        const withParents = sideNodes.map((n) =>
-          topLevel.some((t) => t.id === n.id) ? { ...n, parentId: groupId } : n,
-        );
-        return [groupNode, ...withParents];
-      }
-      all1Nodes = wrapInGroup(all1Nodes, '1');
-      all2Nodes = wrapInGroup(all2Nodes, '2');
+      const splitMaterial: MaterialProps = { color: '#4488ff', opacity: 1, wireframe: false };
+      all1Nodes = wrapTopLevelInGroup(all1Nodes, { name: 'Split 1', material: splitMaterial });
+      all2Nodes = wrapTopLevelInGroup(all2Nodes, { name: 'Split 2', material: splitMaterial });
     }
 
     const allResultNodes = [...all1Nodes, ...all2Nodes];
 
-    // Apply to scene: remove originals, add results
-    const state = useSceneStore.getState();
-    state.removeNodes(allOriginalNodes.map((n) => n.id));
-    for (const node of allResultNodes) {
-      state.restoreNode(node, state.nodes.length);
-    }
-
-    // Select the top-level result nodes
-    const topLevelResultIds = allResultNodes
-      .filter((n) => n.parentId === null)
-      .map((n) => n.id);
-    useSceneStore.getState().selectNodes(topLevelResultIds);
-
-    // Push undo command
+    // SplitCommand.execute() is the sole scene mutator (remove originals,
+    // restore results, select top-level results) — mirrors GroupCommand /
+    // UngroupCommand / CsgAdoptCommand.
     undoStack.push(new SplitCommand(allOriginalNodes, allOriginalIndices, allResultNodes));
   } catch (err) {
     if (err instanceof Error && err.message !== 'Split operation cancelled') {

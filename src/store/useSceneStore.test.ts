@@ -123,11 +123,10 @@ describe('addNode', () => {
     expect(node.geometry).toEqual({ type: 'sphere', radius: 5, widthSegments: 32, heightSegments: 16 });
   });
 
-  it('node starts visible and unlocked', () => {
+  it('node starts visible', () => {
     const id = addBox();
     const node = useSceneStore.getState().nodes.find((n) => n.id === id)!;
     expect(node.visible).toBe(true);
-    expect(node.locked).toBe(false);
   });
 
   it('node starts with identity rotation and scale', () => {
@@ -563,7 +562,6 @@ describe('loadScene', () => {
       id: 'test-1',
       name: 'Loaded Box',
       visible: true,
-      locked: false,
       transform: { position: [0, 0, 0] as [number, number, number], rotation: [0, 0, 0] as [number, number, number], scale: [1, 1, 1] as [number, number, number] },
       geometry: { type: 'box' as const, width: 10, height: 10, depth: 10 },
       material: { color: '#ff0000', opacity: 1, wireframe: false },

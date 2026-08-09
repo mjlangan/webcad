@@ -82,6 +82,7 @@ export function useThreeSetup(
     return () => {
       cancelAnimationFrame(frameId);
       resizeObserver.disconnect();
+      grid.dispose();
       scene.traverse((obj) => {
         if (obj instanceof THREE.Mesh) {
           obj.geometry.dispose();

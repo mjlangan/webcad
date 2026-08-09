@@ -3,24 +3,16 @@ import { STLLoader } from 'three/addons/loaders/STLLoader.js';
 import { useSceneStore } from '../store/useSceneStore';
 import { undoStack } from '../store/undoStack';
 import { CsgAdoptCommand } from '../store/commands';
-import { buildGeometry } from './buildGeometry';
 import { geometryToStl } from './geometryToStl';
 import { meshGeometryMap } from './meshGeometryMap';
 import { runCSG, cancelCSG } from './csgWorker';
-import { computeWorldMatrix } from './worldMatrix';
+import { buildWorldGeometry } from './worldMatrix';
 import type { CsgOperation, SceneNode } from '../types/scene';
 
 const stlLoader = new STLLoader();
 
 // Tracks which CSG parents currently have a silent recompute in flight
 const recomputeInFlight = new Set<string>();
-
-function buildWorldGeometry(node: SceneNode, nodes: SceneNode[]): THREE.BufferGeometry {
-  const geo = buildGeometry(node.geometry).clone();
-  const matrix = computeWorldMatrix(node.id, nodes);
-  geo.applyMatrix4(matrix);
-  return geo;
-}
 
 function operationLabel(op: CsgOperation): string {
   switch (op) {
@@ -84,33 +76,18 @@ export function commitCsg(): void {
 
   if (csgStatus !== 'preview' || !csgResultId || !csgPendingOperation) return;
 
-  const savedSourceNodes: SceneNode[] = [];
-  const savedSourceIndices: number[] = [];
-
-  for (const id of csgSourceIds) {
-    const idx = nodes.findIndex((n) => n.id === id);
-    if (idx >= 0) {
-      savedSourceNodes.push(nodes[idx]);
-      savedSourceIndices.push(idx);
-    }
-  }
+  const savedSourceNodes: SceneNode[] = csgSourceIds
+    .map((id) => nodes.find((n) => n.id === id))
+    .filter((n): n is SceneNode => n !== undefined);
 
   // Clear CSG overlay state, then record the adopt command
   clearCsg(false);
 
   undoStack.push(
-    new CsgAdoptCommand(savedSourceNodes, savedSourceIndices, csgResultId, csgPendingOperation),
+    new CsgAdoptCommand(savedSourceNodes, csgResultId, csgPendingOperation),
   );
 }
 
-export function discardCsg(): void {
-  const { csgStatus, csgResultId, clearCsg, removeNode } = useSceneStore.getState();
-
-  if (csgStatus !== 'preview' || !csgResultId) return;
-
-  removeNode(csgResultId);
-  clearCsg(true);
-}
 
 export function cancelCsg(): void {
   cancelCSG();

@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 import { OBJLoader } from 'three/addons/loaders/OBJLoader.js';
-import { meshGeometryMap } from './meshGeometryMap';
-import { useSceneStore } from '../store/useSceneStore';
+import { addImportedMeshNode } from './meshImport';
 
 const loader = new OBJLoader();
 
@@ -51,12 +50,8 @@ export function importObjFile(file: File): void {
       return;
     }
 
-    const { addNode } = useSceneStore.getState();
-
     for (const { originalName, geometry, yOffset } of parsed) {
-      const meshId = crypto.randomUUID();
-      meshGeometryMap.set(meshId, geometry);
-      addNode({ type: 'imported', meshId, originalName }, yOffset);
+      addImportedMeshNode(geometry, originalName, yOffset);
     }
   };
 

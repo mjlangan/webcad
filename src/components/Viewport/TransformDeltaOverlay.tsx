@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import type { ThreeSetup } from './useThreeSetup';
 import type { DragOverlayState } from './useTransformControls';
 import { usePreferencesStore, toDisplayUnit } from '../../store/usePreferencesStore';
+import { worldToCanvasPx } from '../../lib/screenProjection';
 
 interface LabelInfo {
   x: number;
@@ -10,19 +11,6 @@ interface LabelInfo {
   text: string;
   axis: 'X' | 'Y' | 'Z';
   active: boolean;  // whether this axis is the one being dragged
-}
-
-/** Project a world-space point to canvas pixel coordinates. */
-function worldToCanvas(
-  worldPos: THREE.Vector3,
-  camera: THREE.PerspectiveCamera,
-  canvas: HTMLCanvasElement,
-): { x: number; y: number } {
-  const ndc = worldPos.clone().project(camera);
-  return {
-    x: (ndc.x + 1) / 2 * canvas.clientWidth,
-    y: (-ndc.y + 1) / 2 * canvas.clientHeight,
-  };
 }
 
 /** Estimate the world-space length of a gizmo arm (tip of the TC arrow). */
@@ -116,9 +104,9 @@ export default function TransformDeltaOverlay({ threeRef, dragOverlayRef }: Prop
 
       const next: LabelInfo[] = (['X', 'Y', 'Z'] as const).map((axis) => {
         const tipWorld = overlay.objectPos.clone().addScaledVector(AXIS_DIRS[axis], armLength);
-        const screen = worldToCanvas(tipWorld, camera as THREE.PerspectiveCamera, canvas);
+        const screen = worldToCanvasPx(tipWorld, camera as THREE.PerspectiveCamera, canvas);
         // Offset the label a few pixels outward from the axis tip in screen space
-        const screenOrigin = worldToCanvas(overlay.objectPos, camera as THREE.PerspectiveCamera, canvas);
+        const screenOrigin = worldToCanvasPx(overlay.objectPos, camera as THREE.PerspectiveCamera, canvas);
         const dx = screen.x - screenOrigin.x;
         const dy = screen.y - screenOrigin.y;
         const len = Math.sqrt(dx * dx + dy * dy) || 1;

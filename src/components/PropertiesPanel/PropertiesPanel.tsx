@@ -5,7 +5,7 @@ import { undoStack } from '../../store/undoStack';
 import { TransformCommand, UpdateGeometryCommand, UpdateMaterialCommand } from '../../store/commands';
 import type { ReactNode } from 'react';
 import type { PrimitiveParams, Transform } from '../../types/scene';
-import { parseMmValue, formatMm } from '../../lib/units';
+import { usePreferencesStore, formatUnit, parseUnitValue } from '../../store/usePreferencesStore';
 
 const { Text } = Typography;
 
@@ -35,6 +35,7 @@ interface MmInputProps {
 }
 
 function MmInput({ value, step = 1, min, onChange }: MmInputProps) {
+  const unitSystem = usePreferencesStore((s) => s.unitSystem);
   return (
     <InputNumber
       size="small"
@@ -45,9 +46,9 @@ function MmInput({ value, step = 1, min, onChange }: MmInputProps) {
       formatter={(v, { userTyping, input }) => {
         if (userTyping) return input;
         if (v === undefined || v === null) return '';
-        return formatMm(Number(v));
+        return formatUnit(Number(v), unitSystem);
       }}
-      parser={(v) => parseMmValue(v ?? '') ?? value}
+      parser={(v) => parseUnitValue(v ?? '', unitSystem) ?? value}
       onChange={(v) => { if (v !== null) onChange(v as number); }}
     />
   );
@@ -267,6 +268,8 @@ function GeometryFields({
           <Text style={{ fontSize: 11, color: '#aaa', wordBreak: 'break-all' }}>{geometry.originalName}</Text>
         </Section>
       );
+    case 'group':
+      return null;
   }
 }
 

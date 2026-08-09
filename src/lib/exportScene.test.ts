@@ -10,7 +10,6 @@ function makeNode(
     id: 'n1',
     name: 'TestBox',
     visible: true,
-    locked: false,
     transform: { position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] },
     geometry: { type: 'box', width: 20, height: 20, depth: 20, ...geomOverrides } as SceneNode['geometry'],
     material: { color: '#4488ff', opacity: 1, wireframe: false },
@@ -27,21 +26,21 @@ function makeNode(
 describe('buildWorldGeometry', () => {
   it('returns a non-indexed BufferGeometry', () => {
     const node = makeNode();
-    const geo = buildWorldGeometry(node);
+    const geo = buildWorldGeometry(node, [node]);
     expect(geo.index).toBeNull();
     geo.dispose();
   });
 
   it('has a position attribute', () => {
     const node = makeNode();
-    const geo = buildWorldGeometry(node);
+    const geo = buildWorldGeometry(node, [node]);
     expect(geo.getAttribute('position')).not.toBeNull();
     geo.dispose();
   });
 
   it('identity transform: bounding box matches buildGeometry bounding box', () => {
     const node = makeNode();
-    const geo = buildWorldGeometry(node);
+    const geo = buildWorldGeometry(node, [node]);
     geo.computeBoundingBox();
     // 20×20×20 box with origin at bottom → y goes from 0 to 20, x/z from -10 to 10
     expect(geo.boundingBox!.min.x).toBeCloseTo(-10, 2);
@@ -53,7 +52,7 @@ describe('buildWorldGeometry', () => {
 
   it('position offset shifts the bounding box', () => {
     const node = makeNode({ transform: { position: [5, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] } });
-    const geo = buildWorldGeometry(node);
+    const geo = buildWorldGeometry(node, [node]);
     geo.computeBoundingBox();
     expect(geo.boundingBox!.min.x).toBeCloseTo(-10 + 5, 2);
     expect(geo.boundingBox!.max.x).toBeCloseTo(10 + 5, 2);
@@ -62,7 +61,7 @@ describe('buildWorldGeometry', () => {
 
   it('uniform scale of 2 doubles the bounding box size', () => {
     const node = makeNode({ transform: { position: [0, 0, 0], rotation: [0, 0, 0], scale: [2, 2, 2] } });
-    const geo = buildWorldGeometry(node);
+    const geo = buildWorldGeometry(node, [node]);
     geo.computeBoundingBox();
     expect(geo.boundingBox!.max.x - geo.boundingBox!.min.x).toBeCloseTo(40, 2);
     expect(geo.boundingBox!.max.y - geo.boundingBox!.min.y).toBeCloseTo(40, 2);
@@ -71,7 +70,7 @@ describe('buildWorldGeometry', () => {
 
   it('scale [1, 2, 1] doubles height but not width', () => {
     const node = makeNode({ transform: { position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 2, 1] } });
-    const geo = buildWorldGeometry(node);
+    const geo = buildWorldGeometry(node, [node]);
     geo.computeBoundingBox();
     const width = geo.boundingBox!.max.x - geo.boundingBox!.min.x;
     const height = geo.boundingBox!.max.y - geo.boundingBox!.min.y;
@@ -82,8 +81,8 @@ describe('buildWorldGeometry', () => {
 
   it('produces identical geometry for two calls with the same node', () => {
     const node = makeNode();
-    const geo1 = buildWorldGeometry(node);
-    const geo2 = buildWorldGeometry(node);
+    const geo1 = buildWorldGeometry(node, [node]);
+    const geo2 = buildWorldGeometry(node, [node]);
     geo1.computeBoundingBox();
     geo2.computeBoundingBox();
     expect(geo1.boundingBox!.min.x).toBeCloseTo(geo2.boundingBox!.min.x, 5);
@@ -99,12 +98,14 @@ describe('buildObjectXml', () => {
   let xml: string;
 
   beforeEach(() => {
-    xml = buildObjectXml(makeNode(), 1);
+    const node = makeNode();
+    xml = buildObjectXml(node, 1, [node]);
   });
 
   it('contains the correct objectId in the id attribute', () => {
     expect(xml).toContain('id="1"');
-    const xml7 = buildObjectXml(makeNode(), 7);
+    const node7 = makeNode();
+    const xml7 = buildObjectXml(node7, 7, [node7]);
     expect(xml7).toContain('id="7"');
   });
 
@@ -144,20 +145,20 @@ describe('buildObjectXml', () => {
 
   it('escapes & in node name', () => {
     const node = makeNode({ name: 'A & B' });
-    const x = buildObjectXml(node, 1);
+    const x = buildObjectXml(node, 1, [node]);
     expect(x).toContain('name="A &amp; B"');
     expect(x).not.toContain('name="A & B"');
   });
 
   it('escapes " in node name', () => {
     const node = makeNode({ name: 'Part "A"' });
-    const x = buildObjectXml(node, 1);
+    const x = buildObjectXml(node, 1, [node]);
     expect(x).toContain('&quot;');
   });
 
   it('vertex coordinates match the expected bounding box for a positioned node', () => {
     const node = makeNode({ transform: { position: [100, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1] } });
-    const x = buildObjectXml(node, 1);
+    const x = buildObjectXml(node, 1, [node]);
     // All x coordinates should be in the range [90, 110] for a 20-wide box at x=100
     const xVals = [...x.matchAll(/x="([\d.]+)"/g)].map(([, v]) => parseFloat(v));
     expect(xVals.every((v) => v >= 89 && v <= 111)).toBe(true);

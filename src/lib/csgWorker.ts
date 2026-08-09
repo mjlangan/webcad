@@ -1,6 +1,5 @@
 import CsgWorkerClass from '../workers/csg.worker.ts?worker';
-
-export type CsgOperation = 'union' | 'subtract' | 'intersect';
+import type { CsgOperation } from '../types/scene';
 
 interface CsgResultMessage {
   type: 'CSG_RESULT';

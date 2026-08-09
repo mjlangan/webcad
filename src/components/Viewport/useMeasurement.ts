@@ -163,6 +163,7 @@ export function useMeasurement(
       markerB.geometry.dispose();
       line.geometry.dispose();
       (markerA.material as THREE.Material).dispose();
+      (markerB.material as THREE.Material).dispose();
       (line.material as THREE.Material).dispose();
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps

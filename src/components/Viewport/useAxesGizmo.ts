@@ -73,6 +73,15 @@ export function useAxesGizmo(
 
     return () => {
       cancelAnimationFrame(frameId);
+      (arrowX.line.material as THREE.Material).dispose();
+      (arrowX.cone.material as THREE.Material).dispose();
+      (arrowY.line.material as THREE.Material).dispose();
+      (arrowY.cone.material as THREE.Material).dispose();
+      (arrowZ.line.material as THREE.Material).dispose();
+      (arrowZ.cone.material as THREE.Material).dispose();
+      labelX.material.dispose();
+      labelY.material.dispose();
+      labelZ.material.dispose();
       texX.dispose();
       texY.dispose();
       texZ.dispose();

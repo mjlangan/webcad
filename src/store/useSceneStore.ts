@@ -75,7 +75,6 @@ interface SceneState {
   csgSourceIds: string[];
   csgResultId: string | null;
   csgPendingOperation: CsgOperation | null;
-  setNodeVisible:  (id: string, visible: boolean) => void;
   beginCsg:        (sourceIds: string[], operation: CsgOperation) => void;
   setCsgPreview:   (resultId: string) => void;
   clearCsg:        (restoreSources?: boolean) => void;
@@ -150,11 +149,6 @@ export const useSceneStore = create<SceneState>((set, get) => ({
   vertexSnapEnabled: false,
   setVertexSnapEnabled: (enabled) => set({ vertexSnapEnabled: enabled }),
 
-  setNodeVisible: (id, visible) =>
-    set((state) => ({
-      nodes: state.nodes.map((n) => (n.id === id ? { ...n, visible } : n)),
-    })),
-
   beginCsg: (sourceIds, operation) =>
     set((state) => ({
       csgStatus: 'in_flight',
@@ -223,7 +217,6 @@ export const useSceneStore = create<SceneState>((set, get) => ({
       id,
       name,
       visible: true,
-      locked: false,
       transform: { position, rotation, scale: [1, 1, 1] },
       geometry,
       material: { color: '#4488ff', opacity: 1, wireframe: false },
@@ -246,7 +239,6 @@ export const useSceneStore = create<SceneState>((set, get) => ({
       id,
       name: nodeName,
       visible: true,
-      locked: false,
       transform: { position, rotation: [0, 0, 0], scale: [1, 1, 1] },
       geometry: { type: 'group' },
       material: { color: '#4488ff', opacity: 1, wireframe: false },

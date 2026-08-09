@@ -153,7 +153,6 @@ export class CsgAdoptCommand {
 
   constructor(
     savedSourceNodes: SceneNode[],
-    _savedSourceIndices: number[],
     resultId: string,
     operation: CsgOperation,
   ) {

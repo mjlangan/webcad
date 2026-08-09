@@ -1,7 +1,7 @@
 import { useRef, useState, type ChangeEvent, type RefObject } from 'react';
 import { Button, Divider, InputNumber, Modal, Space, Switch, Tooltip, Typography, Upload, message } from 'antd';
 import { useSceneStore } from '../../store/useSceneStore';
-import { usePreferencesStore } from '../../store/usePreferencesStore';
+import { usePreferencesStore, formatUnit, parseUnitValue } from '../../store/usePreferencesStore';
 import type { TransformMode } from '../../store/useSceneStore';
 import type { AxisConstraint } from '../../store/useSceneStore';
 import { DEFAULT_WORKPLANE } from '../../types/scene';
@@ -16,9 +16,8 @@ import { SetWorkplaneCommand } from '../../store/commands';
 import { triggerCsg } from '../../lib/triggerCsg';
 import { triggerSplit } from '../../lib/triggerSplit';
 import { groupSelected, ungroupSelected } from '../../lib/groupActions';
-import type { CsgOperation } from '../../lib/csgWorker';
+import type { CsgOperation } from '../../types/scene';
 import { decomposeWorkplaneOrigin, recomposeWorkplaneOrigin } from '../../lib/workplaneUtils';
-import { parseMmValue, formatMm } from '../../lib/units';
 
 const { Text } = Typography;
 
@@ -49,6 +48,10 @@ const labelStyle: React.CSSProperties = {
   letterSpacing: '0.05em',
   userSelect: 'none',
 };
+
+function ToolbarDivider() {
+  return <Divider orientation="vertical" style={{ borderColor: '#404040', height: 18, margin: '0 4px' }} />;
+}
 
 export default function Toolbar({ actionsRef }: ToolbarProps) {
   const nodes = useSceneStore((s) => s.nodes);
@@ -93,6 +96,7 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
     (id) => nodes.find((n) => n.id === id)?.geometry.type === 'group',
   );
   const exportScope = selectedIds.length > 0 ? 'Selection' : 'All';
+  const wpVals = decomposeWorkplaneOrigin(workplane, wpAxisMode);
 
   const handleWorkplaneOffset = (axis: 0 | 1 | 2, value: number) => {
     const current = decomposeWorkplaneOrigin(workplane, wpAxisMode);
@@ -156,7 +160,7 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
         </Tooltip>
       </Space>
 
-      <Divider type="vertical" style={{ borderColor: '#404040', height: 18, margin: '0 4px' }} />
+      <ToolbarDivider />
 
       {/* Transform */}
       <Space size={3} align="center">
@@ -175,7 +179,7 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
         ))}
       </Space>
 
-      <Divider type="vertical" style={{ borderColor: '#404040', height: 18, margin: '0 4px' }} />
+      <ToolbarDivider />
 
       {/* Axis Constraint */}
       <Space size={3} align="center">
@@ -206,7 +210,7 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
         ))}
       </Space>
 
-      <Divider type="vertical" style={{ borderColor: '#404040', height: 18, margin: '0 4px' }} />
+      <ToolbarDivider />
 
       {/* Grid Snap */}
       <Space size={3} align="center">
@@ -255,7 +259,7 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
         </Tooltip>
       </Space>
 
-      <Divider type="vertical" style={{ borderColor: '#404040', height: 18, margin: '0 4px' }} />
+      <ToolbarDivider />
 
       {/* Boolean */}
       <Space size={3} align="center">
@@ -274,7 +278,7 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
         ))}
       </Space>
 
-      <Divider type="vertical" style={{ borderColor: '#404040', height: 18, margin: '0 4px' }} />
+      <ToolbarDivider />
 
       {/* Group */}
       <Space size={3} align="center">
@@ -287,7 +291,7 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
         </Tooltip>
       </Space>
 
-      <Divider type="vertical" style={{ borderColor: '#404040', height: 18, margin: '0 4px' }} />
+      <ToolbarDivider />
 
       {/* Workplane */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -353,7 +357,6 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
             />
           </Tooltip>
           {(['X', wpAxisMode === 'local' ? 'N' : 'Y', 'Z'] as const).map((label, i) => {
-            const vals = decomposeWorkplaneOrigin(workplane, wpAxisMode);
             return (
               <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <span style={{ fontSize: 10, color: '#888', userSelect: 'none' }}>{label}</span>
@@ -361,14 +364,14 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
                   data-testid={`toolbar-workplane-offset-${i}`}
                   size="small"
                   style={{ width: 72 }}
-                  value={vals[i]}
+                  value={wpVals[i]}
                   step={1}
                   formatter={(v, { userTyping, input }) => {
                     if (userTyping) return input;
                     if (v === undefined || v === null) return '';
-                    return formatMm(Number(v));
+                    return formatUnit(Number(v), unitSystem);
                   }}
-                  parser={(v) => parseMmValue(v ?? '') ?? vals[i]}
+                  parser={(v) => parseUnitValue(v ?? '', unitSystem) ?? wpVals[i]}
                   onChange={(v) => { if (v !== null) handleWorkplaneOffset(i as 0 | 1 | 2, v as number); }}
                 />
               </div>
@@ -377,7 +380,7 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
         </div>
       </div>
 
-      <Divider type="vertical" style={{ borderColor: '#404040', height: 18, margin: '0 4px' }} />
+      <ToolbarDivider />
 
       {/* Measure */}
       <Space size={3} align="center">

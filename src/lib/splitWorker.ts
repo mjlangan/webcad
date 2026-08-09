@@ -59,14 +59,3 @@ export function runSplit(
   });
 }
 
-export function cancelSplit(): void {
-  if (pending) {
-    const { reject } = pending;
-    pending = null;
-    reject(new Error('Split operation cancelled'));
-  }
-  if (worker) {
-    worker.terminate();
-    worker = null;
-  }
-}

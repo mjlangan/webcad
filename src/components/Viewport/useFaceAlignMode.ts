@@ -4,14 +4,9 @@ import type { ThreeSetup } from './useThreeSetup';
 import { useSceneStore } from '../../store/useSceneStore';
 import { undoStack } from '../../store/undoStack';
 import { TransformCommand } from '../../store/commands';
-import type { SceneNode, Transform } from '../../types/scene';
-
-function collectIds(nodeId: string, nodes: SceneNode[]): string[] {
-  const result: string[] = [nodeId];
-  const n = nodes.find((x) => x.id === nodeId);
-  if (n) for (const c of n.childIds) result.push(...collectIds(c, nodes));
-  return result;
-}
+import { collectDescendantIds } from '../../lib/worldMatrix';
+import { minSignedDistanceToPlane } from './sceneSampling';
+import type { Transform } from '../../types/scene';
 
 /**
  * Face-align mode: user clicks a face on the selected object and the object is
@@ -78,7 +73,7 @@ export function useFaceAlignMode(
       });
       const pickableIds = new Set<string>();
       for (const id of rootIds) {
-        collectIds(id, nodes).forEach((did) => pickableIds.add(did));
+        collectDescendantIds(id, nodes).forEach((did) => pickableIds.add(did));
       }
       return Array.from(meshMapRef.current?.values() ?? []).filter(
         (m) => m.visible && pickableIds.has(m.userData.nodeId as string),
@@ -168,8 +163,6 @@ export function useFaceAlignMode(
       const afters: Transform[] = [];
 
       scene.updateMatrixWorld();
-      const tempVertex = new THREE.Vector3();
-      const tempMatrix = new THREE.Matrix4();
 
       for (const rootId of rootIds) {
         const node = nodes.find((n) => n.id === rootId);
@@ -196,21 +189,8 @@ export function useFaceAlignMode(
         const delta = M_new.clone().multiply(M_old.clone().invert());
 
         // Sample all descendant vertices through the hypothetical new world matrix
-        const descendantIds = new Set(collectIds(rootId, nodes));
-        let minDist = Infinity;
-
-        scene.traverse((obj) => {
-          if (!(obj instanceof THREE.Mesh)) return;
-          if (!descendantIds.has(obj.userData.nodeId as string)) return;
-          const positions = obj.geometry.attributes.position;
-          if (!positions) return;
-          tempMatrix.multiplyMatrices(delta, obj.matrixWorld);
-          for (let i = 0; i < positions.count; i++) {
-            tempVertex.fromBufferAttribute(positions, i).applyMatrix4(tempMatrix);
-            const d = plane.distanceToPoint(tempVertex);
-            if (d < minDist) minDist = d;
-          }
-        });
+        const descendantIds = new Set(collectDescendantIds(rootId, nodes));
+        const minDist = minSignedDistanceToPlane(scene, descendantIds, plane, delta);
 
         if (minDist === Infinity) continue;
 
