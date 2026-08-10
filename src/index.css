@@ -1,3 +1,12 @@
 body {
   font-family: system-ui, sans-serif;
 }
+
+/* Tooltips are display-only in this app (no interactive content), so make them
+   click-through: without this, a tooltip lingering over a neighboring button
+   (e.g. in the densely packed shape library grid) both blocks clicks on that
+   button and won't hide, since the trigger's mouseleave doesn't fire while the
+   cursor is over the popup. */
+.ant-tooltip {
+  pointer-events: none;
+}
