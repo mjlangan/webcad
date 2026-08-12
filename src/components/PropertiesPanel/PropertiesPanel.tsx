@@ -337,6 +337,7 @@ function ReferencePlaneProperties({ workplane }: { workplane: Workplane }) {
       </Section>
 
       <Button
+        data-testid="prop-workplane-reset"
         size="small"
         block
         onClick={() => undoStack.push(new SetWorkplaneCommand(workplane, DEFAULT_WORKPLANE))}

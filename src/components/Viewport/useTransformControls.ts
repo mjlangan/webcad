@@ -8,7 +8,6 @@ import { undoStack } from '../../store/undoStack';
 import { TransformCommand } from '../../store/commands';
 import type { Transform } from '../../types/scene';
 import type { TransformMode } from '../../store/useSceneStore';
-import { workplaneToThreePlane } from '../../lib/workplaneUtils';
 import { computeWorldMatrix } from '../../lib/worldMatrix';
 import { worldToPagePx } from '../../lib/screenProjection';
 
@@ -363,24 +362,10 @@ export function useTransformControls(
     };
 
     // Move secondary meshes in real-time to match the primary's translation delta.
-    // Also projects the primary onto the active workplane when translating.
     const onChange = () => {
       if (!isDraggingRef.current || !tc.object) return;
 
-      // Workplane constraint: project the primary object onto the workplane plane during
-      // translate. This replaces the implicit world-XZ drag plane with the active workplane.
-      const { workplane, transformMode, nodes } = useSceneStore.getState();
-      if (transformMode === 'translate') {
-        const isDefaultWorkplane =
-          workplane.normal[0] === 0 && workplane.normal[1] === 1 && workplane.normal[2] === 0 &&
-          workplane.origin[0] === 0 && workplane.origin[1] === 0 && workplane.origin[2] === 0;
-        if (!isDefaultWorkplane) {
-          const plane = workplaneToThreePlane(workplane);
-          const normal = new THREE.Vector3(...workplane.normal);
-          const dist = plane.distanceToPoint(tc.object.position);
-          tc.object.position.addScaledVector(normal, -dist);
-        }
-      }
+      const { transformMode, nodes } = useSceneStore.getState();
 
       // Scale sensitivity: TransformControls maps drag distance straight to
       // scale (a 1:1 ratio), which reads as too twitchy. Damp the change from

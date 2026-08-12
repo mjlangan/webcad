@@ -25,3 +25,25 @@ export async function canvasCenter(page: Page): Promise<{ x: number; y: number }
   if (!box) throw new Error('viewport canvas has no bounding box');
   return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
 }
+
+/**
+ * Computes a world-space point along the translate gizmo's +Y arrow, offset from
+ * the object's position by `armFraction` of the gizmo's on-screen scale factor
+ * (mirrors computeGizmoScaleFactor() in useTransformControls.ts). armFraction=0.12
+ * reliably lands on the Y-arrow's picker mesh without also grabbing the free-move
+ * cube (too close to center) or overshooting past the arrow tip (calibrated against
+ * a plain box at various camera distances).
+ */
+export async function gizmoYArmPoint(
+  page: Page,
+  worldPos: [number, number, number],
+  armFraction = 0.12,
+): Promise<{ world: [number, number, number]; factor: number }> {
+  const factor = await page.evaluate(([x, y, z]) => {
+    const cam = window.__E2E__!.three!.camera;
+    const dist = Math.hypot(cam.position.x - x, cam.position.y - y, cam.position.z - z);
+    return dist * Math.min((1.9 * Math.tan((Math.PI * cam.fov) / 360)) / cam.zoom, 7);
+  }, worldPos);
+  const armY = worldPos[1] + armFraction * factor;
+  return { world: [worldPos[0], armY, worldPos[2]], factor };
+}
