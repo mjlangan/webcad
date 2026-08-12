@@ -218,13 +218,13 @@ export const useSceneStore = create<SceneState>((set, get) => ({
     })),
 
   addNode: (geometry, spawnHalfHeight) => {
-    const { nodes, workplane } = get();
+    const { nodes, workplane, referencePlaneVisible } = get();
     const label = labelFor(geometry);
     // Count existing nodes with the same base label to generate suffix
     const count = nodes.filter((n) => n.name.startsWith(label)).length + 1;
     const name = geometry.type === 'imported' ? label : `${label} ${count}`;
     const halfHeight = spawnHalfHeight ?? 0;
-    const { position, rotation } = workplaneSpawn(workplane, halfHeight);
+    const { position, rotation } = workplaneSpawn(referencePlaneVisible ? workplane : DEFAULT_WORKPLANE, halfHeight);
     const id = crypto.randomUUID();
     const node: SceneNode = {
       id,
