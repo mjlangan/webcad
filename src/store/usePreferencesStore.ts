@@ -6,6 +6,8 @@ export type UnitSystem = 'mm' | 'in';
 interface PreferencesState {
   unitSystem: UnitSystem;
   setUnitSystem: (unit: UnitSystem) => void;
+  shadowsEnabled: boolean;
+  setShadowsEnabled: (enabled: boolean) => void;
 }
 
 export const usePreferencesStore = create<PreferencesState>()(
@@ -13,6 +15,8 @@ export const usePreferencesStore = create<PreferencesState>()(
     (set) => ({
       unitSystem: 'mm',
       setUnitSystem: (unitSystem) => set({ unitSystem }),
+      shadowsEnabled: false,
+      setShadowsEnabled: (shadowsEnabled) => set({ shadowsEnabled }),
     }),
     { name: 'webcad-preferences' },
   ),

@@ -96,6 +96,8 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
 
   const unitSystem = usePreferencesStore((s) => s.unitSystem);
   const setUnitSystem = usePreferencesStore((s) => s.setUnitSystem);
+  const shadowsEnabled = usePreferencesStore((s) => s.shadowsEnabled);
+  const setShadowsEnabled = usePreferencesStore((s) => s.setShadowsEnabled);
 
   const booleanEnabled = selectedIds.length === 2 && csgStatus === 'idle';
   const groupEnabled =
@@ -500,6 +502,19 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
                 Inches (in)
               </Button>
             </Space>
+          </div>
+          <div>
+            <Text style={{ ...labelStyle, display: 'block', marginBottom: 6 }}>Shadows</Text>
+            <Tooltip title="Cast shadows in the viewport (may affect rendering performance)">
+              <Switch
+                data-testid="toolbar-prefs-shadows"
+                size="small"
+                checked={shadowsEnabled}
+                onChange={setShadowsEnabled}
+                checkedChildren="On"
+                unCheckedChildren="Off"
+              />
+            </Tooltip>
           </div>
         </div>
       </Modal>

@@ -1,11 +1,13 @@
 import { useEffect, useRef, type RefObject } from 'react';
 import * as THREE from 'three';
 import { disposeMaterial } from './disposeMaterial';
+import { usePreferencesStore } from '../../store/usePreferencesStore';
 
 export interface ThreeSetup {
   scene: THREE.Scene;
   camera: THREE.PerspectiveCamera;
   renderer: THREE.WebGLRenderer;
+  keyLight: THREE.DirectionalLight;
 }
 
 export function useThreeSetup(
@@ -39,7 +41,7 @@ export function useThreeSetup(
     // Key light: upper-right-front, casts shadows
     const keyLight = new THREE.DirectionalLight(0xffffff, 1.0);
     keyLight.position.set(160, 240, 120);
-    keyLight.castShadow = true;
+    keyLight.castShadow = usePreferencesStore.getState().shadowsEnabled;
     keyLight.shadow.mapSize.set(1024, 1024);
     scene.add(keyLight);
     // Fill light: lower-left-back, softens shadow side without overpowering
@@ -52,7 +54,7 @@ export function useThreeSetup(
     scene.add(grid);
 
     // Write setup to ref — downstream hooks' effects run after this one
-    setupRef.current = { scene, camera, renderer };
+    setupRef.current = { scene, camera, renderer, keyLight };
     if (import.meta.env.VITE_E2E && window.__E2E__) {
       window.__E2E__.three = { scene, camera, renderer };
     }

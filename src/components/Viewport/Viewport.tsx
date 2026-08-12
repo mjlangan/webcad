@@ -1,6 +1,7 @@
 import { useRef, type RefObject } from 'react';
 import './Viewport.css';
 import { useThreeSetup } from './useThreeSetup';
+import { useShadowSync } from './useShadowSync';
 import { useSceneSync } from './useSceneSync';
 import { useOrbitControls } from './useOrbitControls';
 import { useTransformControls } from './useTransformControls';
@@ -29,6 +30,7 @@ export default function Viewport({ actionsRef }: ViewportProps) {
   // useThreeSetup populates threeRef.current first, so subsequent hooks
   // can safely read it inside their own effects.
   const threeRef = useThreeSetup(canvasRef, onBeforeRenderRef);
+  useShadowSync(threeRef);
   const meshMapRef = useSceneSync(threeRef);
   const orbitControlsRef = useOrbitControls(threeRef, onBeforeRenderRef);
   const { isDraggingRef, dragOverlayRef } = useTransformControls(threeRef, meshMapRef, orbitControlsRef);
