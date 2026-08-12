@@ -189,12 +189,7 @@ async function splitNodeRecursive(
   const stlBuf = geometryToStl(worldGeo2);
   worldGeo2.dispose();
 
-  const { above, below } = await runSplit(
-    stlBuf,
-    workplane.origin,
-    workplane.normal,
-    workplane.tangentX,
-  );
+  const { above, below } = await runSplit(stlBuf, workplane.origin, workplane.normal);
 
   const baseName = node.name;
 

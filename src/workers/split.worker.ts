@@ -11,7 +11,6 @@ interface SplitOperationMessage {
     mesh: ArrayBuffer;
     planeOrigin: Vec3;
     planeNormal: Vec3;
-    planeTangentX: Vec3;
   };
 }
 
@@ -25,7 +24,7 @@ self.onmessage = (event: MessageEvent<SplitOperationMessage>) => {
   if (type !== 'SPLIT_OPERATION') return;
 
   try {
-    const { mesh, planeOrigin, planeNormal, planeTangentX } = payload;
+    const { mesh, planeOrigin, planeNormal } = payload;
 
     const geo = loader.parse(mesh);
     geo.computeVertexNormals();
@@ -37,21 +36,33 @@ self.onmessage = (event: MessageEvent<SplitOperationMessage>) => {
 
     const originVec = new THREE.Vector3(...planeOrigin);
     const normalVec = new THREE.Vector3(...planeNormal).normalize();
-    const tangentXVec = new THREE.Vector3(...planeTangentX).normalize();
-    const tangentZVec = new THREE.Vector3().crossVectors(normalVec, tangentXVec);
 
-    // Size the cutting box to contain all geometry on the "above" side
-    const distCenterToPlane = Math.abs(normalVec.dot(C.clone().sub(originVec)));
-    const boxSize = Math.max((distCenterToPlane + R) * 3, R * 6, 1000);
+    // Size the cutting box from the plane origin's full distance to the far
+    // side of the mesh — not just the along-normal component. The box is
+    // centered laterally on the plane origin, so a workplane set on a face
+    // far off to one side needs the lateral reach too; using only the normal
+    // component let the box's *side* faces clip the mesh, adding phantom cuts
+    // that don't lie on the workplane.
+    const reach = C.distanceTo(originVec) + R;
+    const boxSize = Math.max(reach * 2.2, 1e-3);
 
     // Box center is offset along normal so one face coincides with the plane
     const boxCenter = originVec.clone().addScaledVector(normalVec, boxSize / 2);
 
     const boxGeo = new THREE.BoxGeometry(boxSize, boxSize, boxSize);
-    // Orient: local Y = normal, local X = tangentX, local Z = tangentZ
-    const basis = new THREE.Matrix4().makeBasis(tangentXVec, normalVec, tangentZVec);
-    basis.setPosition(boxCenter);
-    boxGeo.applyMatrix4(basis);
+    // Orient the box so its local +Y is the plane normal. This must be a
+    // proper rotation: a mirrored (negative-determinant) basis reverses the
+    // box's triangle winding, which makes the CSG evaluator read it as an
+    // inside-out solid and produce cuts that don't follow the plane at all.
+    // Only the normal matters here — the box is square and huge, so its
+    // rotation about the normal can't affect which side of the plane
+    // geometry lands on, and deriving it from the stored tangentX would risk
+    // skewing the box if that vector ever drifts out of perpendicular.
+    const orient = new THREE.Matrix4().makeRotationFromQuaternion(
+      new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), normalVec),
+    );
+    orient.setPosition(boxCenter);
+    boxGeo.applyMatrix4(orient);
 
     const meshBrush = new Brush(geo);
     const boxBrush = new Brush(boxGeo);

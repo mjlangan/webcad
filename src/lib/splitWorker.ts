@@ -47,13 +47,12 @@ export function runSplit(
   mesh: ArrayBuffer,
   planeOrigin: [number, number, number],
   planeNormal: [number, number, number],
-  planeTangentX: [number, number, number],
 ): Promise<{ above: ArrayBuffer; below: ArrayBuffer }> {
   if (pending) return Promise.reject(new Error('A split operation is already in flight'));
   return new Promise((resolve, reject) => {
     pending = { resolve, reject };
     getWorker().postMessage(
-      { type: 'SPLIT_OPERATION', payload: { mesh, planeOrigin, planeNormal, planeTangentX } },
+      { type: 'SPLIT_OPERATION', payload: { mesh, planeOrigin, planeNormal } },
       [mesh],
     );
   });
