@@ -1,11 +1,18 @@
-import { createContext, useContext, useRef } from 'react';
-import { InputNumber, Slider, Switch, ColorPicker, Divider, Typography } from 'antd';
+import { createContext, useContext, useRef, useState } from 'react';
+import { InputNumber, Slider, Switch, ColorPicker, Divider, Typography, Button } from 'antd';
 import { useSceneStore } from '../../store/useSceneStore';
 import { undoStack } from '../../store/undoStack';
-import { TransformCommand, UpdateGeometryCommand, UpdateMaterialCommand } from '../../store/commands';
+import { TransformCommand, UpdateGeometryCommand, UpdateMaterialCommand, SetWorkplaneCommand } from '../../store/commands';
 import type { ReactNode } from 'react';
-import type { PrimitiveParams, Transform } from '../../types/scene';
+import type { PrimitiveParams, Transform, Workplane } from '../../types/scene';
+import { DEFAULT_WORKPLANE } from '../../types/scene';
 import { usePreferencesStore, formatUnit, parseUnitValue } from '../../store/usePreferencesStore';
+import {
+  decomposeWorkplaneOrigin,
+  recomposeWorkplaneOrigin,
+  workplaneRotationEuler,
+  setWorkplaneRotationEuler,
+} from '../../lib/workplaneUtils';
 
 const { Text } = Typography;
 
@@ -280,14 +287,93 @@ function GeometryFields({
   }
 }
 
+function ReferencePlaneProperties({ workplane }: { workplane: Workplane }) {
+  const [axisMode, setAxisMode] = useState<'global' | 'local'>('global');
+
+  const origin = decomposeWorkplaneOrigin(workplane, axisMode);
+  const rotation = workplaneRotationEuler(workplane);
+
+  const setOrigin = (axis: 0 | 1 | 2, v: number) => {
+    const values = [...origin] as [number, number, number];
+    values[axis] = v;
+    undoStack.push(new SetWorkplaneCommand(workplane, recomposeWorkplaneOrigin(workplane, values, axisMode)));
+  };
+
+  const setRotation = (axis: 0 | 1 | 2, deg: number) => {
+    const values = [...rotation] as [number, number, number];
+    values[axis] = deg * DEG_TO_RAD;
+    undoStack.push(new SetWorkplaneCommand(workplane, setWorkplaneRotationEuler(workplane, values)));
+  };
+
+  const originLabels = ['X', axisMode === 'local' ? 'N' : 'Y', 'Z'] as const;
+
+  return (
+    <div style={{ padding: '0 12px 12px', overflowY: 'auto', flex: 1 }}>
+      <div style={{ fontSize: 12, color: '#ccc', padding: '8px 0 4px' }}>
+        Workplane
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+        <span style={labelStyle}>Frame</span>
+        <Switch
+          size="small"
+          checked={axisMode === 'local'}
+          onChange={(checked) => setAxisMode(checked ? 'local' : 'global')}
+          checkedChildren="Local"
+          unCheckedChildren="Global"
+        />
+      </div>
+
+      <Section title="Origin">
+        {originLabels.map((label, i) => (
+          <NumField key={label} label={label} unit="mm" value={origin[i]} onChange={(v) => setOrigin(i as 0 | 1 | 2, v)} />
+        ))}
+      </Section>
+
+      <Section title="Rotation">
+        <NumField label="X" unit="deg" value={rotation[0] * RAD_TO_DEG} step={1} onChange={(v) => setRotation(0, v)} />
+        <NumField label="Y" unit="deg" value={rotation[1] * RAD_TO_DEG} step={1} onChange={(v) => setRotation(1, v)} />
+        <NumField label="Z" unit="deg" value={rotation[2] * RAD_TO_DEG} step={1} onChange={(v) => setRotation(2, v)} />
+      </Section>
+
+      <Button
+        size="small"
+        block
+        onClick={() => undoStack.push(new SetWorkplaneCommand(workplane, DEFAULT_WORKPLANE))}
+      >
+        Reset Plane
+      </Button>
+    </div>
+  );
+}
+
 export default function PropertiesPanel() {
   const nodes = useSceneStore((s) => s.nodes);
   const selectedIds = useSceneStore((s) => s.selectedIds);
   const updateMaterial = useSceneStore((s) => s.updateMaterial);
+  const referencePlaneSelected = useSceneStore((s) => s.referencePlaneSelected);
+  const workplane = useSceneStore((s) => s.workplane);
 
   const node = nodes.find((n) => n.id === selectedIds[0]);
 
   const materialBeforeRef = useRef(node?.material);
+
+  if (referencePlaneSelected) {
+    return (
+      <div style={{
+        height: '100%',
+        background: '#1a1a1a',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+      }}>
+        <div style={{ padding: '8px 12px', borderBottom: '1px solid #2a2a2a', fontSize: 12, fontWeight: 600, color: '#aaa' }}>
+          Properties
+        </div>
+        <ReferencePlaneProperties workplane={workplane} />
+      </div>
+    );
+  }
 
   if (!node) {
     return (

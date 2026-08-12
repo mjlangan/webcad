@@ -104,6 +104,38 @@ export function createWorkplaneFromHit(
 }
 
 /**
+ * Derives the workplane's orientation as Euler XYZ radians, using the same
+ * (tangentX, normal, tangentZ) basis construction as the viewport visualization,
+ * so the displayed rotation always matches what's rendered.
+ */
+export function workplaneRotationEuler(workplane: Workplane): [number, number, number] {
+  const tangentX = new THREE.Vector3(...workplane.tangentX);
+  const normal = new THREE.Vector3(...workplane.normal);
+  const tangentZ = new THREE.Vector3().crossVectors(tangentX, normal).normalize();
+  const m = new THREE.Matrix4().makeBasis(tangentX, normal, tangentZ);
+  const e = new THREE.Euler().setFromRotationMatrix(m, 'XYZ');
+  return [e.x, e.y, e.z];
+}
+
+/**
+ * Returns a new Workplane with its normal/tangentX rebuilt from the given
+ * Euler XYZ radians, keeping origin unchanged. Inverse of workplaneRotationEuler.
+ */
+export function setWorkplaneRotationEuler(
+  workplane: Workplane,
+  eulerXYZ: [number, number, number],
+): Workplane {
+  const m = new THREE.Matrix4().makeRotationFromEuler(new THREE.Euler(...eulerXYZ, 'XYZ'));
+  const tangentX = new THREE.Vector3().setFromMatrixColumn(m, 0).normalize();
+  const normal = new THREE.Vector3().setFromMatrixColumn(m, 1).normalize();
+  return {
+    ...workplane,
+    normal: normal.toArray() as [number, number, number],
+    tangentX: tangentX.toArray() as [number, number, number],
+  };
+}
+
+/**
  * Decomposes the workplane origin into components along the given axes.
  * Global mode: returns the raw world-space origin [x, y, z].
  * Local mode: returns the origin projected onto [tangentX, normal, tangentZ].

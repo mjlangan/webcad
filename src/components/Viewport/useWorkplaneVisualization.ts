@@ -33,9 +33,11 @@ export function useWorkplaneVisualization(
     scene.add(container);
 
     applyWorkplaneToObject(container, useSceneStore.getState().workplane);
+    container.visible = useSceneStore.getState().referencePlaneVisible;
 
     const unsubscribe = useSceneStore.subscribe((state) => {
       applyWorkplaneToObject(container, state.workplane);
+      container.visible = state.referencePlaneVisible;
     });
 
     return () => {

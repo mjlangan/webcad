@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Tree, Button, Input, Tooltip, Empty } from 'antd';
+import { Tree, Button, Checkbox, Input, Tooltip, Empty } from 'antd';
 import {
   EyeOutlined,
   EyeInvisibleOutlined,
@@ -165,6 +165,10 @@ export default function ScenePanel() {
   const selectNode = useSceneStore((s) => s.selectNode);
   const toggleNodeSelection = useSceneStore((s) => s.toggleNodeSelection);
   const toggleVisible = useSceneStore((s) => s.toggleVisible);
+  const referencePlaneSelected = useSceneStore((s) => s.referencePlaneSelected);
+  const selectReferencePlane = useSceneStore((s) => s.selectReferencePlane);
+  const referencePlaneVisible = useSceneStore((s) => s.referencePlaneVisible);
+  const toggleReferencePlaneVisible = useSceneStore((s) => s.toggleReferencePlaneVisible);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
@@ -196,6 +200,27 @@ export default function ScenePanel() {
         Scene
       </div>
       <div style={{ flex: 1, overflowY: 'auto', padding: '4px 0' }}>
+        <div
+          data-testid="scene-node-reference-plane"
+          onClick={selectReferencePlane}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 3,
+            padding: '4px 8px 4px 44px',
+            fontSize: 12,
+            cursor: 'pointer',
+            color: '#ccc',
+            background: referencePlaneSelected ? '#15395b' : 'transparent',
+          }}
+        >
+          <Checkbox
+            checked={referencePlaneVisible}
+            onClick={(e) => e.stopPropagation()}
+            onChange={toggleReferencePlaneVisible}
+          />
+          <span style={{ opacity: referencePlaneVisible ? 1 : 0.4 }}>Workplane</span>
+        </div>
         {treeData.length === 0 ? (
           <Empty
             description={<span style={{ fontSize: 12, color: '#444' }}>No objects in scene</span>}

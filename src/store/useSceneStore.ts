@@ -42,6 +42,12 @@ interface SceneState {
   selectNodes:         (ids: string[]) => void;
   clearSelection:      () => void;
 
+  // Reference plane (workplane) selection — mutually exclusive with node selection
+  referencePlaneSelected: boolean;
+  selectReferencePlane: () => void;
+  referencePlaneVisible: boolean;
+  toggleReferencePlaneVisible: () => void;
+
   // Transform gizmo mode
   transformMode: TransformMode;
   setTransformMode: (mode: TransformMode) => void;
@@ -106,6 +112,7 @@ interface SceneState {
 export const useSceneStore = create<SceneState>((set, get) => ({
   nodes: [],
   selectedIds: [],
+  referencePlaneSelected: false,
   transformMode: 'translate',
   transformAxisConstraint: null,
   gridSnap: 0,
@@ -118,18 +125,24 @@ export const useSceneStore = create<SceneState>((set, get) => ({
   csgPendingOperation: null,
   splitStatus: 'idle',
 
-  selectNode: (id) => set({ selectedIds: id ? [id] : [], transformAxisConstraint: null }),
+  selectNode: (id) => set({ selectedIds: id ? [id] : [], referencePlaneSelected: false, transformAxisConstraint: null }),
 
   toggleNodeSelection: (id) =>
     set((state) => ({
       selectedIds: state.selectedIds.includes(id)
         ? state.selectedIds.filter((s) => s !== id)
         : [...state.selectedIds, id],
+      referencePlaneSelected: false,
     })),
 
-  selectNodes: (ids) => set({ selectedIds: ids }),
+  selectNodes: (ids) => set({ selectedIds: ids, referencePlaneSelected: false }),
 
-  clearSelection: () => set({ selectedIds: [], transformAxisConstraint: null }),
+  clearSelection: () => set({ selectedIds: [], referencePlaneSelected: false, transformAxisConstraint: null }),
+
+  selectReferencePlane: () => set({ selectedIds: [], referencePlaneSelected: true, transformAxisConstraint: null }),
+
+  referencePlaneVisible: true,
+  toggleReferencePlaneVisible: () => set((state) => ({ referencePlaneVisible: !state.referencePlaneVisible })),
 
   setTransformMode: (mode) => set({ transformMode: mode, transformAxisConstraint: null }),
 
@@ -225,7 +238,7 @@ export const useSceneStore = create<SceneState>((set, get) => ({
       csgOperation: null,
       csgError: null,
     };
-    set((state) => ({ nodes: [...state.nodes, node], selectedIds: [id] }));
+    set((state) => ({ nodes: [...state.nodes, node], selectedIds: [id], referencePlaneSelected: false }));
     return id;
   },
 
@@ -247,7 +260,7 @@ export const useSceneStore = create<SceneState>((set, get) => ({
       csgOperation: null,
       csgError: null,
     };
-    set((state) => ({ nodes: [...state.nodes, groupNode], selectedIds: [id] }));
+    set((state) => ({ nodes: [...state.nodes, groupNode], selectedIds: [id], referencePlaneSelected: false }));
     return id;
   },
 
@@ -309,7 +322,7 @@ export const useSceneStore = create<SceneState>((set, get) => ({
       const nodes = [...state.nodes];
       const clampedIndex = Math.min(atIndex, nodes.length);
       nodes.splice(clampedIndex, 0, node);
-      return { nodes, selectedIds: [node.id] };
+      return { nodes, selectedIds: [node.id], referencePlaneSelected: false };
     }),
 
   renameNode: (id, name) =>
@@ -402,6 +415,7 @@ export const useSceneStore = create<SceneState>((set, get) => ({
       nodes,
       workplane,
       selectedIds: [],
+      referencePlaneSelected: false,
       transformMode: 'translate',
       csgStatus: 'idle',
       csgSourceIds: [],

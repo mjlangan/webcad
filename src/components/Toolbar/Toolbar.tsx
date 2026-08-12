@@ -1,10 +1,9 @@
 import { useRef, useState, useSyncExternalStore, type ChangeEvent, type RefObject } from 'react';
 import { Button, Divider, InputNumber, Modal, Space, Switch, Tooltip, Typography, Upload, message } from 'antd';
 import { useSceneStore } from '../../store/useSceneStore';
-import { usePreferencesStore, formatUnit, parseUnitValue } from '../../store/usePreferencesStore';
+import { usePreferencesStore } from '../../store/usePreferencesStore';
 import type { TransformMode } from '../../store/useSceneStore';
 import type { AxisConstraint } from '../../store/useSceneStore';
-import { DEFAULT_WORKPLANE } from '../../types/scene';
 import type { CameraPreset, ViewportActions } from '../../types/viewport';
 import { importStlFile } from '../../lib/stlImport';
 import { importObjFile } from '../../lib/objImport';
@@ -12,12 +11,10 @@ import { import3mfFile } from '../../lib/threemfImport';
 import { saveProject, openProject, newProject } from '../../lib/sceneFile';
 import { exportStl, exportObj, exportGltf, export3mf } from '../../lib/exportScene';
 import { undoStack } from '../../store/undoStack';
-import { SetWorkplaneCommand } from '../../store/commands';
 import { triggerCsg } from '../../lib/triggerCsg';
 import { triggerSplit } from '../../lib/triggerSplit';
 import { groupSelected, ungroupSelected } from '../../lib/groupActions';
 import type { CsgOperation } from '../../types/scene';
-import { decomposeWorkplaneOrigin, recomposeWorkplaneOrigin } from '../../lib/workplaneUtils';
 
 const { Text } = Typography;
 
@@ -63,7 +60,6 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
   const setGridSnap = useSceneStore((s) => s.setGridSnap);
   const workplanePlacementMode = useSceneStore((s) => s.workplanePlacementMode);
   const setWorkplanePlacementMode = useSceneStore((s) => s.setWorkplanePlacementMode);
-  const workplane = useSceneStore((s) => s.workplane);
   const selectedIds = useSceneStore((s) => s.selectedIds);
   const csgStatus = useSceneStore((s) => s.csgStatus);
   const measureMode = useSceneStore((s) => s.measureMode);
@@ -76,7 +72,6 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
 
   // Last non-zero snap value, used when toggling snap back on
   const [snapIncrement, setSnapIncrement] = useState(1);
-  const [wpAxisMode, setWpAxisMode] = useState<'global' | 'local'>('global');
 
   const [messageApi, messageContextHolder] = message.useMessage();
 
@@ -107,19 +102,6 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
     (id) => nodes.find((n) => n.id === id)?.geometry.type === 'group',
   );
   const exportScope = selectedIds.length > 0 ? 'Selection' : 'All';
-  const wpVals = decomposeWorkplaneOrigin(workplane, wpAxisMode);
-
-  const handleWorkplaneOffset = (axis: 0 | 1 | 2, value: number) => {
-    const current = decomposeWorkplaneOrigin(workplane, wpAxisMode);
-    const updated = [...current] as [number, number, number];
-    updated[axis] = value;
-    const newWorkplane = recomposeWorkplaneOrigin(workplane, updated, wpAxisMode);
-    undoStack.push(new SetWorkplaneCommand(workplane, newWorkplane));
-  };
-
-  const handleResetWorkplane = () => {
-    undoStack.push(new SetWorkplaneCommand(workplane, DEFAULT_WORKPLANE));
-  };
 
   const makeFileHandler =
     <T extends File>(fn: (f: T) => void) =>
@@ -318,91 +300,52 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
       <ToolbarDivider />
 
       {/* Workplane */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <Space size={3} align="center">
-          <Text style={labelStyle}>Workplane</Text>
-          <Tooltip title="Set workplane on face (click to activate, Esc to cancel)">
-            <Button
-              data-testid="toolbar-workplane-set-plane"
-              size="small"
-              type={workplanePlacementMode ? 'primary' : 'default'}
-              onClick={() => setWorkplanePlacementMode(!workplanePlacementMode)}
-            >
-              Set Plane
-            </Button>
-          </Tooltip>
-          <Tooltip title="Reset workplane to world XZ plane">
-            <Button data-testid="toolbar-workplane-reset-plane" size="small" onClick={handleResetWorkplane}>Reset Plane</Button>
-          </Tooltip>
-          <Tooltip title={selectedIds.length > 0 ? 'Drop selection to workplane surface' : 'Select objects to drop to workplane'}>
-            <Button data-testid="toolbar-workplane-drop" size="small" disabled={selectedIds.length === 0} onClick={() => actionsRef.current?.dropToWorkplane()}>Drop</Button>
-          </Tooltip>
-          <Tooltip title={selectedIds.length > 0 ? 'Click a face to align it flush with the workplane (Esc to cancel)' : 'Select objects to use face align'}>
-            <Button
-              data-testid="toolbar-workplane-face-align"
-              size="small"
-              type={faceAlignMode ? 'primary' : 'default'}
-              disabled={selectedIds.length === 0}
-              onClick={() => setFaceAlignMode(!faceAlignMode)}
-            >
-              Face Align
-            </Button>
-          </Tooltip>
-          <Tooltip title={
-            selectedIds.length > 0
-              ? 'Split selected objects along the workplane'
-              : 'Select objects to split along the workplane'
-          }>
-            <Button
-              data-testid="toolbar-workplane-split"
-              size="small"
-              disabled={selectedIds.length === 0 || splitStatus !== 'idle'}
-              onClick={async () => {
-                const result = await triggerSplit();
-                if (result?.error) {
-                  void messageApi.error(result.error);
-                }
-              }}
-            >
-              {splitStatus === 'computing' ? 'Splitting…' : 'Split'}
-            </Button>
-          </Tooltip>
-        </Space>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-          <Tooltip title={wpAxisMode === 'global' ? 'Switch to local (workplane) axes' : 'Switch to global (world) axes'}>
-            <Switch
-              data-testid="toolbar-workplane-axis-mode"
-              size="small"
-              checked={wpAxisMode === 'local'}
-              onChange={(checked) => setWpAxisMode(checked ? 'local' : 'global')}
-              checkedChildren="Local"
-              unCheckedChildren="Global"
-              style={{ minWidth: 58 }}
-            />
-          </Tooltip>
-          {(['X', wpAxisMode === 'local' ? 'N' : 'Y', 'Z'] as const).map((label, i) => {
-            return (
-              <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <span style={{ fontSize: 10, color: '#888', userSelect: 'none' }}>{label}</span>
-                <InputNumber
-                  data-testid={`toolbar-workplane-offset-${i}`}
-                  size="small"
-                  style={{ width: 72 }}
-                  value={wpVals[i]}
-                  step={1}
-                  formatter={(v, { userTyping, input }) => {
-                    if (userTyping) return input;
-                    if (v === undefined || v === null) return '';
-                    return formatUnit(Number(v), unitSystem);
-                  }}
-                  parser={(v) => parseUnitValue(v ?? '', unitSystem) ?? wpVals[i]}
-                  onChange={(v) => { if (v !== null) handleWorkplaneOffset(i as 0 | 1 | 2, v as number); }}
-                />
-              </div>
-            );
-          })}
-        </div>
-      </div>
+      <Space size={3} align="center">
+        <Text style={labelStyle}>Workplane</Text>
+        <Tooltip title="Set workplane on face (click to activate, Esc to cancel)">
+          <Button
+            data-testid="toolbar-workplane-set-plane"
+            size="small"
+            type={workplanePlacementMode ? 'primary' : 'default'}
+            onClick={() => setWorkplanePlacementMode(!workplanePlacementMode)}
+          >
+            Set Plane
+          </Button>
+        </Tooltip>
+        <Tooltip title={selectedIds.length > 0 ? 'Drop selection to workplane surface' : 'Select objects to drop to workplane'}>
+          <Button data-testid="toolbar-workplane-drop" size="small" disabled={selectedIds.length === 0} onClick={() => actionsRef.current?.dropToWorkplane()}>Drop</Button>
+        </Tooltip>
+        <Tooltip title={selectedIds.length > 0 ? 'Click a face to align it flush with the workplane (Esc to cancel)' : 'Select objects to use face align'}>
+          <Button
+            data-testid="toolbar-workplane-face-align"
+            size="small"
+            type={faceAlignMode ? 'primary' : 'default'}
+            disabled={selectedIds.length === 0}
+            onClick={() => setFaceAlignMode(!faceAlignMode)}
+          >
+            Face Align
+          </Button>
+        </Tooltip>
+        <Tooltip title={
+          selectedIds.length > 0
+            ? 'Split selected objects along the workplane'
+            : 'Select objects to split along the workplane'
+        }>
+          <Button
+            data-testid="toolbar-workplane-split"
+            size="small"
+            disabled={selectedIds.length === 0 || splitStatus !== 'idle'}
+            onClick={async () => {
+              const result = await triggerSplit();
+              if (result?.error) {
+                void messageApi.error(result.error);
+              }
+            }}
+          >
+            {splitStatus === 'computing' ? 'Splitting…' : 'Split'}
+          </Button>
+        </Tooltip>
+      </Space>
 
       <ToolbarDivider />
 
