@@ -1,4 +1,4 @@
-import { useRef, useState, type ChangeEvent, type RefObject } from 'react';
+import { useRef, useState, useSyncExternalStore, type ChangeEvent, type RefObject } from 'react';
 import { Button, Divider, InputNumber, Modal, Space, Switch, Tooltip, Typography, Upload, message } from 'antd';
 import { useSceneStore } from '../../store/useSceneStore';
 import { usePreferencesStore, formatUnit, parseUnitValue } from '../../store/usePreferencesStore';
@@ -80,6 +80,15 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
 
   const [messageApi, messageContextHolder] = message.useMessage();
 
+  const canUndo = useSyncExternalStore(
+    (onChange) => undoStack.subscribe(onChange),
+    () => undoStack.canUndo,
+  );
+  const canRedo = useSyncExternalStore(
+    (onChange) => undoStack.subscribe(onChange),
+    () => undoStack.canRedo,
+  );
+
   const openInputRef = useRef<HTMLInputElement>(null);
   const [importOpen, setImportOpen] = useState(false);
   const [exportOpen, setExportOpen] = useState(false);
@@ -157,6 +166,19 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
         <Button data-testid="toolbar-export" size="small" onClick={() => setExportOpen(true)}>Export</Button>
         <Tooltip title="Preferences">
           <Button data-testid="toolbar-prefs" size="small" onClick={() => setPrefsOpen(true)}>Prefs</Button>
+        </Tooltip>
+      </Space>
+
+      <ToolbarDivider />
+
+      {/* Edit */}
+      <Space size={3} align="center">
+        <Text style={labelStyle}>Edit</Text>
+        <Tooltip title={canUndo ? 'Undo (Ctrl+Z)' : 'Nothing to undo'}>
+          <Button data-testid="toolbar-undo" size="small" disabled={!canUndo} onClick={() => undoStack.undo()}>Undo</Button>
+        </Tooltip>
+        <Tooltip title={canRedo ? 'Redo (Ctrl+Shift+Z)' : 'Nothing to redo'}>
+          <Button data-testid="toolbar-redo" size="small" disabled={!canRedo} onClick={() => undoStack.redo()}>Redo</Button>
         </Tooltip>
       </Space>
 
