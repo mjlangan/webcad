@@ -23,3 +23,20 @@ export function worldToPagePx(
   const local = worldToCanvasPx(worldPos, camera, canvas);
   return { x: rect.left + local.x, y: rect.top + local.y };
 }
+
+/**
+ * Converts a pointer event's page coordinates to normalized device coordinates
+ * (-1 to 1 on both axes), for use with THREE.Raycaster.setFromCamera. Mutates and
+ * returns `target` in place, matching the allocate-once-reuse-per-pointermove
+ * pattern raycasting call sites already use for their THREE.Vector2.
+ */
+export function pointerEventToNdc(
+  e: PointerEvent,
+  canvas: HTMLCanvasElement,
+  target: THREE.Vector2,
+): THREE.Vector2 {
+  const rect = canvas.getBoundingClientRect();
+  target.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+  target.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+  return target;
+}

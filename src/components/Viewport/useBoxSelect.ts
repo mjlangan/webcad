@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type RefObject } from 'react';
 import * as THREE from 'three';
 import type { ThreeSetup } from './useThreeSetup';
 import { useSceneStore } from '../../store/useSceneStore';
+import { worldToCanvasPx } from '../../lib/screenProjection';
 
 export interface BoxRect {
   x: number;
@@ -87,13 +88,10 @@ export function useBoxSelect(
         if (!sphere) return;
         worldPos.copy(sphere.center).applyMatrix4(mesh.matrixWorld);
 
-        // Project to NDC then to canvas pixels
-        worldPos.project(camera);
-        const px = (worldPos.x * 0.5 + 0.5) * rect.width;
-        const py = (-worldPos.y * 0.5 + 0.5) * rect.height;
-
         // Behind camera check
-        if (worldPos.z > 1) return;
+        if (worldPos.clone().project(camera).z > 1) return;
+
+        const { x: px, y: py } = worldToCanvasPx(worldPos, camera, canvas);
 
         if (px >= x1 && px <= x2 && py >= y1 && py <= y2) {
           const nodeId = mesh.userData.nodeId as string;

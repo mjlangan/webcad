@@ -6,6 +6,8 @@ import { undoStack } from '../../store/undoStack';
 import { SetWorkplaneCommand } from '../../store/commands';
 import { createWorkplaneFromHit } from '../../lib/workplaneUtils';
 import { disposeMaterial } from './disposeMaterial';
+import { pointerEventToNdc } from '../../lib/screenProjection';
+import { createPointerRaycaster, getVisibleMeshes, makeHoverHighlighter, createHelperGhostPlane } from './interactionHelpers';
 
 /**
  * Manages workplane placement mode:
@@ -28,37 +30,13 @@ export function useWorkplanePlacement(
     if (!threeRef.current) return;
     const { scene, camera, renderer } = threeRef.current;
     const canvas = renderer.domElement;
-    const raycaster = new THREE.Raycaster();
-    const pointer = new THREE.Vector2();
+    const { raycaster, pointer } = createPointerRaycaster();
 
-    // Create ghost plane mesh (semi-transparent, 100x100 size)
-    const ghostGeometry = new THREE.PlaneGeometry(100, 100);
-    const ghostMaterial = new THREE.MeshBasicMaterial({
-      color: 0x44aaff,
-      transparent: true,
-      opacity: 0.3,
-      side: THREE.DoubleSide,
-    });
-    const ghostPlane = new THREE.Mesh(ghostGeometry, ghostMaterial);
-    ghostPlane.visible = false;
-    ghostPlane.userData.isHelper = true;
+    const ghostPlane = createHelperGhostPlane({ width: 100, height: 100, color: 0x44aaff, opacity: 0.3 });
     scene.add(ghostPlane);
     ghostPlaneRef.current = ghostPlane;
 
-    const updatePointer = (e: PointerEvent) => {
-      const rect = canvas.getBoundingClientRect();
-      pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-      pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-    };
-
-    const clearHoverHighlight = () => {
-      if (hoveredMeshRef.current && savedEmissiveRef.current) {
-        const mat = hoveredMeshRef.current.material as THREE.MeshStandardMaterial;
-        mat.emissive.copy(savedEmissiveRef.current);
-        hoveredMeshRef.current = null;
-        savedEmissiveRef.current = null;
-      }
-    };
+    const { clear: clearHoverHighlight, setHover } = makeHoverHighlighter(hoveredMeshRef, savedEmissiveRef, 0x226688);
 
     const onPointerMove = (e: PointerEvent) => {
       const { workplanePlacementMode } = useSceneStore.getState();
@@ -68,10 +46,10 @@ export function useWorkplanePlacement(
         return;
       }
 
-      updatePointer(e);
+      pointerEventToNdc(e, canvas, pointer);
       raycaster.setFromCamera(pointer, camera);
 
-      const meshes = Array.from(meshMapRef.current?.values() ?? []).filter((m) => m.visible);
+      const meshes = getVisibleMeshes(meshMapRef);
       const intersects = raycaster.intersectObjects(meshes, false);
 
       if (intersects.length > 0) {
@@ -88,13 +66,7 @@ export function useWorkplanePlacement(
         ghostPlane.visible = true;
 
         // Highlight hovered face
-        if (hoveredMeshRef.current !== hitMesh) {
-          clearHoverHighlight();
-          const mat = hitMesh.material as THREE.MeshStandardMaterial;
-          savedEmissiveRef.current = mat.emissive.clone();
-          mat.emissive.set(0x226688);
-          hoveredMeshRef.current = hitMesh;
-        }
+        setHover(hitMesh);
       } else {
         ghostPlane.visible = false;
         clearHoverHighlight();
@@ -114,10 +86,10 @@ export function useWorkplanePlacement(
       }
 
       // Left-click commits
-      updatePointer(e);
+      pointerEventToNdc(e, canvas, pointer);
       raycaster.setFromCamera(pointer, camera);
 
-      const meshes = Array.from(meshMapRef.current?.values() ?? []).filter((m) => m.visible);
+      const meshes = getVisibleMeshes(meshMapRef);
       const intersects = raycaster.intersectObjects(meshes, false);
 
       if (intersects.length > 0) {
@@ -154,8 +126,8 @@ export function useWorkplanePlacement(
       canvas.removeEventListener('pointerdown', onPointerDown);
       window.removeEventListener('keydown', onKeyDown);
       scene.remove(ghostPlane);
-      ghostGeometry.dispose();
-      disposeMaterial(ghostMaterial);
+      ghostPlane.geometry.dispose();
+      disposeMaterial(ghostPlane.material);
       clearHoverHighlight();
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps

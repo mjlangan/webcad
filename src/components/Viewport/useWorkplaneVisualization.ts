@@ -2,6 +2,7 @@ import { useEffect, type RefObject } from 'react';
 import * as THREE from 'three';
 import type { ThreeSetup } from './useThreeSetup';
 import { useSceneStore } from '../../store/useSceneStore';
+import { primeAndSubscribe } from '../../store/storeSync';
 import type { Workplane } from '../../types/scene';
 
 function applyWorkplaneToObject(obj: THREE.Object3D, workplane: Workplane): void {
@@ -32,10 +33,7 @@ export function useWorkplaneVisualization(
     container.add(grid);
     scene.add(container);
 
-    applyWorkplaneToObject(container, useSceneStore.getState().workplane);
-    container.visible = useSceneStore.getState().referencePlaneVisible;
-
-    const unsubscribe = useSceneStore.subscribe((state) => {
+    const unsubscribe = primeAndSubscribe(useSceneStore, (state) => {
       applyWorkplaneToObject(container, state.workplane);
       container.visible = state.referencePlaneVisible;
     });

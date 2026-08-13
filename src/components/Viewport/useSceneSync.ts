@@ -5,6 +5,7 @@ import { useSceneStore } from '../../store/useSceneStore';
 import { buildGeometry } from '../../lib/buildGeometry';
 import { computeWorldMatrix } from '../../lib/worldMatrix';
 import { disposeMaterial } from './disposeMaterial';
+import { primeAndSubscribe } from '../../store/storeSync';
 
 const SELECTED_COLOR = new THREE.Color('#ff8822');
 const SELECTED_EMISSIVE = new THREE.Color('#331100');
@@ -111,11 +112,8 @@ export function useSceneSync(
       });
     };
 
-    // Prime the scene with the current store state immediately
-    syncToScene();
-
-    // Subscribe to all future store changes
-    const unsubscribe = useSceneStore.subscribe(syncToScene);
+    // Prime the scene with the current store state, then subscribe to all future changes
+    const unsubscribe = primeAndSubscribe(useSceneStore, syncToScene);
 
     return () => {
       unsubscribe();

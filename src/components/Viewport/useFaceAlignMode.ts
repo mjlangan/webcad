@@ -8,6 +8,8 @@ import { collectDescendantIds } from '../../lib/worldMatrix';
 import { minSignedDistanceToPlane } from './sceneSampling';
 import type { Transform } from '../../types/scene';
 import { disposeMaterial } from './disposeMaterial';
+import { pointerEventToNdc } from '../../lib/screenProjection';
+import { createPointerRaycaster, getVisibleMeshes, makeHoverHighlighter, createHelperGhostPlane } from './interactionHelpers';
 
 /**
  * Face-align mode: user clicks a face on the selected object and the object is
@@ -33,38 +35,15 @@ export function useFaceAlignMode(
     if (!threeRef.current) return;
     const { scene, camera, renderer } = threeRef.current;
     const canvas = renderer.domElement;
-    const raycaster = new THREE.Raycaster();
-    const pointer = new THREE.Vector2();
+    const { raycaster, pointer } = createPointerRaycaster();
 
     // Small ghost plane shown at the hovered face to preview alignment target
-    const ghostGeometry = new THREE.PlaneGeometry(50, 50);
-    const ghostMaterial = new THREE.MeshBasicMaterial({
-      color: 0xff8844,
-      transparent: true,
-      opacity: 0.35,
-      side: THREE.DoubleSide,
-      depthWrite: false,
+    const ghostPlane = createHelperGhostPlane({
+      width: 50, height: 50, color: 0xff8844, opacity: 0.35, depthWrite: false, renderOrder: 999,
     });
-    const ghostPlane = new THREE.Mesh(ghostGeometry, ghostMaterial);
-    ghostPlane.visible = false;
-    ghostPlane.renderOrder = 999;
-    ghostPlane.userData.isHelper = true;
     scene.add(ghostPlane);
 
-    const updatePointer = (e: PointerEvent) => {
-      const rect = canvas.getBoundingClientRect();
-      pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-      pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-    };
-
-    const clearHoverHighlight = () => {
-      if (hoveredMeshRef.current && savedEmissiveRef.current) {
-        const mat = hoveredMeshRef.current.material as THREE.MeshStandardMaterial;
-        mat.emissive.copy(savedEmissiveRef.current);
-        hoveredMeshRef.current = null;
-        savedEmissiveRef.current = null;
-      }
-    };
+    const { clear: clearHoverHighlight, setHover } = makeHoverHighlighter(hoveredMeshRef, savedEmissiveRef, 0x884422);
 
     const getPickableMeshes = () => {
       const { selectedIds, nodes } = useSceneStore.getState();
@@ -76,9 +55,7 @@ export function useFaceAlignMode(
       for (const id of rootIds) {
         collectDescendantIds(id, nodes).forEach((did) => pickableIds.add(did));
       }
-      return Array.from(meshMapRef.current?.values() ?? []).filter(
-        (m) => m.visible && pickableIds.has(m.userData.nodeId as string),
-      );
+      return getVisibleMeshes(meshMapRef).filter((m) => pickableIds.has(m.userData.nodeId as string));
     };
 
     const onPointerMove = (e: PointerEvent) => {
@@ -91,7 +68,7 @@ export function useFaceAlignMode(
       }
 
       canvas.style.cursor = 'crosshair';
-      updatePointer(e);
+      pointerEventToNdc(e, canvas, pointer);
       raycaster.setFromCamera(pointer, camera);
 
       const meshes = getPickableMeshes();
@@ -108,13 +85,7 @@ export function useFaceAlignMode(
         ghostPlane.lookAt(hit.point.clone().add(hitNormal));
         ghostPlane.visible = true;
 
-        if (hoveredMeshRef.current !== hitMesh) {
-          clearHoverHighlight();
-          const mat = hitMesh.material as THREE.MeshStandardMaterial;
-          savedEmissiveRef.current = mat.emissive.clone();
-          mat.emissive.set(0x884422);
-          hoveredMeshRef.current = hitMesh;
-        }
+        setHover(hitMesh);
       } else {
         ghostPlane.visible = false;
         clearHoverHighlight();
@@ -134,7 +105,7 @@ export function useFaceAlignMode(
         return;
       }
 
-      updatePointer(e);
+      pointerEventToNdc(e, canvas, pointer);
       raycaster.setFromCamera(pointer, camera);
 
       const meshes = getPickableMeshes();
@@ -238,8 +209,8 @@ export function useFaceAlignMode(
       canvas.removeEventListener('pointerdown', onPointerDown);
       window.removeEventListener('keydown', onKeyDown);
       scene.remove(ghostPlane);
-      ghostGeometry.dispose();
-      disposeMaterial(ghostMaterial);
+      ghostPlane.geometry.dispose();
+      disposeMaterial(ghostPlane.material);
       clearHoverHighlight();
       canvas.style.cursor = '';
     };

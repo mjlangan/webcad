@@ -1,9 +1,10 @@
-import { useEffect, useState, type RefObject } from 'react';
+import { useState, type RefObject } from 'react';
 import * as THREE from 'three';
 import type { ThreeSetup } from './useThreeSetup';
 import type { DragOverlayState } from './useTransformControls';
 import { usePreferencesStore, toDisplayUnit } from '../../store/usePreferencesStore';
 import { worldToCanvasPx } from '../../lib/screenProjection';
+import { useAnimationFrameLoop } from './useAnimationFrameLoop';
 
 interface LabelInfo {
   x: number;
@@ -85,46 +86,37 @@ export default function TransformDeltaOverlay({ threeRef, dragOverlayRef }: Prop
   const [labels, setLabels] = useState<LabelInfo[]>([]);
   const unitSystem = usePreferencesStore((s) => s.unitSystem);
 
-  useEffect(() => {
-    let rafId: number;
+  useAnimationFrameLoop(() => {
+    const overlay = dragOverlayRef.current;
+    const three = threeRef.current;
 
-    function update() {
-      const overlay = dragOverlayRef.current;
-      const three = threeRef.current;
-
-      if (!overlay || !three) {
-        setLabels([]);
-        rafId = requestAnimationFrame(update);
-        return;
-      }
-
-      const { camera, renderer } = three;
-      const canvas = renderer.domElement;
-      const armLength = gizmoArmLength(overlay.objectPos, camera as THREE.PerspectiveCamera);
-
-      const next: LabelInfo[] = (['X', 'Y', 'Z'] as const).map((axis) => {
-        const tipWorld = overlay.objectPos.clone().addScaledVector(AXIS_DIRS[axis], armLength);
-        const screen = worldToCanvasPx(tipWorld, camera as THREE.PerspectiveCamera, canvas);
-        // Offset the label a few pixels outward from the axis tip in screen space
-        const screenOrigin = worldToCanvasPx(overlay.objectPos, camera as THREE.PerspectiveCamera, canvas);
-        const dx = screen.x - screenOrigin.x;
-        const dy = screen.y - screenOrigin.y;
-        const len = Math.sqrt(dx * dx + dy * dy) || 1;
-        return {
-          x: screen.x + (dx / len) * 10,
-          y: screen.y + (dy / len) * 10,
-          text: formatValue(overlay, axis, unitSystem),
-          axis,
-          active: isActive(overlay, axis),
-        };
-      });
-
-      setLabels(next);
-      rafId = requestAnimationFrame(update);
+    if (!overlay || !three) {
+      setLabels([]);
+      return;
     }
 
-    rafId = requestAnimationFrame(update);
-    return () => cancelAnimationFrame(rafId);
+    const { camera, renderer } = three;
+    const canvas = renderer.domElement;
+    const armLength = gizmoArmLength(overlay.objectPos, camera as THREE.PerspectiveCamera);
+
+    const next: LabelInfo[] = (['X', 'Y', 'Z'] as const).map((axis) => {
+      const tipWorld = overlay.objectPos.clone().addScaledVector(AXIS_DIRS[axis], armLength);
+      const screen = worldToCanvasPx(tipWorld, camera as THREE.PerspectiveCamera, canvas);
+      // Offset the label a few pixels outward from the axis tip in screen space
+      const screenOrigin = worldToCanvasPx(overlay.objectPos, camera as THREE.PerspectiveCamera, canvas);
+      const dx = screen.x - screenOrigin.x;
+      const dy = screen.y - screenOrigin.y;
+      const len = Math.sqrt(dx * dx + dy * dy) || 1;
+      return {
+        x: screen.x + (dx / len) * 10,
+        y: screen.y + (dy / len) * 10,
+        text: formatValue(overlay, axis, unitSystem),
+        axis,
+        active: isActive(overlay, axis),
+      };
+    });
+
+    setLabels(next);
   }, [threeRef, dragOverlayRef, unitSystem]);
 
   if (labels.length === 0) return null;

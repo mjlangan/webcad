@@ -2,6 +2,8 @@ import { useEffect, useRef, type RefObject } from 'react';
 import * as THREE from 'three';
 import type { ThreeSetup } from './useThreeSetup';
 import { useSceneStore } from '../../store/useSceneStore';
+import { pointerEventToNdc } from '../../lib/screenProjection';
+import { createPointerRaycaster, getVisibleMeshes } from './interactionHelpers';
 
 export function useRaycasting(
   threeRef: RefObject<ThreeSetup | null>,
@@ -14,8 +16,7 @@ export function useRaycasting(
     if (!threeRef.current) return;
     const { camera, renderer } = threeRef.current;
     const canvas = renderer.domElement;
-    const raycaster = new THREE.Raycaster();
-    const pointer = new THREE.Vector2();
+    const { raycaster, pointer } = createPointerRaycaster();
 
     function onPointerDown(e: PointerEvent) {
       pointerDownPos.current = { x: e.clientX, y: e.clientY };
@@ -31,12 +32,10 @@ export function useRaycasting(
       if (Math.sqrt(dx * dx + dy * dy) > 4) return;
       if (isDraggingRef.current) return;
 
-      const rect = canvas.getBoundingClientRect();
-      pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-      pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      pointerEventToNdc(e, canvas, pointer);
 
       raycaster.setFromCamera(pointer, camera);
-      const meshes = Array.from(meshMapRef.current.values()).filter((m) => m.visible);
+      const meshes = getVisibleMeshes(meshMapRef);
       const hits = raycaster.intersectObjects(meshes, false);
 
       if (hits.length > 0) {

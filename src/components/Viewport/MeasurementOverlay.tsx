@@ -1,9 +1,10 @@
-import { useEffect, useState, type RefObject } from 'react';
+import { useState, type RefObject } from 'react';
 import * as THREE from 'three';
 import type { ThreeSetup } from './useThreeSetup';
 import type { MeasureOverlayState } from './useMeasurement';
 import { usePreferencesStore, formatUnit } from '../../store/usePreferencesStore';
 import { worldToCanvasPx } from '../../lib/screenProjection';
+import { useAnimationFrameLoop } from './useAnimationFrameLoop';
 
 interface Props {
   threeRef: RefObject<ThreeSetup | null>;
@@ -14,28 +15,19 @@ export default function MeasurementOverlay({ threeRef, measureOverlayRef }: Prop
   const [label, setLabel] = useState<{ x: number; y: number; text: string } | null>(null);
   const unitSystem = usePreferencesStore((s) => s.unitSystem);
 
-  useEffect(() => {
-    let rafId: number;
+  useAnimationFrameLoop(() => {
+    const overlay = measureOverlayRef.current;
+    const three = threeRef.current;
 
-    function update() {
-      const overlay = measureOverlayRef.current;
-      const three = threeRef.current;
-
-      if (!overlay || !three) {
-        setLabel(null);
-        rafId = requestAnimationFrame(update);
-        return;
-      }
-
-      const { camera, renderer } = three;
-      const canvas = renderer.domElement;
-      const screen = worldToCanvasPx(overlay.midpoint, camera as THREE.PerspectiveCamera, canvas);
-      setLabel({ x: screen.x, y: screen.y, text: formatUnit(overlay.distance, unitSystem) });
-      rafId = requestAnimationFrame(update);
+    if (!overlay || !three) {
+      setLabel(null);
+      return;
     }
 
-    rafId = requestAnimationFrame(update);
-    return () => cancelAnimationFrame(rafId);
+    const { camera, renderer } = three;
+    const canvas = renderer.domElement;
+    const screen = worldToCanvasPx(overlay.midpoint, camera as THREE.PerspectiveCamera, canvas);
+    setLabel({ x: screen.x, y: screen.y, text: formatUnit(overlay.distance, unitSystem) });
   }, [threeRef, measureOverlayRef, unitSystem]);
 
   if (!label) return null;

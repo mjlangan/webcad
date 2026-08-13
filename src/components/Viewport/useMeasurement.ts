@@ -3,6 +3,8 @@ import * as THREE from 'three';
 import type { ThreeSetup } from './useThreeSetup';
 import { useSceneStore } from '../../store/useSceneStore';
 import { disposeMaterial } from './disposeMaterial';
+import { pointerEventToNdc } from '../../lib/screenProjection';
+import { createPointerRaycaster, getVisibleMeshes } from './interactionHelpers';
 
 export interface MeasureOverlayState {
   pointA: THREE.Vector3;
@@ -49,8 +51,7 @@ export function useMeasurement(
     const { scene, camera, renderer } = threeRef.current;
     const canvas = renderer.domElement;
 
-    const raycaster = new THREE.Raycaster();
-    const pointer = new THREE.Vector2();
+    const { raycaster, pointer } = createPointerRaycaster();
 
     // Three.js objects for visualization
     const markerA = makeMarker();
@@ -66,18 +67,12 @@ export function useMeasurement(
     const pointA = new THREE.Vector3();
     const pointB = new THREE.Vector3();
 
-    function updatePointer(e: PointerEvent) {
-      const rect = canvas.getBoundingClientRect();
-      pointer.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-      pointer.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-    }
-
     function raycastHit(e: PointerEvent): THREE.Vector3 | null {
-      updatePointer(e);
+      pointerEventToNdc(e, canvas, pointer);
       raycaster.setFromCamera(pointer, camera);
 
       // Try hitting a mesh surface first
-      const meshes = Array.from(meshMapRef.current?.values() ?? []).filter((m) => m.visible);
+      const meshes = getVisibleMeshes(meshMapRef);
       const hits = raycaster.intersectObjects(meshes, false);
       if (hits.length > 0) return hits[0].point.clone();
 
