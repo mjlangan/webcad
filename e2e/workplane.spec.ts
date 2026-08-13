@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { gotoReady } from './helpers/app';
 import { addPrimitive, getNode } from './helpers/scene';
-import { worldToPage, dragMouse, gizmoYArmPoint } from './helpers/gizmo';
+import { worldToPage, dragMouse, gizmoYArmPoint, GIZMO_SIZE } from './helpers/gizmo';
 import { setNumField } from './helpers/properties';
 
 test('Set Plane on a face updates the workplane origin/normal, then Reset Plane restores default', async ({ page }) => {
@@ -135,7 +135,7 @@ test('planar/free translate drag does not snap the object back onto a tilted wor
     const dist = Math.hypot(cam.position.x - p[0], cam.position.y - p[1], cam.position.z - p[2]);
     return dist * Math.min((1.9 * Math.tan((Math.PI * cam.fov) / 360)) / cam.zoom, 7);
   }, before);
-  const off = 0.05 * factor;
+  const off = 0.05 * GIZMO_SIZE * factor;
   const grabPage = await worldToPage(page, before[0] + off, before[1], before[2] + off);
   const dropPage = await worldToPage(page, before[0] + 2 * off, before[1], before[2] + 2 * off);
   await dragMouse(page, grabPage, dropPage);

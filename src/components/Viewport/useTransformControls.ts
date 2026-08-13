@@ -21,6 +21,13 @@ const VERTEX_SNAP_PX = 20;
 // sensitive. Could be exposed as a user preference later.
 const SCALE_SENSITIVITY = 0.5;
 
+// TransformControls' default size (1) makes the translate gizmo's planar-handle
+// pickers small enough that they're easy to miss in favor of the adjacent axis
+// arrow's picker, which overlaps it. Sizing up doesn't remove that overlap, but
+// it does make the whole gizmo — and the absolute on-screen gap between handles —
+// bigger, which makes precise pointer placement noticeably easier in practice.
+const GIZMO_SIZE = 1.4;
+
 // Rotation snap markers: radial tick marks (like sun-rays) placed just
 // outside the active rotation ring every this many degrees. Rotation is
 // otherwise free; snapping only kicks in when the mouse is hovering near a
@@ -145,6 +152,7 @@ export function useTransformControls(
 
     const tc = new TransformControls(camera, renderer.domElement);
     tc.setMode('translate');
+    tc.size = GIZMO_SIZE;
     // In Three.js r162+, TransformControls extends Controls (not Object3D).
     // Add the visual helper to the scene; the controls object itself is not an Object3D.
     const tcHelper = tc.getHelper();
