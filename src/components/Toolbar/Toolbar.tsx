@@ -14,6 +14,8 @@ import { undoStack } from '../../store/undoStack';
 import { triggerCsg } from '../../lib/triggerCsg';
 import { triggerSplit } from '../../lib/triggerSplit';
 import { groupSelected, ungroupSelected } from '../../lib/groupActions';
+import { copySelected, pasteClipboard } from '../../lib/clipboardActions';
+import { clipboard } from '../../store/clipboard';
 import type { CsgOperation } from '../../types/scene';
 
 const { Text } = Typography;
@@ -82,6 +84,10 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
   const canRedo = useSyncExternalStore(
     (onChange) => undoStack.subscribe(onChange),
     () => undoStack.canRedo,
+  );
+  const hasClipboard = useSyncExternalStore(
+    (onChange) => clipboard.subscribe(onChange),
+    () => clipboard.hasContent,
   );
 
   const openInputRef = useRef<HTMLInputElement>(null);
@@ -163,6 +169,12 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
         </Tooltip>
         <Tooltip title={canRedo ? 'Redo (Ctrl+Shift+Z)' : 'Nothing to redo'}>
           <Button data-testid="toolbar-redo" size="small" disabled={!canRedo} onClick={() => undoStack.redo()}>Redo</Button>
+        </Tooltip>
+        <Tooltip title={selectedIds.length > 0 ? 'Copy (Ctrl+C)' : 'Select objects to copy'}>
+          <Button data-testid="toolbar-copy" size="small" disabled={selectedIds.length === 0} onClick={copySelected}>Copy</Button>
+        </Tooltip>
+        <Tooltip title={hasClipboard ? 'Paste (Ctrl+V)' : 'Nothing to paste'}>
+          <Button data-testid="toolbar-paste" size="small" disabled={!hasClipboard} onClick={pasteClipboard}>Paste</Button>
         </Tooltip>
       </Space>
 

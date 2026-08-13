@@ -236,6 +236,32 @@ export class DuplicateNodeCommand {
   }
 }
 
+/**
+ * Inserts a precomputed batch of nodes (already assigned fresh ids and
+ * remapped parent/child references — see pasteClipboard in lib/clipboardActions.ts)
+ * and selects the root-level ones. Undo removes the whole batch atomically.
+ */
+export class PasteCommand {
+  private readonly nodesToInsert: SceneNode[];
+  private readonly rootIds: string[];
+
+  constructor(nodesToInsert: SceneNode[], rootIds: string[]) {
+    this.nodesToInsert = nodesToInsert;
+    this.rootIds = rootIds;
+  }
+
+  execute(): void {
+    for (const node of this.nodesToInsert) {
+      useSceneStore.getState().restoreNode(node, useSceneStore.getState().nodes.length);
+    }
+    useSceneStore.getState().selectNodes(this.rootIds);
+  }
+
+  undo(): void {
+    useSceneStore.getState().removeNodes(this.nodesToInsert.map((n) => n.id));
+  }
+}
+
 export class SetWorkplaneCommand {
   private readonly before: Workplane;
   private readonly after: Workplane;

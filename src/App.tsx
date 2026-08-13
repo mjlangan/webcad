@@ -11,6 +11,7 @@ import { undoStack } from './store/undoStack';
 import { RemoveNodeCommand, DuplicateNodeCommand } from './store/commands';
 import { useCsgAutoRecompute } from './lib/useCsgAutoRecompute';
 import { groupSelected } from './lib/groupActions';
+import { copySelected, pasteClipboard } from './lib/clipboardActions';
 import './App.css';
 
 export default function App() {
@@ -65,6 +66,16 @@ export default function App() {
             const isDeletable = node.parentId === null || parent?.geometry.type === 'group';
             if (isDeletable) undoStack.push(new DuplicateNodeCommand(id));
           }
+          return;
+        }
+        if (e.key === 'c') {
+          e.preventDefault();
+          copySelected();
+          return;
+        }
+        if (e.key === 'v') {
+          e.preventDefault();
+          pasteClipboard();
           return;
         }
         return;
