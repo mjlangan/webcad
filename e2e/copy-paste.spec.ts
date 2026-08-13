@@ -28,7 +28,7 @@ test('Copy/Paste buttons: disabled states, single-object copy+paste, undo', asyn
   const pasted = (await getNode(page, pastedId))!;
 
   expect(pasted.name).toBe(`${original.name} (copy)`);
-  expect(pasted.transform.position[0]).toBeCloseTo(original.transform.position[0] + 10, 3);
+  expect(pasted.transform.position[0]).toBeCloseTo(original.transform.position[0], 3);
   expect(pasted.transform.position[1]).toBeCloseTo(original.transform.position[1], 3);
   expect(pasted.transform.position[2]).toBeCloseTo(original.transform.position[2], 3);
 
@@ -93,9 +93,7 @@ test('Copying a group pastes the group with its children intact', async ({ page 
   expect(pastedGroup.id).not.toBe(groupId);
   expect(pastedGroup.childIds).toHaveLength(2);
   expect(pastedGroup.name).toBe(`${group.name} (copy)`);
-  // Group root is offset; children keep their original local transform (they move
-  // with the group automatically since it's re-parented, not re-offset itself).
-  expect(pastedGroup.transform.position[0]).toBeCloseTo(group.transform.position[0] + 10, 3);
+  expect(pastedGroup.transform.position[0]).toBeCloseTo(group.transform.position[0], 3);
 
   for (const childId of pastedGroup.childIds) {
     const child = (await getNode(page, childId))!;

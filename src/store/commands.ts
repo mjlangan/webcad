@@ -212,14 +212,6 @@ export class DuplicateNodeCommand {
       ...source,
       id,
       name: `${source.name} (copy)`,
-      transform: {
-        ...source.transform,
-        position: [
-          source.transform.position[0] + 10,
-          source.transform.position[1],
-          source.transform.position[2],
-        ],
-      },
       // Clone is always a root node — no CSG relationships carried over
       parentId: null,
       childIds: [],

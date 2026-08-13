@@ -4,8 +4,6 @@ import { PasteCommand } from '../store/commands';
 import { clipboard } from '../store/clipboard';
 import type { SceneNode } from '../types/scene';
 
-const PASTE_OFFSET = 10;
-
 /**
  * Recursively collects a node into `out`. Groups bring their full descendant
  * subtree along (so pasting a group isn't left empty); any other node — including
@@ -49,10 +47,9 @@ export function copySelected(): void {
 }
 
 /**
- * Pastes the clipboard contents as new nodes with fresh ids. Top-level (root)
- * pasted nodes are offset from their original position and renamed "(copy)";
- * nodes that were part of a copied group's subtree keep their local transform
- * and name, since they move with their new parent automatically.
+ * Pastes the clipboard contents as new nodes with fresh ids, at their original
+ * position. Top-level (root) pasted nodes are renamed "(copy)"; nodes that were
+ * part of a copied group's subtree keep their original name.
  */
 export function pasteClipboard(): void {
   const clipboardNodes = clipboard.get();
@@ -74,16 +71,6 @@ export function pasteClipboard(): void {
       name: isRoot ? `${n.name} (copy)` : n.name,
       parentId: newParentId,
       childIds: newChildIds,
-      transform: isRoot
-        ? {
-            ...n.transform,
-            position: [
-              n.transform.position[0] + PASTE_OFFSET,
-              n.transform.position[1],
-              n.transform.position[2],
-            ],
-          }
-        : n.transform,
     };
   });
 
