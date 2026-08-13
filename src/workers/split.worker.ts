@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { STLLoader } from 'three/addons/loaders/STLLoader.js';
-import { Evaluator, Brush, INTERSECTION, SUBTRACTION } from 'three-bvh-csg';
 import { geometryToStl } from '../lib/geometryToStl';
+import { geometryToManifold, manifoldToGeometry, getManifoldWasm } from '../lib/manifoldGeometry';
 
 type Vec3 = [number, number, number];
 
@@ -15,19 +15,16 @@ interface SplitOperationMessage {
 }
 
 const loader = new STLLoader();
-const evaluator = new Evaluator();
-evaluator.useGroups = false;
-evaluator.attributes = ['position', 'normal'];
 
-self.onmessage = (event: MessageEvent<SplitOperationMessage>) => {
+self.onmessage = async (event: MessageEvent<SplitOperationMessage>) => {
   const { type, payload } = event.data;
   if (type !== 'SPLIT_OPERATION') return;
 
   try {
     const { mesh, planeOrigin, planeNormal } = payload;
+    const wasm = await getManifoldWasm();
 
     const geo = loader.parse(mesh);
-    geo.computeVertexNormals();
     geo.computeBoundingSphere();
 
     const sphere = geo.boundingSphere!;
@@ -64,21 +61,26 @@ self.onmessage = (event: MessageEvent<SplitOperationMessage>) => {
     orient.setPosition(boxCenter);
     boxGeo.applyMatrix4(orient);
 
-    const meshBrush = new Brush(geo);
-    const boxBrush = new Brush(boxGeo);
-    meshBrush.updateMatrixWorld();
-    boxBrush.updateMatrixWorld();
+    const meshManifold = geometryToManifold(wasm, geo);
+    const boxManifold = geometryToManifold(wasm, boxGeo);
 
-    const aboveResult = evaluator.evaluate(meshBrush, boxBrush, INTERSECTION);
-    const belowResult = evaluator.evaluate(meshBrush, boxBrush, SUBTRACTION);
+    const aboveManifold = wasm.Manifold.intersection(meshManifold, boxManifold);
+    const belowManifold = wasm.Manifold.difference(meshManifold, boxManifold);
+    meshManifold.delete();
+    boxManifold.delete();
 
-    const aboveBuffer = geometryToStl(aboveResult.geometry);
-    const belowBuffer = geometryToStl(belowResult.geometry);
+    const aboveGeo = manifoldToGeometry(aboveManifold);
+    const belowGeo = manifoldToGeometry(belowManifold);
+    aboveManifold.delete();
+    belowManifold.delete();
+
+    const aboveBuffer = geometryToStl(aboveGeo);
+    const belowBuffer = geometryToStl(belowGeo);
 
     geo.dispose();
     boxGeo.dispose();
-    aboveResult.geometry.dispose();
-    belowResult.geometry.dispose();
+    aboveGeo.dispose();
+    belowGeo.dispose();
 
     (self as unknown as Worker).postMessage(
       { type: 'SPLIT_RESULT', payload: { above: aboveBuffer, below: belowBuffer } },

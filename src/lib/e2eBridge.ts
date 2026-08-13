@@ -27,11 +27,6 @@ export interface E2EBridge {
   rotateMarkers: E2ERotateMarker[] | null;
   /** World point (plain numbers so it's JSON-serializable across page.evaluate) -> page px, or null if not ready. */
   worldToPagePx: (x: number, y: number, z: number) => { x: number; y: number } | null;
-  /** Spike-only: proves manifold-3d's WASM loads/runs inside this project's actual
-   *  Vite-bundled worker. Remove alongside _spikeManifold.worker.ts once evaluated. */
-  runManifoldSpike: () => Promise<
-    { success: true; triangleCount: number; vertCount: number } | { success: false; error: string }
-  >;
 }
 
 declare global {
@@ -60,20 +55,5 @@ export function installE2EBridge(): void {
       if (!three) return null;
       return worldToPagePx(new THREE.Vector3(x, y, z), three.camera, three.renderer.domElement);
     },
-    runManifoldSpike: () =>
-      new Promise((resolve) => {
-        const worker = new Worker(new URL('../workers/_spikeManifold.worker.ts', import.meta.url), {
-          type: 'module',
-        });
-        worker.onmessage = (e: MessageEvent<{ type: 'SPIKE_RESULT'; payload: Awaited<ReturnType<E2EBridge['runManifoldSpike']>> }>) => {
-          resolve(e.data.payload);
-          worker.terminate();
-        };
-        worker.onerror = (e) => {
-          resolve({ success: false, error: e.message });
-          worker.terminate();
-        };
-        worker.postMessage({ type: 'RUN_SPIKE' });
-      }),
   };
 }

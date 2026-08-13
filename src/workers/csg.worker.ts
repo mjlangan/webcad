@@ -1,7 +1,7 @@
-import * as THREE from 'three';
 import { STLLoader } from 'three/addons/loaders/STLLoader.js';
-import { Evaluator, Brush, ADDITION, SUBTRACTION, INTERSECTION } from 'three-bvh-csg';
+import type { Manifold as ManifoldT, ManifoldToplevel } from 'manifold-3d';
 import { geometryToStl } from '../lib/geometryToStl';
+import { geometryToManifold, manifoldToGeometry, getManifoldWasm } from '../lib/manifoldGeometry';
 import type { CsgOperation } from '../types/scene';
 
 interface CsgOperationMessage {
@@ -13,57 +13,53 @@ interface CsgOperationMessage {
 }
 
 const loader = new STLLoader();
-const evaluator = new Evaluator();
-evaluator.useGroups = false;
-// Restrict to attributes present in binary STL geometry (no uv)
-evaluator.attributes = ['position', 'normal'];
 
-function parseBuffer(buffer: ArrayBuffer): THREE.BufferGeometry {
-  const geo = loader.parse(buffer);
-  geo.computeVertexNormals();
-  return geo;
+function applyOp(wasm: ManifoldToplevel, operation: CsgOperation, a: ManifoldT, b: ManifoldT): ManifoldT {
+  switch (operation) {
+    case 'union':     return wasm.Manifold.union(a, b);
+    case 'subtract':  return wasm.Manifold.difference(a, b);
+    case 'intersect': return wasm.Manifold.intersection(a, b);
+  }
 }
 
-self.onmessage = (event: MessageEvent<CsgOperationMessage>) => {
+self.onmessage = async (event: MessageEvent<CsgOperationMessage>) => {
   const { type, payload } = event.data;
   if (type !== 'CSG_OPERATION') return;
 
   try {
     const { operation, meshes } = payload;
+    const wasm = await getManifoldWasm();
 
-    let csgOp;
-    switch (operation) {
-      case 'union':     csgOp = ADDITION; break;
-      case 'subtract':  csgOp = SUBTRACTION; break;
-      case 'intersect': csgOp = INTERSECTION; break;
-    }
+    const manifolds = meshes.map((buf) => {
+      const geo = loader.parse(buf);
+      const manifold = geometryToManifold(wasm, geo);
+      geo.dispose();
+      return manifold;
+    });
 
     // Fold left-to-right: (((mesh0 op mesh1) op mesh2) op mesh3) ...
-    const geometries = meshes.map(parseBuffer);
-    let acc = new Brush(geometries[0]);
-    acc.updateMatrixWorld();
-
-    for (let i = 1; i < geometries.length; i++) {
-      const next = new Brush(geometries[i]);
-      next.updateMatrixWorld();
-      const evaluated = evaluator.evaluate(acc, next, csgOp);
-      // Dispose the previous fold's intermediate output geometry (not one of the
-      // original input geometries, which are disposed together below).
-      if (i > 1) acc.geometry.dispose();
-      acc = evaluated;
+    // Every input Manifold and every intermediate fold result is WASM-backed and
+    // must be explicitly .delete()d — there's no GC for it.
+    let acc = manifolds[0];
+    for (let i = 1; i < manifolds.length; i++) {
+      const next = manifolds[i];
+      const result = applyOp(wasm, operation, acc, next);
+      acc.delete();
+      next.delete();
+      acc = result;
     }
 
-    const resultBuffer = geometryToStl(acc.geometry);
+    const resultGeo = manifoldToGeometry(acc);
+    acc.delete();
+
+    const resultBuffer = geometryToStl(resultGeo);
+    resultGeo.dispose();
 
     // Transfer the buffer back to avoid cloning
     (self as unknown as Worker).postMessage(
       { type: 'CSG_RESULT', payload: { result: resultBuffer } },
       [resultBuffer],
     );
-
-    // Clean up
-    geometries.forEach((g) => g.dispose());
-    acc.geometry.dispose();
   } catch (err) {
     (self as unknown as Worker).postMessage({
       type: 'CSG_ERROR',
