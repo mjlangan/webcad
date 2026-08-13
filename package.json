@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:analyze": "tsc -b && ANALYZE=1 vite build",
     "lint": "eslint .",
     "preview": "vite preview",
     "prepare": "git config core.hooksPath .githooks",
@@ -20,10 +21,10 @@
     "@ant-design/icons": "^6.1.0",
     "antd": "^6.3.1",
     "fflate": "^0.8.2",
+    "manifold-3d": "^3.5.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "three": "^0.183.2",
-    "three-bvh-csg": "^0.0.18",
     "zustand": "^5.0.11"
   },
   "devDependencies": {
@@ -41,6 +42,7 @@
     "eslint-plugin-react-refresh": "^0.4.24",
     "globals": "^16.5.0",
     "happy-dom": "^20.8.3",
+    "rollup-plugin-visualizer": "^7.0.1",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.48.0",
     "vite": "^7.3.1",
