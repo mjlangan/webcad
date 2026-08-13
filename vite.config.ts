@@ -6,6 +6,11 @@ import { defaultExclude } from 'vitest/config'
 export default defineConfig({
   base: process.env.VITE_BASE ?? '/',
   plugins: [react()],
+  optimizeDeps: {
+    // manifold-3d ships an Emscripten WASM loader that resolves its .wasm via
+    // import.meta.url; pre-bundling it breaks that resolution.
+    exclude: ['manifold-3d'],
+  },
   test: {
     environment: 'node',
     // Vitest's default include glob would otherwise also pick up e2e/**/*.spec.ts
