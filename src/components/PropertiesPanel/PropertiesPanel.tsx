@@ -1,10 +1,10 @@
 import { createContext, useContext, useRef, useState } from 'react';
-import { InputNumber, Slider, Switch, ColorPicker, Divider, Typography, Button } from 'antd';
+import { Input, InputNumber, Slider, Switch, ColorPicker, Divider, Typography, Button } from 'antd';
 import { useSceneStore } from '../../store/useSceneStore';
 import { undoStack } from '../../store/undoStack';
-import { TransformCommand, UpdateGeometryCommand, UpdateMaterialCommand, SetWorkplaneCommand } from '../../store/commands';
+import { TransformCommand, UpdateGeometryCommand, UpdateMaterialCommand, SetWorkplaneCommand, RenameNodeCommand } from '../../store/commands';
 import type { ReactNode } from 'react';
-import type { PrimitiveParams, Transform, Workplane } from '../../types/scene';
+import type { PrimitiveParams, SceneNode, Transform, Workplane } from '../../types/scene';
 import { DEFAULT_WORKPLANE } from '../../types/scene';
 import { usePreferencesStore, formatUnit, parseUnitValue } from '../../store/usePreferencesStore';
 import {
@@ -348,6 +348,58 @@ function ReferencePlaneProperties({ workplane }: { workplane: Workplane }) {
   );
 }
 
+// Keyed by node.id at the call site so a fresh selection remounts this with a
+// clean local value instead of inheriting the previous node's in-progress edit.
+function NameField({ node }: { node: SceneNode }) {
+  const [value, setValue] = useState(node.name);
+  // Escape sets this before blurring, so the blur-triggered commit() below can
+  // skip committing without racing setValue (state updates from the same event
+  // handler aren't visible yet when blur's handler runs synchronously after).
+  const cancelledRef = useRef(false);
+
+  // Stay in sync if the name changes externally (e.g. renamed via double-click
+  // in the Scene panel while still selected here) — adjusted during render per
+  // https://react.dev/learn/you-might-not-need-an-effect, since a plain effect
+  // would cause an extra render pass.
+  const [prevName, setPrevName] = useState(node.name);
+  if (node.name !== prevName) {
+    setPrevName(node.name);
+    setValue(node.name);
+  }
+
+  const commit = () => {
+    if (cancelledRef.current) {
+      cancelledRef.current = false;
+      setValue(node.name);
+      return;
+    }
+    const trimmed = value.trim();
+    if (trimmed && trimmed !== node.name) {
+      undoStack.push(new RenameNodeCommand(node.id, node.name, trimmed));
+    } else {
+      setValue(node.name);
+    }
+  };
+
+  return (
+    <Input
+      data-testid="prop-name"
+      size="small"
+      value={value}
+      style={{ fontSize: 12, marginBottom: 4 }}
+      onChange={(e) => setValue(e.target.value)}
+      onBlur={commit}
+      onPressEnter={(e) => (e.target as HTMLInputElement).blur()}
+      onKeyDown={(e) => {
+        if (e.key === 'Escape') {
+          cancelledRef.current = true;
+          (e.target as HTMLInputElement).blur();
+        }
+      }}
+    />
+  );
+}
+
 export default function PropertiesPanel() {
   const nodes = useSceneStore((s) => s.nodes);
   const selectedIds = useSceneStore((s) => s.selectedIds);
@@ -438,8 +490,12 @@ export default function PropertiesPanel() {
         Properties
       </div>
       <div style={{ padding: '0 12px 12px', overflowY: 'auto', flex: 1 }}>
-        <div style={{ fontSize: 12, color: '#ccc', padding: '8px 0 4px' }}>
-          {selectedIds.length > 1 ? `${selectedIds.length} objects selected` : node.name}
+        <div style={{ padding: '8px 0 4px' }}>
+          {selectedIds.length > 1 ? (
+            <span style={{ fontSize: 12, color: '#ccc' }}>{selectedIds.length} objects selected</span>
+          ) : (
+            <NameField key={node.id} node={node} />
+          )}
         </div>
 
         <Section title="Position">
