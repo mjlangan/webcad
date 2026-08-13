@@ -22,32 +22,35 @@ function operationLabel(op: CsgOperation): string {
   }
 }
 
+// Union is associative/commutative, so it's meaningful over any number of
+// objects (folded pairwise). Subtract/Intersect keep their well-defined
+// exactly-two-operand meaning (A − B, A ∩ B).
+const MIN_OPERANDS: Record<CsgOperation, number> = { union: 2, subtract: 2, intersect: 2 };
+const MAX_OPERANDS: Record<CsgOperation, number> = { union: Infinity, subtract: 2, intersect: 2 };
+
 export async function triggerCsg(operation: CsgOperation): Promise<void> {
   const { nodes, selectedIds, csgStatus, beginCsg, clearCsg, setCsgPreview, addNode } =
     useSceneStore.getState();
 
   if (csgStatus !== 'idle') return;
-  if (selectedIds.length !== 2) return;
+  if (selectedIds.length < MIN_OPERANDS[operation] || selectedIds.length > MAX_OPERANDS[operation]) return;
 
-  const [idA, idB] = selectedIds;
-  const nodeA = nodes.find((n) => n.id === idA);
-  const nodeB = nodes.find((n) => n.id === idB);
-  if (!nodeA || !nodeB) return;
+  const sourceNodes = selectedIds
+    .map((id) => nodes.find((n) => n.id === id))
+    .filter((n): n is SceneNode => n !== undefined);
+  if (sourceNodes.length !== selectedIds.length) return;
 
   // Build world-space geometries and serialize
-  const geoA = buildWorldGeometry(nodeA, nodes);
-  const geoB = buildWorldGeometry(nodeB, nodes);
-  const bufA = geometryToStl(geoA);
-  const bufB = geometryToStl(geoB);
-  geoA.dispose();
-  geoB.dispose();
+  const geometries = sourceNodes.map((n) => buildWorldGeometry(n, nodes));
+  const buffers = geometries.map((g) => geometryToStl(g));
+  geometries.forEach((g) => g.dispose());
 
   // Enter in-flight state (hides source nodes, records operation type)
-  beginCsg([idA, idB], operation);
+  beginCsg(selectedIds, operation);
 
   let resultBuffer: ArrayBuffer;
   try {
-    resultBuffer = await runCSG(operation, bufA, bufB);
+    resultBuffer = await runCSG(operation, buffers);
   } catch (err) {
     // Cancelled or errored — restore sources
     clearCsg(true);
@@ -64,7 +67,7 @@ export async function triggerCsg(operation: CsgOperation): Promise<void> {
   const meshId = crypto.randomUUID();
   meshGeometryMap.set(meshId, resultGeo);
 
-  const label = `${operationLabel(operation)} of "${nodeA.name}", "${nodeB.name}"`;
+  const label = `${operationLabel(operation)} of ${sourceNodes.map((n) => `"${n.name}"`).join(', ')}`;
   const resultId = addNode({ type: 'imported', meshId, originalName: label });
   setCsgPreview(resultId);
   commitCsg();
@@ -108,25 +111,23 @@ export async function rerunCsgForParent(parentId: string): Promise<void> {
   if (csgStatus !== 'idle') return;
 
   const parent = nodes.find((n) => n.id === parentId);
-  if (!parent || !parent.csgOperation || parent.childIds.length !== 2) return;
+  if (!parent || !parent.csgOperation) return;
+  if (parent.childIds.length < MIN_OPERANDS[parent.csgOperation] || parent.childIds.length > MAX_OPERANDS[parent.csgOperation]) return;
 
-  const [idA, idB] = parent.childIds;
-  const nodeA = nodes.find((n) => n.id === idA);
-  const nodeB = nodes.find((n) => n.id === idB);
-  if (!nodeA || !nodeB) return;
+  const childNodes = parent.childIds
+    .map((id) => nodes.find((n) => n.id === id))
+    .filter((n): n is SceneNode => n !== undefined);
+  if (childNodes.length !== parent.childIds.length) return;
 
   recomputeInFlight.add(parentId);
 
-  const geoA = buildWorldGeometry(nodeA, nodes);
-  const geoB = buildWorldGeometry(nodeB, nodes);
-  const bufA = geometryToStl(geoA);
-  const bufB = geometryToStl(geoB);
-  geoA.dispose();
-  geoB.dispose();
+  const geometries = childNodes.map((n) => buildWorldGeometry(n, nodes));
+  const buffers = geometries.map((g) => geometryToStl(g));
+  geometries.forEach((g) => g.dispose());
 
   let resultBuffer: ArrayBuffer;
   try {
-    resultBuffer = await runCSG(parent.csgOperation, bufA, bufB);
+    resultBuffer = await runCSG(parent.csgOperation, buffers);
   } catch (err) {
     recomputeInFlight.delete(parentId);
     if (err instanceof Error && err.message === 'A CSG operation is already in flight') {

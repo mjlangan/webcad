@@ -35,7 +35,7 @@ const TRANSFORM_MODES: { mode: TransformMode; label: string; key: string }[] = [
 ];
 
 const BOOLEAN_OPS: { op: CsgOperation; label: string; title: string }[] = [
-  { op: 'union',     label: 'Union',     title: 'Combine two selected objects (A ∪ B)' },
+  { op: 'union',     label: 'Union',     title: 'Combine 2 or more selected objects (A ∪ B ∪ ...)' },
   { op: 'subtract',  label: 'Subtract',  title: 'Subtract second object from first (A − B)' },
   { op: 'intersect', label: 'Intersect', title: 'Keep only the overlapping volume (A ∩ B)' },
 ];
@@ -100,7 +100,8 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
   const shadowsEnabled = usePreferencesStore((s) => s.shadowsEnabled);
   const setShadowsEnabled = usePreferencesStore((s) => s.setShadowsEnabled);
 
-  const booleanEnabled = selectedIds.length === 2 && csgStatus === 'idle';
+  const unionEnabled = selectedIds.length >= 2 && csgStatus === 'idle';
+  const pairBooleanEnabled = selectedIds.length === 2 && csgStatus === 'idle';
   const groupEnabled =
     selectedIds.length >= 2 &&
     selectedIds.every((id) => nodes.find((n) => n.id === id)?.parentId === null);
@@ -282,18 +283,24 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
       {/* Boolean */}
       <Space size={3} align="center">
         <Text style={labelStyle}>Boolean</Text>
-        {BOOLEAN_OPS.map(({ op, label, title }) => (
-          <Tooltip key={op} title={booleanEnabled ? title : 'Select exactly 2 objects to use boolean operations'}>
-            <Button
-              data-testid={`toolbar-boolean-${op}`}
-              size="small"
-              disabled={!booleanEnabled}
-              onClick={() => { void triggerCsg(op); }}
-            >
-              {label}
-            </Button>
-          </Tooltip>
-        ))}
+        {BOOLEAN_OPS.map(({ op, label, title }) => {
+          const enabled = op === 'union' ? unionEnabled : pairBooleanEnabled;
+          const disabledHint = op === 'union'
+            ? 'Select 2 or more objects to union'
+            : 'Select exactly 2 objects to use this operation';
+          return (
+            <Tooltip key={op} title={enabled ? title : disabledHint}>
+              <Button
+                data-testid={`toolbar-boolean-${op}`}
+                size="small"
+                disabled={!enabled}
+                onClick={() => { void triggerCsg(op); }}
+              >
+                {label}
+              </Button>
+            </Tooltip>
+          );
+        })}
       </Space>
 
       <ToolbarDivider />

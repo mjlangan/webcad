@@ -47,14 +47,13 @@ function getWorker(): Worker {
 }
 
 /**
- * Run a CSG operation in the background worker.
- * The ArrayBuffers are transferred (not copied) to the worker.
+ * Run a CSG operation over 2 or more meshes (folded left-to-right) in the
+ * background worker. The ArrayBuffers are transferred (not copied) to the worker.
  * Only one operation may be in flight at a time.
  */
 export function runCSG(
   operation: CsgOperation,
-  meshA: ArrayBuffer,
-  meshB: ArrayBuffer,
+  meshes: ArrayBuffer[],
 ): Promise<ArrayBuffer> {
   if (pending) {
     return Promise.reject(new Error('A CSG operation is already in flight'));
@@ -64,8 +63,8 @@ export function runCSG(
     pending = { resolve, reject };
     const w = getWorker();
     w.postMessage(
-      { type: 'CSG_OPERATION', payload: { operation, meshA, meshB } },
-      [meshA, meshB],
+      { type: 'CSG_OPERATION', payload: { operation, meshes } },
+      meshes,
     );
   });
 }

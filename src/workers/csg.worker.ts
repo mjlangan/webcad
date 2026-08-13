@@ -8,8 +8,7 @@ interface CsgOperationMessage {
   type: 'CSG_OPERATION';
   payload: {
     operation: CsgOperation;
-    meshA: ArrayBuffer;
-    meshB: ArrayBuffer;
+    meshes: ArrayBuffer[];
   };
 }
 
@@ -30,17 +29,7 @@ self.onmessage = (event: MessageEvent<CsgOperationMessage>) => {
   if (type !== 'CSG_OPERATION') return;
 
   try {
-    const { operation, meshA: bufA, meshB: bufB } = payload;
-
-    const geoA = parseBuffer(bufA);
-    const geoB = parseBuffer(bufB);
-
-    const brushA = new Brush(geoA);
-    const brushB = new Brush(geoB);
-
-    // Ensure BVH is built
-    brushA.updateMatrixWorld();
-    brushB.updateMatrixWorld();
+    const { operation, meshes } = payload;
 
     let csgOp;
     switch (operation) {
@@ -49,9 +38,22 @@ self.onmessage = (event: MessageEvent<CsgOperationMessage>) => {
       case 'intersect': csgOp = INTERSECTION; break;
     }
 
-    const result = evaluator.evaluate(brushA, brushB, csgOp);
+    // Fold left-to-right: (((mesh0 op mesh1) op mesh2) op mesh3) ...
+    const geometries = meshes.map(parseBuffer);
+    let acc = new Brush(geometries[0]);
+    acc.updateMatrixWorld();
 
-    const resultBuffer = geometryToStl(result.geometry);
+    for (let i = 1; i < geometries.length; i++) {
+      const next = new Brush(geometries[i]);
+      next.updateMatrixWorld();
+      const evaluated = evaluator.evaluate(acc, next, csgOp);
+      // Dispose the previous fold's intermediate output geometry (not one of the
+      // original input geometries, which are disposed together below).
+      if (i > 1) acc.geometry.dispose();
+      acc = evaluated;
+    }
+
+    const resultBuffer = geometryToStl(acc.geometry);
 
     // Transfer the buffer back to avoid cloning
     (self as unknown as Worker).postMessage(
@@ -60,9 +62,8 @@ self.onmessage = (event: MessageEvent<CsgOperationMessage>) => {
     );
 
     // Clean up
-    geoA.dispose();
-    geoB.dispose();
-    result.geometry.dispose();
+    geometries.forEach((g) => g.dispose());
+    acc.geometry.dispose();
   } catch (err) {
     (self as unknown as Worker).postMessage({
       type: 'CSG_ERROR',
