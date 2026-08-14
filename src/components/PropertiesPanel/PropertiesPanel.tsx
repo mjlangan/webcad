@@ -162,18 +162,18 @@ function GeometryFields({
     case 'cylinder':
       return (
         <Section title="Geometry — Cylinder">
-          {/* Top/bottom radius may be 0 (forms a cone), but never negative. */}
-          <NumField label="R Top"    unit="mm" value={geometry.radiusTop}    min={0}   onChange={(v) => onUpdate({ ...geometry, radiusTop:    v })} />
-          <NumField label="R Bottom" unit="mm" value={geometry.radiusBottom} min={0}   onChange={(v) => onUpdate({ ...geometry, radiusBottom: v })} />
-          <NumField label="Height"   unit="mm" value={geometry.height}       min={0.1} onChange={(v) => onUpdate({ ...geometry, height:       v })} />
-          <NumField label="Segments"           value={geometry.radialSegments} step={1} min={3} onChange={(v) => onUpdate({ ...geometry, radialSegments: Math.max(3, Math.round(v)) })} />
+          <NumField label="Radius"  unit="mm" value={geometry.radius} min={0.1} onChange={(v) => onUpdate({ ...geometry, radius: v })} />
+          <NumField label="Height"  unit="mm" value={geometry.height} min={0.1} onChange={(v) => onUpdate({ ...geometry, height: v })} />
+          <NumField label="Segments"          value={geometry.radialSegments} step={1} min={3} onChange={(v) => onUpdate({ ...geometry, radialSegments: Math.max(3, Math.round(v)) })} />
         </Section>
       );
     case 'cone':
       return (
         <Section title="Geometry — Cone">
-          <NumField label="Radius"   unit="mm" value={geometry.radius} min={0.1} onChange={(v) => onUpdate({ ...geometry, radius: v })} />
-          <NumField label="Height"   unit="mm" value={geometry.height} min={0.1} onChange={(v) => onUpdate({ ...geometry, height: v })} />
+          {/* R Top defaults to 0 (a true cone); a nonzero value makes it a frustum. Never negative. */}
+          <NumField label="R Top"    unit="mm" value={geometry.radiusTop}    min={0}   onChange={(v) => onUpdate({ ...geometry, radiusTop:    v })} />
+          <NumField label="R Bottom" unit="mm" value={geometry.radiusBottom} min={0}   onChange={(v) => onUpdate({ ...geometry, radiusBottom: v })} />
+          <NumField label="Height"   unit="mm" value={geometry.height}       min={0.1} onChange={(v) => onUpdate({ ...geometry, height:       v })} />
           <NumField label="Segments"           value={geometry.radialSegments} step={1} min={3} onChange={(v) => onUpdate({ ...geometry, radialSegments: Math.max(3, Math.round(v)) })} />
         </Section>
       );

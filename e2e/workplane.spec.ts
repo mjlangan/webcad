@@ -57,8 +57,8 @@ test('single-axis Y drag does not snap X/Z onto a non-default workplane (face-al
 
   const id = await addPrimitive(page, 'cylinder');
   const spawned = (await getNode(page, id))!;
-  const geo = spawned.geometry as { radiusTop: number; height: number };
-  const radius = geo.radiusTop;
+  const geo = spawned.geometry as { radius: number; height: number };
+  const radius = geo.radius;
 
   // Pick the point on the curved side that directly faces the camera (dead-center
   // of the visible silhouette), to avoid grazing/tangent hits near segment edges.

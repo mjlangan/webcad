@@ -45,8 +45,7 @@ test('CSG subtract of a cylinder from a box produces a watertight (manifold) res
   // representative of the bug being regression-tested here.
   await selectNode(page, idCyl);
   await setNumField(page, 'prop-geometry-cylinder-height', 40);
-  await setNumField(page, 'prop-geometry-cylinder-r-top', 6);
-  await setNumField(page, 'prop-geometry-cylinder-r-bottom', 6);
+  await setNumField(page, 'prop-geometry-cylinder-radius', 6);
 
   await selectNode(page, idBox);
   await addToSelection(page, idCyl);

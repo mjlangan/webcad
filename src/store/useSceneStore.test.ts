@@ -158,13 +158,13 @@ describe('addNode', () => {
   });
 
   it('Cylinder: y = 0 (origin at bottom)', () => {
-    const id = useSceneStore.getState().addNode({ type: 'cylinder', radiusTop: 5, radiusBottom: 5, height: 30, radialSegments: 32 });
+    const id = useSceneStore.getState().addNode({ type: 'cylinder', radius: 5, height: 30, radialSegments: 32 });
     const { position } = useSceneStore.getState().nodes.find((n) => n.id === id)!.transform;
     expect(position[1]).toBe(0);
   });
 
   it('Cone: y = 0 (origin at bottom)', () => {
-    const id = useSceneStore.getState().addNode({ type: 'cone', radius: 5, height: 24, radialSegments: 32 });
+    const id = useSceneStore.getState().addNode({ type: 'cone', radiusTop: 0, radiusBottom: 5, height: 24, radialSegments: 32 });
     const { position } = useSceneStore.getState().nodes.find((n) => n.id === id)!.transform;
     expect(position[1]).toBe(0);
   });
@@ -435,7 +435,7 @@ describe('updatePrimitiveParams', () => {
     const a = addBox();
     const b = addBox();
     const geoBefore = useSceneStore.getState().nodes.find((n) => n.id === b)!.geometry;
-    useSceneStore.getState().updatePrimitiveParams(a, { type: 'cone', radius: 5, height: 10, radialSegments: 32 });
+    useSceneStore.getState().updatePrimitiveParams(a, { type: 'cone', radiusTop: 0, radiusBottom: 5, height: 10, radialSegments: 32 });
     expect(useSceneStore.getState().nodes.find((n) => n.id === b)!.geometry).toEqual(geoBefore);
   });
 });

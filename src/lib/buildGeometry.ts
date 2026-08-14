@@ -22,8 +22,8 @@ export function buildGeometry(params: PrimitiveParams): THREE.BufferGeometry {
     }
     case 'cylinder': {
       const geo = new THREE.CylinderGeometry(
-        params.radiusTop,
-        params.radiusBottom,
+        params.radius,
+        params.radius,
         params.height,
         params.radialSegments,
       );
@@ -31,8 +31,11 @@ export function buildGeometry(params: PrimitiveParams): THREE.BufferGeometry {
       return geo;
     }
     case 'cone': {
-      const geo = new THREE.ConeGeometry(
-        params.radius,
+      // ConeGeometry is a fixed apex (radiusTop=0); use CylinderGeometry directly
+      // so a nonzero radiusTop can produce a frustum (truncated cone).
+      const geo = new THREE.CylinderGeometry(
+        params.radiusTop,
+        params.radiusBottom,
         params.height,
         params.radialSegments,
       );

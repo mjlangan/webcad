@@ -6,7 +6,7 @@ const CASES: { type: PrimitiveType; sectionTestId: string; checkTestId: string; 
   { type: 'box',      sectionTestId: 'section-geometry-box',      checkTestId: 'prop-geometry-box-w',       expected: 20 },
   { type: 'sphere',   sectionTestId: 'section-geometry-sphere',   checkTestId: 'prop-geometry-sphere-radius', expected: 10 },
   { type: 'cylinder', sectionTestId: 'section-geometry-cylinder', checkTestId: 'prop-geometry-cylinder-height', expected: 20 },
-  { type: 'cone',     sectionTestId: 'section-geometry-cone',     checkTestId: 'prop-geometry-cone-radius',   expected: 10 },
+  { type: 'cone',     sectionTestId: 'section-geometry-cone',     checkTestId: 'prop-geometry-cone-r-bottom', expected: 10 },
   { type: 'torus',    sectionTestId: 'section-geometry-torus',    checkTestId: 'prop-geometry-torus-radius',  expected: 10 },
   { type: 'beerglass', sectionTestId: 'section-geometry-beer-glass', checkTestId: 'prop-geometry-beer-glass-r-rim', expected: 37.5 },
   { type: 'wedge',    sectionTestId: 'section-geometry-wedge',    checkTestId: 'prop-geometry-wedge-w',    expected: 20 },

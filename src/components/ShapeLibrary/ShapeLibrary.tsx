@@ -48,9 +48,9 @@ function buildPrimitiveGeometry(type: string): PrimitiveParams | null {
     case 'sphere':
       return { type: 'sphere', radius: 10, widthSegments: 64, heightSegments: 32 };
     case 'cylinder':
-      return { type: 'cylinder', radiusTop: 10, radiusBottom: 10, height: 20, radialSegments: 64 };
+      return { type: 'cylinder', radius: 10, height: 20, radialSegments: 64 };
     case 'cone':
-      return { type: 'cone', radius: 10, height: 20, radialSegments: 64 };
+      return { type: 'cone', radiusTop: 0, radiusBottom: 10, height: 20, radialSegments: 64 };
     case 'torus':
       return { type: 'torus', radius: 10, tube: 4, radialSegments: 64, tubularSegments: 64 };
     case 'beerglass':

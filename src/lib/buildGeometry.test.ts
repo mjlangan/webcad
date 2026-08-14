@@ -84,25 +84,23 @@ describe('buildGeometry — sphere', () => {
 
 describe('buildGeometry — cylinder', () => {
   it('returns a BufferGeometry with vertices', () => {
-    const geo = buildGeometry({ type: 'cylinder', radiusTop: 5, radiusBottom: 5, height: 20, radialSegments: 8 });
+    const geo = buildGeometry({ type: 'cylinder', radius: 5, height: 20, radialSegments: 8 });
     expect(geo).toBeInstanceOf(THREE.BufferGeometry);
     expect(vertexCount(geo)).toBeGreaterThan(0);
   });
 
   it('bounding box height matches the height param', () => {
-    const geo = buildGeometry({ type: 'cylinder', radiusTop: 5, radiusBottom: 5, height: 30, radialSegments: 8 });
+    const geo = buildGeometry({ type: 'cylinder', radius: 5, height: 30, radialSegments: 8 });
     expect(boundingSize(geo).y).toBeCloseTo(30);
   });
 
-  it('tapered cylinder (different radii) has non-uniform XZ extent', () => {
-    const geo = buildGeometry({ type: 'cylinder', radiusTop: 2, radiusBottom: 8, height: 10, radialSegments: 16 });
-    const size = boundingSize(geo);
-    // widest cross-section is at the bottom, so XZ ≈ 2 × radiusBottom
-    expect(size.x).toBeCloseTo(16, 0);
+  it('bounding box XZ width equals 2 × radius', () => {
+    const geo = buildGeometry({ type: 'cylinder', radius: 8, height: 10, radialSegments: 16 });
+    expect(boundingSize(geo).x).toBeCloseTo(16, 0);
   });
 
   it('origin is at bottom (min Y = 0)', () => {
-    const geo = buildGeometry({ type: 'cylinder', radiusTop: 5, radiusBottom: 5, height: 30, radialSegments: 8 });
+    const geo = buildGeometry({ type: 'cylinder', radius: 5, height: 30, radialSegments: 8 });
     expect(boundingMinY(geo)).toBeCloseTo(0);
   });
 });
@@ -111,24 +109,31 @@ describe('buildGeometry — cylinder', () => {
 
 describe('buildGeometry — cone', () => {
   it('returns a BufferGeometry with vertices', () => {
-    const geo = buildGeometry({ type: 'cone', radius: 5, height: 15, radialSegments: 8 });
+    const geo = buildGeometry({ type: 'cone', radiusTop: 0, radiusBottom: 5, height: 15, radialSegments: 8 });
     expect(geo).toBeInstanceOf(THREE.BufferGeometry);
     expect(vertexCount(geo)).toBeGreaterThan(0);
   });
 
   it('bounding box height matches the height param', () => {
-    const geo = buildGeometry({ type: 'cone', radius: 5, height: 15, radialSegments: 8 });
+    const geo = buildGeometry({ type: 'cone', radiusTop: 0, radiusBottom: 5, height: 15, radialSegments: 8 });
     expect(boundingSize(geo).y).toBeCloseTo(15);
   });
 
-  it('bounding box XZ width equals 2 × radius', () => {
-    const geo = buildGeometry({ type: 'cone', radius: 6, height: 10, radialSegments: 16 });
+  it('bounding box XZ width equals 2 × radiusBottom when radiusTop is 0', () => {
+    const geo = buildGeometry({ type: 'cone', radiusTop: 0, radiusBottom: 6, height: 10, radialSegments: 16 });
     expect(boundingSize(geo).x).toBeCloseTo(12, 0);
   });
 
   it('origin is at bottom (min Y = 0)', () => {
-    const geo = buildGeometry({ type: 'cone', radius: 5, height: 15, radialSegments: 8 });
+    const geo = buildGeometry({ type: 'cone', radiusTop: 0, radiusBottom: 5, height: 15, radialSegments: 8 });
     expect(boundingMinY(geo)).toBeCloseTo(0);
+  });
+
+  it('nonzero radiusTop produces a frustum with non-uniform XZ extent', () => {
+    const geo = buildGeometry({ type: 'cone', radiusTop: 2, radiusBottom: 8, height: 10, radialSegments: 16 });
+    const size = boundingSize(geo);
+    // widest cross-section is at the bottom, so XZ ≈ 2 × radiusBottom
+    expect(size.x).toBeCloseTo(16, 0);
   });
 });
 

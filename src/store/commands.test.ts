@@ -241,7 +241,7 @@ describe('UpdateGeometryCommand', () => {
   it('undo() restores the original geometry', () => {
     const id = addBoxDirect();
     const before = getNodes().find((n) => n.id === id)!.geometry;
-    const after = { type: 'cone' as const, radius: 5, height: 10, radialSegments: 32 };
+    const after = { type: 'cone' as const, radiusTop: 0, radiusBottom: 5, height: 10, radialSegments: 32 };
     const cmd = new UpdateGeometryCommand(id, before, after);
     cmd.execute();
     cmd.undo();
@@ -251,7 +251,7 @@ describe('UpdateGeometryCommand', () => {
   it('full round-trip', () => {
     const id = addBoxDirect();
     const original = getNodes().find((n) => n.id === id)!.geometry;
-    const modified = { type: 'cylinder' as const, radiusTop: 5, radiusBottom: 5, height: 20, radialSegments: 32 };
+    const modified = { type: 'cylinder' as const, radius: 5, height: 20, radialSegments: 32 };
     const cmd = new UpdateGeometryCommand(id, original, modified);
 
     cmd.execute();

@@ -14,15 +14,16 @@ export interface SphereParams {
 
 export interface CylinderParams {
   type: 'cylinder';
-  radiusTop: number;
-  radiusBottom: number;
+  radius: number;
   height: number;
   radialSegments: number;
 }
 
 export interface ConeParams {
   type: 'cone';
-  radius: number;
+  // radiusTop defaults to 0 (a true cone); a nonzero value makes it a frustum.
+  radiusTop: number;
+  radiusBottom: number;
   height: number;
   radialSegments: number;
 }
