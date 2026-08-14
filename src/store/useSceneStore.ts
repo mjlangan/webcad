@@ -405,7 +405,11 @@ export const useSceneStore = create<SceneState>((set, get) => ({
           ...n,
           geometry: { ...geo, meshId: newMeshId },
           csgError: error,
-          visible: error === null,
+          // Only reveal on success if this result isn't itself an adopted child of
+          // another CSG parent (nested boolean, e.g. subtract(cylinder, union(cone, wedge))).
+          // A nested result's own visibility is governed by its outer parent's adoption,
+          // not by whether its own recompute succeeded.
+          visible: error === null && n.parentId === null,
         };
       }),
     })),
