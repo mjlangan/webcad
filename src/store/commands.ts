@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type { PrimitiveParams, SceneNode, Transform, MaterialProps, Workplane, CsgOperation } from '../types/scene';
 import { useSceneStore } from './useSceneStore';
+import { nextCopyName } from '../lib/nodeNaming';
 
 export class AddNodeCommand {
   private nodeId: string | null = null;
@@ -211,7 +212,7 @@ export class DuplicateNodeCommand {
     const clone: SceneNode = {
       ...source,
       id,
-      name: `${source.name} (copy)`,
+      name: nextCopyName(source.name, state.nodes.map((n) => n.name)),
       // Clone is always a root node — no CSG relationships carried over
       parentId: null,
       childIds: [],

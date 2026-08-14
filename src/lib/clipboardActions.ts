@@ -2,6 +2,7 @@ import { useSceneStore } from '../store/useSceneStore';
 import { undoStack } from '../store/undoStack';
 import { PasteCommand } from '../store/commands';
 import { clipboard } from '../store/clipboard';
+import { nextCopyName } from './nodeNaming';
 import type { SceneNode } from '../types/scene';
 
 /**
@@ -48,8 +49,9 @@ export function copySelected(): void {
 
 /**
  * Pastes the clipboard contents as new nodes with fresh ids, at their original
- * position. Top-level (root) pasted nodes are renamed "(copy)"; nodes that were
- * part of a copied group's subtree keep their original name.
+ * position. Top-level (root) pasted nodes get a trailing number appended/
+ * incremented (see nextCopyName); nodes that were part of a copied group's
+ * subtree keep their original name.
  */
 export function pasteClipboard(): void {
   const clipboardNodes = clipboard.get();
@@ -58,6 +60,11 @@ export function pasteClipboard(): void {
   const idMap = new Map<string, string>();
   clipboardNodes.forEach((n) => idMap.set(n.id, crypto.randomUUID()));
 
+  // Tracks names already claimed, seeded with the current scene and grown as
+  // each pasted node is named, so a multi-item paste never assigns the same
+  // name to two of its own new nodes either.
+  const existingNames = new Set(useSceneStore.getState().nodes.map((n) => n.name));
+
   const nodesToInsert: SceneNode[] = clipboardNodes.map((n) => {
     const newParentId = n.parentId && idMap.has(n.parentId) ? idMap.get(n.parentId)! : null;
     const isRoot = newParentId === null;
@@ -65,10 +72,16 @@ export function pasteClipboard(): void {
       .map((cid) => idMap.get(cid))
       .filter((cid): cid is string => cid !== undefined);
 
+    let name = n.name;
+    if (isRoot) {
+      name = nextCopyName(n.name, existingNames);
+      existingNames.add(name);
+    }
+
     return {
       ...n,
       id: idMap.get(n.id)!,
-      name: isRoot ? `${n.name} (copy)` : n.name,
+      name,
       parentId: newParentId,
       childIds: newChildIds,
     };

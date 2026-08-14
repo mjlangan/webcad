@@ -27,7 +27,9 @@ test('Copy/Paste buttons: disabled states, single-object copy+paste, undo', asyn
   const original = (await getNode(page, id))!;
   const pasted = (await getNode(page, pastedId))!;
 
-  expect(pasted.name).toBe(`${original.name} (copy)`);
+  // Default-added shapes are named "Box 1", "Sphere 1", etc., so pasting
+  // increments the trailing number.
+  expect(pasted.name).toBe(original.name.replace(/(\d+)$/, (n) => String(Number(n) + 1)));
   expect(pasted.transform.position[0]).toBeCloseTo(original.transform.position[0], 3);
   expect(pasted.transform.position[1]).toBeCloseTo(original.transform.position[1], 3);
   expect(pasted.transform.position[2]).toBeCloseTo(original.transform.position[2], 3);
@@ -44,6 +46,27 @@ test('Copy/Paste buttons: disabled states, single-object copy+paste, undo', asyn
   await pasteBtn.click();
   await pasteBtn.click();
   expect(await getNodeCount(page)).toBe(3);
+});
+
+test('duplicating multiple shapes never assigns a name already taken in the scene', async ({ page }) => {
+  await gotoReady(page);
+
+  // Three spheres: "Sphere 1", "Sphere 2", "Sphere 3".
+  const id1 = await addPrimitive(page, 'sphere');
+  await addPrimitive(page, 'sphere');
+  const id3 = await addPrimitive(page, 'sphere');
+
+  // Duplicate the 1st and 3rd together via Ctrl+D. A naive "increment the
+  // source's own number" scheme would produce a second "Sphere 2" (colliding
+  // with the existing one) and a "Sphere 4" — this asserts every name in the
+  // scene stays unique instead.
+  await selectNode(page, id1);
+  await addToSelection(page, id3);
+  await page.keyboard.press('Control+d');
+
+  expect(await getNodeCount(page)).toBe(5);
+  const names = await page.evaluate(() => window.__E2E__!.store.getState().nodes.map((n) => n.name));
+  expect(new Set(names).size).toBe(names.length);
 });
 
 test('Ctrl+C / Ctrl+V keyboard shortcuts, multi-select copy', async ({ page }) => {
@@ -92,7 +115,7 @@ test('Copying a group pastes the group with its children intact', async ({ page 
   expect(pastedGroup.geometry.type).toBe('group');
   expect(pastedGroup.id).not.toBe(groupId);
   expect(pastedGroup.childIds).toHaveLength(2);
-  expect(pastedGroup.name).toBe(`${group.name} (copy)`);
+  expect(pastedGroup.name).toBe(group.name.replace(/(\d+)$/, (n) => String(Number(n) + 1)));
   expect(pastedGroup.transform.position[0]).toBeCloseTo(group.transform.position[0], 3);
 
   for (const childId of pastedGroup.childIds) {
