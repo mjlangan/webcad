@@ -118,6 +118,43 @@ export class UpdateGeometryCommand {
 }
 
 /**
+ * Records a scale-gizmo drag on a shape whose dimensions can absorb the scale
+ * directly (see src/lib/scaleToGeometry.ts): updates both the geometry params
+ * and the transform (whose scale resets to identity) as one atomic undo step.
+ */
+export class ScaleGeometryCommand {
+  private readonly id: string;
+  private readonly beforeGeometry: PrimitiveParams;
+  private readonly afterGeometry: PrimitiveParams;
+  private readonly beforeTransform: Transform;
+  private readonly afterTransform: Transform;
+
+  constructor(
+    id: string,
+    beforeGeometry: PrimitiveParams,
+    afterGeometry: PrimitiveParams,
+    beforeTransform: Transform,
+    afterTransform: Transform,
+  ) {
+    this.id = id;
+    this.beforeGeometry = beforeGeometry;
+    this.afterGeometry = afterGeometry;
+    this.beforeTransform = beforeTransform;
+    this.afterTransform = afterTransform;
+  }
+
+  execute(): void {
+    useSceneStore.getState().updatePrimitiveParams(this.id, this.afterGeometry);
+    useSceneStore.getState().updateTransform(this.id, this.afterTransform);
+  }
+
+  undo(): void {
+    useSceneStore.getState().updatePrimitiveParams(this.id, this.beforeGeometry);
+    useSceneStore.getState().updateTransform(this.id, this.beforeTransform);
+  }
+}
+
+/**
  * Records a material change. execute() applies the new material, undo() restores the old one.
  */
 export class UpdateMaterialCommand {

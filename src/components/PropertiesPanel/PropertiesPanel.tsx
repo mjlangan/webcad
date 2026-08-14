@@ -7,6 +7,7 @@ import type { ReactNode } from 'react';
 import type { PrimitiveParams, SceneNode, Transform, Workplane } from '../../types/scene';
 import { DEFAULT_WORKPLANE } from '../../types/scene';
 import { usePreferencesStore, formatUnit, parseUnitValue } from '../../store/usePreferencesStore';
+import { hasDirectDimensionScale } from '../../lib/scaleToGeometry';
 import {
   decomposeWorkplaneOrigin,
   recomposeWorkplaneOrigin,
@@ -510,11 +511,18 @@ export default function PropertiesPanel() {
           <NumField label="Z" unit="deg" value={transform.rotation[2] * RAD_TO_DEG} step={1} onChange={(v) => setRot(2, v)} />
         </Section>
 
-        <Section title="Scale">
-          <NumField label="X" value={transform.scale[0]} step={0.1} min={0.001} onChange={(v) => setScale(0, v)} />
-          <NumField label="Y" value={transform.scale[1]} step={0.1} min={0.001} onChange={(v) => setScale(1, v)} />
-          <NumField label="Z" value={transform.scale[2]} step={0.1} min={0.001} onChange={(v) => setScale(2, v)} />
-        </Section>
+        {/* Shapes whose own dimension params can represent a resize directly
+            (see scaleToGeometry.ts) don't get a separate Scale multiplier —
+            their Geometry fields below are always the true, effective size.
+            Shapes without that mapping (sphere, dome, torusknot, group,
+            imported meshes) still need it as their only resize mechanism. */}
+        {!hasDirectDimensionScale(geometry.type) && (
+          <Section title="Scale">
+            <NumField label="X" value={transform.scale[0]} step={0.1} min={0.001} onChange={(v) => setScale(0, v)} />
+            <NumField label="Y" value={transform.scale[1]} step={0.1} min={0.001} onChange={(v) => setScale(1, v)} />
+            <NumField label="Z" value={transform.scale[2]} step={0.1} min={0.001} onChange={(v) => setScale(2, v)} />
+          </Section>
+        )}
 
         {selectedIds.length === 1 && (
           <GeometryFields

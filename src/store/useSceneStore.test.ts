@@ -577,6 +577,46 @@ describe('loadScene', () => {
     expect(useSceneStore.getState().nodes[0].id).toBe('test-1');
   });
 
+  it('bakes a legacy non-identity scale on a directly-scalable shape into its params', () => {
+    const legacyNode = {
+      id: 'legacy-1',
+      name: 'Old Box',
+      visible: true,
+      transform: { position: [0, 0, 0] as [number, number, number], rotation: [0, 0, 0] as [number, number, number], scale: [1, 2, 1] as [number, number, number] },
+      geometry: { type: 'box' as const, width: 10, height: 10, depth: 10 },
+      material: { color: '#ff0000', opacity: 1, wireframe: false },
+      parentId: null,
+      childIds: [],
+      csgOperation: null,
+      csgError: null,
+    };
+    useSceneStore.getState().loadScene([legacyNode], { origin: [0, 0, 0], normal: [0, 1, 0], tangentX: [1, 0, 0] });
+
+    const loaded = useSceneStore.getState().nodes[0];
+    expect(loaded.transform.scale).toEqual([1, 1, 1]);
+    expect((loaded.geometry as { height: number }).height).toBe(20);
+  });
+
+  it('leaves a legacy scale on a non-mappable shape (sphere) untouched', () => {
+    const legacyNode = {
+      id: 'legacy-2',
+      name: 'Old Sphere',
+      visible: true,
+      transform: { position: [0, 0, 0] as [number, number, number], rotation: [0, 0, 0] as [number, number, number], scale: [1, 2, 1] as [number, number, number] },
+      geometry: { type: 'sphere' as const, radius: 10, widthSegments: 32, heightSegments: 16 },
+      material: { color: '#ff0000', opacity: 1, wireframe: false },
+      parentId: null,
+      childIds: [],
+      csgOperation: null,
+      csgError: null,
+    };
+    useSceneStore.getState().loadScene([legacyNode], { origin: [0, 0, 0], normal: [0, 1, 0], tangentX: [1, 0, 0] });
+
+    const loaded = useSceneStore.getState().nodes[0];
+    expect(loaded.transform.scale).toEqual([1, 2, 1]);
+    expect((loaded.geometry as { radius: number }).radius).toBe(10);
+  });
+
   it('replaces workplane', () => {
     const newWorkplane = { origin: [5, 0, 5] as [number, number, number], normal: [0, 1, 0] as [number, number, number], tangentX: [1, 0, 0] as [number, number, number] };
     useSceneStore.getState().loadScene([], newWorkplane);

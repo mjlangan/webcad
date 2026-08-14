@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { SceneNode, Transform, PrimitiveParams, MaterialProps, Workplane, CsgOperation, ImportedMeshParams } from '../types/scene';
 import { DEFAULT_WORKPLANE } from '../types/scene';
 import { workplaneSpawn } from '../lib/workplaneUtils';
+import { bakeScaleIntoDimensions } from '../lib/scaleToGeometry';
 
 export type TransformMode = 'translate' | 'rotate' | 'scale';
 export type AxisConstraint = 'X' | 'Y' | 'Z' | null;
@@ -416,7 +417,11 @@ export const useSceneStore = create<SceneState>((set, get) => ({
 
   loadScene: (nodes, workplane) =>
     set({
-      nodes,
+      // Migrates scenes saved before direct-dimension scaling existed: bakes
+      // any non-identity scale on a now-directly-scalable shape into its own
+      // params and resets scale to identity, so the Properties panel's Scale
+      // section (hidden for those shapes) never leaves a stale scale stranded.
+      nodes: nodes.map(bakeScaleIntoDimensions),
       workplane,
       selectedIds: [],
       referencePlaneSelected: false,

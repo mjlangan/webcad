@@ -23,14 +23,26 @@ test('editing Rotation Y in degrees updates the stored radians', async ({ page }
   expect(node!.transform.rotation[1]).toBeCloseTo(Math.PI / 4, 5);
 });
 
-test('editing Scale X updates the stored scale', async ({ page }) => {
+test('editing Scale X updates the stored scale (sphere has no direct-dimension mapping)', async ({ page }) => {
   await gotoReady(page);
-  const id = await addPrimitive(page, 'box');
+  const id = await addPrimitive(page, 'sphere');
 
   await setNumField(page, 'prop-scale-x', 2);
 
   const node = await getNode(page, id);
   expect(node!.transform.scale[0]).toBeCloseTo(2, 5);
+});
+
+test('the Scale section is hidden for shapes with direct-dimension scaling, shown for shapes without it', async ({ page }) => {
+  await gotoReady(page);
+
+  const boxId = await addPrimitive(page, 'box');
+  await selectNode(page, boxId);
+  await expect(page.getByTestId('section-scale')).toBeHidden();
+
+  const sphereId = await addPrimitive(page, 'sphere');
+  await selectNode(page, sphereId);
+  await expect(page.getByTestId('section-scale')).toBeVisible();
 });
 
 test('editing box Geometry W resizes it', async ({ page }) => {

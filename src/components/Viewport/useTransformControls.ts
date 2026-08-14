@@ -5,11 +5,12 @@ import type { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import type { ThreeSetup } from './useThreeSetup';
 import { useSceneStore } from '../../store/useSceneStore';
 import { undoStack } from '../../store/undoStack';
-import { TransformCommand } from '../../store/commands';
+import { TransformCommand, ScaleGeometryCommand } from '../../store/commands';
 import type { Transform } from '../../types/scene';
 import type { TransformMode } from '../../store/useSceneStore';
 import { computeWorldMatrix } from '../../lib/worldMatrix';
 import { worldToPagePx } from '../../lib/screenProjection';
+import { applyAxisScaleToGeometry } from '../../lib/scaleToGeometry';
 
 // Screen-space pixel radius within which vertex snap activates
 const VERTEX_SNAP_PX = 20;
@@ -343,14 +344,40 @@ export function useTransformControls(
       if (!dragging && tc.object && dragIds.length > 0) {
         dragOverlayRef.current = null;
 
+        const { transformMode, nodes } = useSceneStore.getState();
         const primaryObj = tc.object as THREE.Mesh;
-        const afterTransforms: Transform[] = dragIds.map((id, i) => {
-          const mesh = i === 0 ? primaryObj : (meshMapRef.current.get(id) ?? null);
-          if (!mesh) return dragBeforeTransforms[i];
-          // Convert the mesh's world transform to the store format (local for group children)
-          return meshTransformToStoreTransform(mesh, id);
-        });
-        undoStack.push(new TransformCommand(dragIds, dragBeforeTransforms, afterTransforms));
+        const primaryId = dragIds[0];
+        const primaryNode = nodes.find((n) => n.id === primaryId);
+        const primaryBefore = dragBeforeTransforms[0];
+
+        // Scale-mode drags on a single shape whose dimensions can absorb the
+        // scale directly (see scaleToGeometry.ts) bake it into the geometry
+        // params instead of leaving a separate transform.scale multiplier —
+        // the TinkerCAD/SketchUp model of resizing a shape rather than
+        // scaling it. Scale mode is single-object only (see the selection
+        // subscriber below), so dragIds.length is always 1 here.
+        const scaledGeometry =
+          transformMode === 'scale' && dragIds.length === 1 && primaryNode
+            ? applyAxisScaleToGeometry(primaryNode.geometry, [
+                primaryBefore.scale[0] !== 0 ? primaryObj.scale.x / primaryBefore.scale[0] : 1,
+                primaryBefore.scale[1] !== 0 ? primaryObj.scale.y / primaryBefore.scale[1] : 1,
+                primaryBefore.scale[2] !== 0 ? primaryObj.scale.z / primaryBefore.scale[2] : 1,
+              ])
+            : null;
+
+        if (scaledGeometry && primaryNode) {
+          const afterTransform: Transform = { ...primaryBefore, scale: [1, 1, 1] };
+          undoStack.push(new ScaleGeometryCommand(primaryId, primaryNode.geometry, scaledGeometry, primaryBefore, afterTransform));
+        } else {
+          const afterTransforms: Transform[] = dragIds.map((id, i) => {
+            const mesh = i === 0 ? primaryObj : (meshMapRef.current.get(id) ?? null);
+            if (!mesh) return dragBeforeTransforms[i];
+            // Convert the mesh's world transform to the store format (local for group children)
+            return meshTransformToStoreTransform(mesh, id);
+          });
+          undoStack.push(new TransformCommand(dragIds, dragBeforeTransforms, afterTransforms));
+        }
+
         dragIds = [];
         dragBeforeTransforms = [];
         snapCandidates = [];
