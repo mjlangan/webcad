@@ -78,8 +78,10 @@ for (const type of SHAPE_TYPES) {
         // radius reserved as margin.
         const [dx, dy, dz] = direction;
         const dirLen = Math.hypot(dx, dy, dz);
-        const fovRad = three.camera.fov * (Math.PI / 180);
-        const aspect = three.camera.aspect;
+        // This script always drives the app in its default (perspective) camera mode.
+        const camera = three.camera as import('three').PerspectiveCamera;
+        const fovRad = camera.fov * (Math.PI / 180);
+        const aspect = camera.aspect;
         const halfAngle = Math.min(fovRad / 2, Math.atan(Math.tan(fovRad / 2) * aspect));
         const dist = (radius * 1.2) / Math.sin(halfAngle);
 

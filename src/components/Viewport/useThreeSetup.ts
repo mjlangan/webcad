@@ -2,12 +2,34 @@ import { useEffect, useRef, type RefObject } from 'react';
 import * as THREE from 'three';
 import { disposeMaterial } from './disposeMaterial';
 import { usePreferencesStore } from '../../store/usePreferencesStore';
+import { getCameraView } from './lastCameraView';
+
+export type ViewportCamera = THREE.PerspectiveCamera | THREE.OrthographicCamera;
 
 export interface ThreeSetup {
   scene: THREE.Scene;
-  camera: THREE.PerspectiveCamera;
+  camera: ViewportCamera;
   renderer: THREE.WebGLRenderer;
   keyLight: THREE.DirectionalLight;
+}
+
+const DEFAULT_POSITION: [number, number, number] = [80, 80, 120];
+const DEFAULT_TARGET: [number, number, number] = [0, 0, 0];
+
+// Half-height (world units) of the orthographic frustum, chosen so its default
+// framing roughly matches the default perspective camera's view of the origin
+// (distance ≈165 at fov 60° → half-height = dist·tan(30°) ≈95).
+const ORTHO_VIEW_SIZE = 95;
+
+function createCamera(projection: 'perspective' | 'orthographic', aspect: number): ViewportCamera {
+  if (projection === 'orthographic') {
+    return new THREE.OrthographicCamera(
+      -ORTHO_VIEW_SIZE * aspect, ORTHO_VIEW_SIZE * aspect,
+      ORTHO_VIEW_SIZE, -ORTHO_VIEW_SIZE,
+      0.1, 10000,
+    );
+  }
+  return new THREE.PerspectiveCamera(60, aspect, 0.1, 10000);
 }
 
 export function useThreeSetup(
@@ -30,10 +52,15 @@ export function useThreeSetup(
     const scene = new THREE.Scene();
     scene.background = new THREE.Color('#1a1a1a');
 
-    // Camera
-    const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 10000);
-    camera.position.set(80, 80, 120);
-    camera.lookAt(0, 0, 0);
+    // Camera — restores the prior mount's pose (e.g. across a projection-mode
+    // toggle, which remounts the whole Viewport) if one was saved, otherwise
+    // falls back to the default framing.
+    const savedView = getCameraView();
+    const { cameraProjection } = usePreferencesStore.getState();
+    const camera = createCamera(cameraProjection, 1);
+    camera.position.set(...(savedView?.position ?? DEFAULT_POSITION));
+    if (savedView) camera.up.set(...savedView.up);
+    camera.lookAt(...(savedView?.target ?? DEFAULT_TARGET));
 
     // Lights — key + fill + ambient for soft 3-point look
     const ambient = new THREE.AmbientLight(0xffffff, 0.5);
@@ -65,7 +92,15 @@ export function useThreeSetup(
       const h = canvas.clientHeight;
       if (canvas.width !== w || canvas.height !== h) {
         renderer.setSize(w, h, false);
-        camera.aspect = w / h;
+        const aspect = w / h;
+        if (camera instanceof THREE.OrthographicCamera) {
+          camera.left = -ORTHO_VIEW_SIZE * aspect;
+          camera.right = ORTHO_VIEW_SIZE * aspect;
+          camera.top = ORTHO_VIEW_SIZE;
+          camera.bottom = -ORTHO_VIEW_SIZE;
+        } else {
+          camera.aspect = aspect;
+        }
         camera.updateProjectionMatrix();
       }
     };

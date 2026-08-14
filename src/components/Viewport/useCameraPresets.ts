@@ -78,25 +78,48 @@ export function useCameraPresets(
       up: THREE.Vector3,
     ) {
       const { center, radius } = sphere;
-      const fovRad = three.camera.fov * (Math.PI / 180);
-      const aspect = three.camera.aspect;
-      const dist = (radius / (Math.tan(fovRad / 2) * Math.min(1, aspect))) * 1.2;
+      const camera = three.camera;
+      const isOrtho = (camera as THREE.OrthographicCamera).isOrthographicCamera;
+
+      // Distance doesn't affect an orthographic camera's apparent framing —
+      // only zoom does — so `dist` here just needs to clear the sphere and
+      // land within the clip range; the fit itself comes from targetZoom below.
+      let dist: number;
+      let targetZoom: number | null = null;
+      const startZoom = camera.zoom;
+
+      if (isOrtho) {
+        const ortho = camera as THREE.OrthographicCamera;
+        dist = radius * 3;
+        // Binding half-extent — whichever of width/height is tighter, mirroring
+        // the Math.min(1, aspect) term in the perspective branch below.
+        const bindingHalfExtent = Math.min(ortho.top, ortho.right);
+        targetZoom = bindingHalfExtent / (radius * 1.2);
+      } else {
+        const persp = camera as THREE.PerspectiveCamera;
+        const fovRad = persp.fov * (Math.PI / 180);
+        dist = (radius / (Math.tan(fovRad / 2) * Math.min(1, persp.aspect))) * 1.2;
+      }
 
       const endPos    = center.clone().addScaledVector(direction, dist);
       const endTarget = center.clone();
-      const startPos    = three.camera.position.clone();
+      const startPos    = camera.position.clone();
       const startTarget = controls.target.clone();
-      const startUp     = three.camera.up.clone();
+      const startUp     = camera.up.clone();
       const startTime   = performance.now();
 
       onBeforeRenderRef.current = () => {
         const t = Math.min((performance.now() - startTime) / TRANSITION_MS, 1);
         const e = easeOut(t);
 
-        three.camera.position.lerpVectors(startPos, endPos, e);
-        three.camera.up.lerpVectors(startUp, up, e).normalize();
+        camera.position.lerpVectors(startPos, endPos, e);
+        camera.up.lerpVectors(startUp, up, e).normalize();
         controls.target.lerpVectors(startTarget, endTarget, e);
-        three.camera.lookAt(controls.target);
+        camera.lookAt(controls.target);
+        if (targetZoom !== null) {
+          camera.zoom = startZoom + (targetZoom - startZoom) * e;
+          camera.updateProjectionMatrix();
+        }
 
         if (t >= 1) {
           onBeforeRenderRef.current = () => controls.update();

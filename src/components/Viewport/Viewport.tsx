@@ -13,6 +13,7 @@ import { useWorkplaneVisualization } from './useWorkplaneVisualization';
 import { useAxesGizmo } from './useAxesGizmo';
 import { useMeasurement } from './useMeasurement';
 import { useFaceAlignMode } from './useFaceAlignMode';
+import { useCameraViewPersistence } from './useCameraViewPersistence';
 import TransformDeltaOverlay from './TransformDeltaOverlay';
 import MeasurementOverlay from './MeasurementOverlay';
 import type { ViewportActions } from '../../types/viewport';
@@ -43,6 +44,9 @@ export default function Viewport({ actionsRef }: ViewportProps) {
   useAxesGizmo(gizmoCanvasRef, threeRef);
   const measureOverlayRef = useMeasurement(threeRef, meshMapRef, isDraggingRef);
   useFaceAlignMode(threeRef, meshMapRef, isDraggingRef);
+  // Called last so its cleanup (captures the camera pose) runs first on unmount,
+  // before useThreeSetup's cleanup tears the camera down.
+  useCameraViewPersistence(threeRef, orbitControlsRef);
 
   return (
     <div className="viewport-wrapper">

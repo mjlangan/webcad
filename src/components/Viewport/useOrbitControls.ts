@@ -2,6 +2,7 @@ import { useEffect, useRef, type RefObject } from 'react';
 import { MOUSE } from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import type { ThreeSetup } from './useThreeSetup';
+import { getCameraView } from './lastCameraView';
 
 export function useOrbitControls(
   threeRef: RefObject<ThreeSetup | null>,
@@ -18,6 +19,12 @@ export function useOrbitControls(
     controls.dampingFactor = 0.08;
     controls.minDistance = 1;
     controls.maxDistance = 2000;
+
+    // Restore the prior mount's look-at target (useThreeSetup already restored
+    // the camera's own position/up) so a projection-mode toggle's remount
+    // doesn't reset the view.
+    const savedView = getCameraView();
+    if (savedView) controls.target.set(...savedView.target);
 
     // Configure mouse buttons: middle button for panning instead of zooming
     // ROTATE: left button (0), PAN: middle button (2), ZOOM: scroll wheel (no button needed)

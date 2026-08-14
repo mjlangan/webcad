@@ -7,6 +7,7 @@ import ShapeLibrary from './components/ShapeLibrary/ShapeLibrary';
 import type { ViewportActions } from './types/viewport';
 import { useSceneStore } from './store/useSceneStore';
 import type { AxisConstraint } from './store/useSceneStore';
+import { usePreferencesStore } from './store/usePreferencesStore';
 import { undoStack } from './store/undoStack';
 import { RemoveNodeCommand, DuplicateNodeCommand } from './store/commands';
 import { useCsgAutoRecompute } from './lib/useCsgAutoRecompute';
@@ -16,6 +17,7 @@ import './App.css';
 
 export default function App() {
   const actionsRef = useRef<ViewportActions | null>(null);
+  const cameraProjection = usePreferencesStore((s) => s.cameraProjection);
   useCsgAutoRecompute();
 
   useEffect(() => {
@@ -154,7 +156,7 @@ export default function App() {
       <Toolbar actionsRef={actionsRef} />
       <Sidebar />
       <div className="app-viewport">
-        <Viewport actionsRef={actionsRef} />
+        <Viewport key={cameraProjection} actionsRef={actionsRef} />
         <CsgOverlay />
         <ShapeLibrary />
       </div>

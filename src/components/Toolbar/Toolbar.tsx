@@ -99,6 +99,8 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
   const setUnitSystem = usePreferencesStore((s) => s.setUnitSystem);
   const shadowsEnabled = usePreferencesStore((s) => s.shadowsEnabled);
   const setShadowsEnabled = usePreferencesStore((s) => s.setShadowsEnabled);
+  const cameraProjection = usePreferencesStore((s) => s.cameraProjection);
+  const setCameraProjection = usePreferencesStore((s) => s.setCameraProjection);
 
   const unionEnabled = selectedIds.length >= 2 && csgStatus === 'idle';
   const pairBooleanEnabled = selectedIds.length === 2 && csgStatus === 'idle';
@@ -477,6 +479,27 @@ export default function Toolbar({ actionsRef }: ToolbarProps) {
                 unCheckedChildren="Off"
               />
             </Tooltip>
+          </div>
+          <div>
+            <Text style={{ ...labelStyle, display: 'block', marginBottom: 6 }}>Camera</Text>
+            <Space>
+              <Button
+                data-testid="toolbar-prefs-camera-perspective"
+                size="small"
+                type={cameraProjection === 'perspective' ? 'primary' : 'default'}
+                onClick={() => setCameraProjection('perspective')}
+              >
+                Perspective
+              </Button>
+              <Button
+                data-testid="toolbar-prefs-camera-orthographic"
+                size="small"
+                type={cameraProjection === 'orthographic' ? 'primary' : 'default'}
+                onClick={() => setCameraProjection('orthographic')}
+              >
+                Orthographic
+              </Button>
+            </Space>
           </div>
         </div>
       </Modal>

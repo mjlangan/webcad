@@ -5,7 +5,7 @@ import { worldToPagePx } from './screenProjection';
 
 export interface E2EThreeSetup {
   scene: THREE.Scene;
-  camera: THREE.PerspectiveCamera;
+  camera: THREE.PerspectiveCamera | THREE.OrthographicCamera;
   renderer: THREE.WebGLRenderer;
 }
 

@@ -72,7 +72,10 @@ export async function gizmoYArmPoint(
   armFraction = 0.12,
 ): Promise<{ world: [number, number, number]; factor: number }> {
   const factor = await page.evaluate(([x, y, z]) => {
-    const cam = window.__E2E__!.three!.camera;
+    // Perspective-only formula (mirrors computeGizmoScaleFactor's perspective
+    // branch) — the app's default camera mode, which is what every caller of
+    // this helper drives against.
+    const cam = window.__E2E__!.three!.camera as import('three').PerspectiveCamera;
     const dist = Math.hypot(cam.position.x - x, cam.position.y - y, cam.position.z - z);
     return dist * Math.min((1.9 * Math.tan((Math.PI * cam.fov) / 360)) / cam.zoom, 7);
   }, worldPos);

@@ -131,7 +131,8 @@ test('planar/free translate drag does not snap the object back onto a tilted wor
   // in X/Z is generally NOT coplanar with a workplane tilted about the X axis, so
   // if the object gets snapped back onto the workplane, dist-to-plane stays ~0.
   const factor = await page.evaluate((p) => {
-    const cam = window.__E2E__!.three!.camera;
+    // Perspective-only formula — this test runs the app in its default camera mode.
+    const cam = window.__E2E__!.three!.camera as import('three').PerspectiveCamera;
     const dist = Math.hypot(cam.position.x - p[0], cam.position.y - p[1], cam.position.z - p[2]);
     return dist * Math.min((1.9 * Math.tan((Math.PI * cam.fov) / 360)) / cam.zoom, 7);
   }, before);

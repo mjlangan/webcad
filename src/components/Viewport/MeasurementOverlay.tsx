@@ -1,5 +1,4 @@
 import { useState, type RefObject } from 'react';
-import * as THREE from 'three';
 import type { ThreeSetup } from './useThreeSetup';
 import type { MeasureOverlayState } from './useMeasurement';
 import { usePreferencesStore, formatUnit } from '../../store/usePreferencesStore';
@@ -26,7 +25,7 @@ export default function MeasurementOverlay({ threeRef, measureOverlayRef }: Prop
 
     const { camera, renderer } = three;
     const canvas = renderer.domElement;
-    const screen = worldToCanvasPx(overlay.midpoint, camera as THREE.PerspectiveCamera, canvas);
+    const screen = worldToCanvasPx(overlay.midpoint, camera, canvas);
     setLabel({ x: screen.x, y: screen.y, text: formatUnit(overlay.distance, unitSystem) });
   }, [threeRef, measureOverlayRef, unitSystem]);
 

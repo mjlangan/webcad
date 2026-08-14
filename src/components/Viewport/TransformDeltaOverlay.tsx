@@ -1,6 +1,6 @@
 import { useState, type RefObject } from 'react';
 import * as THREE from 'three';
-import type { ThreeSetup } from './useThreeSetup';
+import type { ThreeSetup, ViewportCamera } from './useThreeSetup';
 import type { DragOverlayState } from './useTransformControls';
 import { usePreferencesStore, toDisplayUnit } from '../../store/usePreferencesStore';
 import { worldToCanvasPx } from '../../lib/screenProjection';
@@ -15,14 +15,19 @@ interface LabelInfo {
 }
 
 /** Estimate the world-space length of a gizmo arm (tip of the TC arrow). */
-function gizmoArmLength(
-  objectPos: THREE.Vector3,
-  camera: THREE.PerspectiveCamera,
-): number {
-  const dist = camera.position.distanceTo(objectPos);
+function gizmoArmLength(objectPos: THREE.Vector3, camera: ViewportCamera): number {
+  if ((camera as THREE.OrthographicCamera).isOrthographicCamera) {
+    const ortho = camera as THREE.OrthographicCamera;
+    // (top - bottom) / zoom is the orthographic analog of "distance" here —
+    // same base quantity useTransformControls.ts's computeGizmoScaleFactor
+    // uses to mirror TransformControlsGizmo's own handle-scale computation.
+    return ((ortho.top - ortho.bottom) / ortho.zoom) * 0.18;
+  }
+  const persp = camera as THREE.PerspectiveCamera;
+  const dist = persp.position.distanceTo(objectPos);
   // Matches Three.js TransformControls internal scale: dist * min(1, fov/36) * 0.15
   // We multiply by a bit more so the label lands just beyond the arrow tip
-  const fovFactor = Math.min(1, camera.fov / 36);
+  const fovFactor = Math.min(1, persp.fov / 36);
   return dist * fovFactor * 0.18;
 }
 
@@ -97,13 +102,13 @@ export default function TransformDeltaOverlay({ threeRef, dragOverlayRef }: Prop
 
     const { camera, renderer } = three;
     const canvas = renderer.domElement;
-    const armLength = gizmoArmLength(overlay.objectPos, camera as THREE.PerspectiveCamera);
+    const armLength = gizmoArmLength(overlay.objectPos, camera);
 
     const next: LabelInfo[] = (['X', 'Y', 'Z'] as const).map((axis) => {
       const tipWorld = overlay.objectPos.clone().addScaledVector(AXIS_DIRS[axis], armLength);
-      const screen = worldToCanvasPx(tipWorld, camera as THREE.PerspectiveCamera, canvas);
+      const screen = worldToCanvasPx(tipWorld, camera, canvas);
       // Offset the label a few pixels outward from the axis tip in screen space
-      const screenOrigin = worldToCanvasPx(overlay.objectPos, camera as THREE.PerspectiveCamera, canvas);
+      const screenOrigin = worldToCanvasPx(overlay.objectPos, camera, canvas);
       const dx = screen.x - screenOrigin.x;
       const dy = screen.y - screenOrigin.y;
       const len = Math.sqrt(dx * dx + dy * dy) || 1;

@@ -2,12 +2,15 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 export type UnitSystem = 'mm' | 'in';
+export type CameraProjection = 'perspective' | 'orthographic';
 
 interface PreferencesState {
   unitSystem: UnitSystem;
   setUnitSystem: (unit: UnitSystem) => void;
   shadowsEnabled: boolean;
   setShadowsEnabled: (enabled: boolean) => void;
+  cameraProjection: CameraProjection;
+  setCameraProjection: (projection: CameraProjection) => void;
 }
 
 export const usePreferencesStore = create<PreferencesState>()(
@@ -17,6 +20,8 @@ export const usePreferencesStore = create<PreferencesState>()(
       setUnitSystem: (unitSystem) => set({ unitSystem }),
       shadowsEnabled: false,
       setShadowsEnabled: (shadowsEnabled) => set({ shadowsEnabled }),
+      cameraProjection: 'perspective',
+      setCameraProjection: (cameraProjection) => set({ cameraProjection }),
     }),
     { name: 'webcad-preferences' },
   ),
