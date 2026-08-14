@@ -134,7 +134,7 @@ export default function ShapeLibrary() {
         onClose={() => setOpen(false)}
         mask={false}
         getContainer={false}
-        width={DRAWER_WIDTH}
+        size={DRAWER_WIDTH}
         styles={{ body: { padding: 8, overflowY: 'auto' } }}
       >
         <div
